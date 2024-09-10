@@ -1,0 +1,9 @@
+table scan:
+direct spill into s3 every xth partition
+aggregation:
+spill to s3 to use first results ??
+spill for dynamic scaling
+order by:
+spill to merge -> merge spill to disk
+
+Spill non relevant coloumns for operations and merge them with the result once in the end

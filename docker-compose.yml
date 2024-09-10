@@ -1,0 +1,16 @@
+version: '3'
+
+volumes:
+  data:
+
+services:
+  mysql:
+    image: mysql:9.0.1
+    environment:
+      - MYSQL_ROOT_PASSWORD=tennis123
+      - MYSQL_DATABASE=tpch1g
+    volumes:
+      - data:/hddSpace/erasmus/mysqlData
+
+  trino:
+    build: .

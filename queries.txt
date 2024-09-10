@@ -1,0 +1,149 @@
+select
+       l.returnflag,
+       l.linestatus,
+       sum(l.quantity) as sum_qty,
+       sum(l.extendedprice) as sum_base_price,
+       sum(l.extendedprice * (1-l.discount)) as sum_disc_price,
+       sum(l.extendedprice * (1-l.discount) * (1+l.tax)) as sum_charge,
+       avg(l.quantity) as avg_qty,
+       avg(l.extendedprice) as avg_price,
+       avg(l.discount) as avg_disc,
+       count(*) as count_order
+ from
+       lineitem l
+ where
+       l.shipdate <= date '1998-01-12'
+ group by
+       l.returnflag,
+       l.linestatus
+ order by
+       l.returnflag,
+       l.linestatus;
+
+
+
+
+
+
+select
+p.brand,
+p.type,
+p.size
+from
+partsupp ps,
+part p
+where
+p.partkey = ps.partkey
+group by
+p.brand,
+p.type,
+p.size
+order by
+p.brand,
+p.type,
+p.size;
+
+
+
+QUERY spill in JOIN/Hashbuilder:
+select
+p.brand,
+p.type,
+p.size,
+ps.availqty
+from
+partsupp ps,
+part p
+where
+ps.availqty > 400
+and p.partkey = ps.partkey
+order by
+p.brand,
+p.type,
+p.size;
+
+Distinct:
+select
+p.brand,
+p.type,
+p.size,
+count(distinct ps.suppkey) as supplier_cnt
+from
+partsupp ps,
+part p
+where
+p.partkey = ps.partkey
+group by
+p.brand,
+p.type,
+p.size
+order by
+supplier_cnt desc,
+p.brand,
+p.type,
+p.size;
+
+QUERY spill in AGG:
+
+AVG:
+
+select
+p.brand,
+p.type,
+p.size,
+count(ps.suppkey) as supplier_cnt,
+avg(ps.availqty) as availqty_avg
+from
+partsupp ps,
+part p
+where
+p.partkey = ps.partkey
+group by
+p.brand,
+p.type,
+p.size
+order by
+supplier_cnt desc,
+p.brand,
+p.type,
+p.size;
+
+MAX/MIN:
+select
+p.brand,
+p.type,
+p.size,
+count(ps.suppkey) as supplier_cnt,
+max(ps.availqty) as availqty_max,
+min(ps.availqty) as availqty_min
+from
+partsupp ps,
+part p
+where
+p.partkey = ps.partkey
+group by
+p.brand,
+p.type,
+p.size
+order by
+supplier_cnt desc,
+p.brand,
+p.type,
+p.size;
+
+Windowfunction:
+select
+p.brand,
+p.type,
+p.size,
+count(ps.availqty) over (partition by p.brand,p.type,p.size order by supplycost rows between 1 preceding and 1 following) as availqty_avg
+from
+partsupp ps,
+part p
+where
+p.partkey = ps.partkey
+order by
+availqty_avg desc,
+p.brand,
+p.type,
+p.size;

@@ -1,0 +1,10 @@
+mfgr 5
+brand 25
+type 150
+size 50
+retailprice 120000
+container 40
+
+10000
+55000
+10mio pro 50 retailprice

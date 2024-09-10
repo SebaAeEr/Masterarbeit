@@ -1,0 +1,14 @@
+kubectl create namespace hive-metastore
+
+kubectl delete -f hive-metastore-postgresql-init-config.yaml
+kubectl delete -f hivems-hive-metastore-config.yaml
+kubectl delete -f hivems-hadoop-metastore-config.yaml
+
+kubectl delete -f hivems-postgresql-secret.yaml
+
+kubectl delete -f hivems-hive-metastore-service.yaml
+kubectl delete -f hivems-postgresql-headless-service.yaml
+kubectl delete -f hivems-postgresql-service.yaml
+
+kubectl delete -f hivems-postgresql-stateful.yaml
+kubectl delete -f hivems-hive-metastore-stateful.yaml

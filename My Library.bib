@@ -1,0 +1,57 @@
+
+@article{gopalani_comparing_2015,
+	title = {Comparing {Apache} {Spark} and {Map} {Reduce} with {Performance} {Analysis} using {K}-{Means}},
+	volume = {113},
+	doi = {10.5120/19788-0531},
+	abstract = {Data has long been the topic of fascination for Computer Science enthusiasts around the world, and has gained even more prominence in the recent times with the continuous explosion of data resulting from the likes of social media and the quest for tech giants to gain access to deeper analysis of their data. This paper discusses two of the comparison of - Hadoop Map Reduce and the recently introduced Apache Spark - both of which provide a processing model for analyzing big data. Although both of these options are based on the concept of Big Data, their performance varies significantly based on the use case under implementation. This is what makes these two options worthy of analysis with respect to their variability and variety in the dynamic field of Big Data. In this paper we compare these two frameworks along with providing the performance analysis using a standard machine learning algorithm for clustering (K- Means).},
+	journal = {International Journal of Computer Applications},
+	author = {Gopalani, Satish and Arora, Rohan},
+	month = mar,
+	year = {2015},
+	pages = {8--11},
+	file = {Full Text:C\:\\Users\\SebtheLegend\\Zotero\\storage\\Q4XT9C6F\\Gopalani and Arora - 2015 - Comparing Apache Spark and Map Reduce with Perform.pdf:application/pdf},
+}
+
+@misc{noauthor_cluster_nodate,
+	title = {Cluster {Mode} {Overview} - {Spark} 3.5.1 {Documentation}},
+	url = {https://spark.apache.org/docs/latest/cluster-overview.html},
+	urldate = {2024-04-30},
+	file = {Cluster Mode Overview - Spark 3.5.1 Documentation:C\:\\Users\\SebtheLegend\\Zotero\\storage\\SPKC8N36\\cluster-overview.html:text/html},
+}
+
+@misc{noauthor_job_nodate,
+	title = {Job {Scheduling} - {Spark} 3.5.1 {Documentation}},
+	url = {https://spark.apache.org/docs/latest/job-scheduling.html},
+	urldate = {2024-04-30},
+	file = {Job Scheduling - Spark 3.5.1 Documentation:C\:\\Users\\SebtheLegend\\Zotero\\storage\\AL45KLN4\\job-scheduling.html:text/html},
+}
+
+@inproceedings{zaharia_resilient_2012,
+	address = {USA},
+	series = {{NSDI}'12},
+	title = {Resilient distributed datasets: a fault-tolerant abstraction for in-memory cluster computing},
+	shorttitle = {Resilient distributed datasets},
+	abstract = {We present Resilient Distributed Datasets (RDDs), a distributed memory abstraction that lets programmers perform in-memory computations on large clusters in a fault-tolerant manner. RDDs are motivated by two types of applications that current computing frameworks handle inefficiently: iterative algorithms and interactive data mining tools. In both cases, keeping data in memory can improve performance by an order of magnitude. To achieve fault tolerance efficiently, RDDs provide a restricted form of shared memory, based on coarse-grained transformations rather than fine-grained updates to shared state. However, we show that RDDs are expressive enough to capture a wide class of computations, including recent specialized programming models for iterative jobs, such as Pregel, and new applications that these models do not capture. We have implemented RDDs in a system called Spark, which we evaluate through a variety of user applications and benchmarks.},
+	urldate = {2024-04-30},
+	booktitle = {Proceedings of the 9th {USENIX} conference on {Networked} {Systems} {Design} and {Implementation}},
+	publisher = {USENIX Association},
+	author = {Zaharia, Matei and Chowdhury, Mosharaf and Das, Tathagata and Dave, Ankur and Ma, Justin and McCauley, Murphy and Franklin, Michael J. and Shenker, Scott and Stoica, Ion},
+	month = apr,
+	year = {2012},
+	pages = {2},
+}
+
+@inproceedings{zaharia_spark_2010,
+	address = {USA},
+	series = {{HotCloud}'10},
+	title = {Spark: cluster computing with working sets},
+	shorttitle = {Spark},
+	abstract = {MapReduce and its variants have been highly successful in implementing large-scale data-intensive applications on commodity clusters. However, most of these systems are built around an acyclic data flow model that is not suitable for other popular applications. This paper focuses on one such class of applications: those that reuse a working set of data across multiple parallel operations. This includes many iterative machine learning algorithms, as well as interactive data analysis tools. We propose a new framework called Spark that supports these applications while retaining the scalability and fault tolerance of MapReduce. To achieve these goals, Spark introduces an abstraction called resilient distributed datasets (RDDs). An RDD is a read-only collection of objects partitioned across a set of machines that can be rebuilt if a partition is lost. Spark can outperform Hadoop by 10x in iterative machine learning jobs, and can be used to interactively query a 39 GB dataset with sub-second response time.},
+	urldate = {2024-04-30},
+	booktitle = {Proceedings of the 2nd {USENIX} conference on {Hot} topics in cloud computing},
+	publisher = {USENIX Association},
+	author = {Zaharia, Matei and Chowdhury, Mosharaf and Franklin, Michael J. and Shenker, Scott and Stoica, Ion},
+	month = jun,
+	year = {2010},
+	pages = {10},
+}

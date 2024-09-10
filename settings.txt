@@ -1,0 +1,15 @@
+optimizer:
+	dictionary-aggregation=true
+	opritmize-hash-generation=true
+	distinct-aggregations-strategy=Mark_DISTINCT, SINGLE_STEP, PRE_AGGREGATE
+	
+query:
+	max-memory-per-node (JVM * 0.3)
+	max-memory
+	max-total-memory
+memory:
+	heap-headroom-per-node (JVM * 0.3) 
+	
+more workers
+more heap memory
+more maxMemory
