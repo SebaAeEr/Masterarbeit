@@ -1,40 +1,169 @@
+--TPC 1
+select
+        l_returnflag,
+        l_linestatus,
+        sum(l_quantity) as sum_qty,
+        sum(l_extendedprice) as sum_base_price,
+        sum(l_extendedprice * (1 - l_discount)) as sum_disc_price,
+        sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge,
+        avg(l_quantity) as avg_qty,
+        avg(l_extendedprice) as avg_price,
+        avg(l_discount) as avg_disc,
+        count(*) as count_order
+from
+        lineitem
+where
+        l_shipdate <= date '1998-12-01' - interval '76' day (3)
+group by
+        l_returnflag,
+        l_linestatus
+order by
+        l_returnflag,
+        l_linestatus;
 
--- TPC 22
+-- TPC 4
 
 select
-        cntrycode,
-        count(*) as numcust,
-        sum(c_acctbal) as totacctbal
+        o_orderpriority,
+        count(*) as order_count
+from
+        orders
+where
+        o_orderdate >= date '1993-06-01'
+        and o_orderdate < date '1993-06-01' + interval '3' month
+        and exists (
+                select
+                        *
+                from
+                        lineitem
+                where
+                        l_orderkey = o_orderkey
+                        and l_commitdate < l_receiptdate
+        )
+group by
+        o_orderpriority
+order by
+        o_orderpriority;
+-- TPC 6
+
+select
+        sum(l_extendedprice * l_discount) as revenue
+from
+        lineitem
+where
+        l_shipdate >= date '1997-01-01'
+        and l_shipdate < date '1997-01-01' + interval '1' year
+        and l_discount between 0.05 - 0.01 and 0.05 + 0.01
+        and l_quantity < 25;
+-- TPC 13
+
+select
+        c_count,
+        count(*) as custdist
 from
         (
                 select
-                        substring(c_phone from 1 for 2) as cntrycode,
-                        c_acctbal
+                        c_custkey,
+                        count(o_orderkey)
                 from
-                        customer
-                where
-                        substring(c_phone from 1 for 2) in
-                                ('15', '11', '31', '26', '30', '28', '22')
-                        and c_acctbal > (
-                                select
-                                        avg(c_acctbal)
-                                from
-                                        customer
-                                where
-                                        c_acctbal > 0.00
-                                        and substring(c_phone from 1 for 2) in
-                                                ('15', '11', '31', '26', '30', '28', '22')
-                        )
-                        and not exists (
-                                select
-                                        *
-                                from
-                                        orders
-                                where
-                                        o_custkey = c_custkey
-                        )
-        ) as custsale
+                        customer left outer join orders on
+                                c_custkey = o_custkey
+                                and o_comment not like '%pending%deposits%'
+                group by
+                        c_custkey
+        ) as c_orders (c_custkey, c_count)
 group by
-        cntrycode
+        c_count
 order by
-        cntrycode;
+        custdist desc,
+        c_count desc;
+
+-- TPC 16
+
+select
+        p_brand,
+        p_type,
+        p_size,
+        count(distinct ps_suppkey) as supplier_cnt
+from
+        partsupp,
+        part
+where
+        p_partkey = ps_partkey
+        and p_brand <> 'Brand#23'
+        and p_type not like 'SMALL BURNISHED%'
+        and p_size in (29, 47, 3, 14, 5, 44, 34, 41)
+        and ps_suppkey not in (
+                select
+                        s_suppkey
+                from
+                        supplier
+                where
+                        s_comment like '%Customer%Complaints%'
+        )
+group by
+        p_brand,
+        p_type,
+        p_size
+order by
+        supplier_cnt desc,
+        p_brand,
+        p_type,
+        p_size;
+
+-- TPC 17
+select
+        sum(l_extendedprice) / 7.0 as avg_yearly
+from
+        lineitem,
+        part
+where
+        p_partkey = l_partkey
+        and p_brand = 'Brand#32'
+        and p_container = 'MED DRUM'
+        and l_quantity < (
+                select
+                        0.2 * avg(l_quantity)
+                from
+                        lineitem
+                where
+                        l_partkey = p_partkey
+        );
+-- TPC 20
+select
+        s_name,
+        s_address
+from
+        supplier,
+        nation
+where
+        s_suppkey in (
+                select
+                        ps_suppkey
+                from
+                        partsupp
+                where
+                        ps_partkey in (
+                                select
+                                        p_partkey
+                                from
+                                        part
+                                where
+                                        p_name like 'thistle%'
+                        )
+                        and ps_availqty > (
+                                select
+                                        0.5 * sum(l_quantity)
+                                from
+                                        lineitem
+                                where
+                                        l_partkey = ps_partkey
+                                        and l_suppkey = ps_suppkey
+                                        and l_shipdate >= date '1993-01-01'
+                                        and l_shipdate < date '1993-01-01' + interval '1' year
+                        )
+        )
+        and s_nationkey = n_nationkey
+        and n_name = 'ETHIOPIA'
+order by
+        s_name;

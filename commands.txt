@@ -6,7 +6,7 @@ nohup
 kind create cluster --name trino
 helm install -f conf/conf.yaml trino trino/trino
 kubectl port-forward trino-coordinator-... 8080:8080
-kubectl port-forward trino-coordinator-59686657b6-79wg4 8080:8080 &
+kubectl port-forward trino-coordinator-59686657b6-fnkpq 8080:8080 &
 
 ssh -L 8080:localhost:8080 erasmus@atkemper4.in.tum.de
 trino --server http://localhost:8080 --catalog tpch --schema sf1000 --output-format=null --file queries/join.txt 
@@ -27,11 +27,11 @@ mysql --local-infile -uroot -ptennis123 tpch1g
 
 docker stats --format "table {{.Name}}\t{{.MemUsage}}"
 
-LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw/region.tbl'     INTO TABLE region     FIELDS TERMINATED BY '|'; J
-LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw/nation.tbl'     INTO TABLE nation     FIELDS TERMINATED BY '|'; J
-LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw/customer.tbl' INTO TABLE customer   FIELDS TERMINATED BY '|'; J
-LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw/supplier.tbl' INTO TABLE supplier   FIELDS TERMINATED BY '|'; J
-LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw/part.tbl'         INTO TABLE part       FIELDS TERMINATED BY '|'; J
-LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw/partsupp.tbl' INTO TABLE partsupp   FIELDS TERMINATED BY '|';  ::
-LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw/orders.tbl'     INTO TABLE orders     FIELDS TERMINATED BY '|';  X
-LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw/lineitem.tbl' INTO TABLE lineitem   FIELDS TERMINATED BY '|'; ::
+LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/region.tbl'     INTO TABLE region     FIELDS TERMINATED BY '|'; J
+LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/nation.tbl'     INTO TABLE nation     FIELDS TERMINATED BY '|'; J
+LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/customer.tbl' INTO TABLE customer   FIELDS TERMINATED BY '|'; J
+LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/supplier.tbl' INTO TABLE supplier   FIELDS TERMINATED BY '|'; 
+LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw-300/part.tbl'         INTO TABLE part       FIELDS TERMINATED BY '|';
+LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/partsupp.tbl' INTO TABLE partsupp   FIELDS TERMINATED BY '|'; 
+LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/orders.tbl'     INTO TABLE orders     FIELDS TERMINATED BY '|'; 
+LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/lineitem.tbl' INTO TABLE lineitem   FIELDS TERMINATED BY '|'; 
