@@ -6,11 +6,11 @@ nohup
 kind create cluster --name trino
 helm install -f conf/conf.yaml trino trino/trino
 kubectl port-forward trino-coordinator-... 8080:8080
-kubectl port-forward trino-coordinator-59686657b6-fnkpq 8080:8080 &
+nohup kubectl port-forward trino-coordinator-676b79cc75-jcq6t 8080:8080 &
 
 ssh -L 8080:localhost:8080 erasmus@atkemper4.in.tum.de
 trino --server http://localhost:8080 --catalog tpch --schema sf1000 --output-format=null --file queries/join.txt 
-trino --server http://localhost:8080 --catalog rdbms --schema tpch1g --output-format=null --file queries/join.txt 
+nohup trino --server http://localhost:8080 --catalog rdbms --schema tpch1g --output-format=null --file queries/join.txt 
 
 helm uninstall trino
 kind delete cluster -n trino
