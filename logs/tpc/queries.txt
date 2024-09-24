@@ -13,7 +13,7 @@ select
 from
         lineitem
 where
-        l_shipdate <= date '1998-12-01' - interval '76' day (3)
+        l_shipdate <= date '1998-12-01' - interval '76' day
 group by
         l_returnflag,
         l_linestatus
@@ -21,29 +21,7 @@ order by
         l_returnflag,
         l_linestatus;
 
--- TPC 4
 
-select
-        o_orderpriority,
-        count(*) as order_count
-from
-        orders
-where
-        o_orderdate >= date '1993-06-01'
-        and o_orderdate < date '1993-06-01' + interval '3' month
-        and exists (
-                select
-                        *
-                from
-                        lineitem
-                where
-                        l_orderkey = o_orderkey
-                        and l_commitdate < l_receiptdate
-        )
-group by
-        o_orderpriority
-order by
-        o_orderpriority;
 -- TPC 6
 
 select
@@ -77,6 +55,30 @@ group by
 order by
         custdist desc,
         c_count desc;
+
+-- TPC 4
+
+select
+        o_orderpriority,
+        count(*) as order_count
+from
+        orders
+where
+        o_orderdate >= date '1993-06-01'
+        and o_orderdate < date '1993-06-01' + interval '3' month
+        and exists (
+                select
+                        *
+                from
+                        lineitem
+                where
+                        l_orderkey = o_orderkey
+                        and l_commitdate < l_receiptdate
+        )
+group by
+        o_orderpriority
+order by
+        o_orderpriority;
 
 -- TPC 16
 
