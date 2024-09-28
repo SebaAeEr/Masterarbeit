@@ -1,0 +1,75 @@
+-- TPC 16
+
+select
+        p.brand,
+        p.type,
+        p.size,
+        count(distinct ps.suppkey) as supplier_cnt
+from
+        partsupp ps,
+        part p
+where
+        p.partkey = ps.partkey
+        and p.brand <> 'Brand#23'
+        and p.type not like 'SMALL BURNISHED%'
+        and p.size in (29, 47, 3, 14, 5, 44, 34, 41)
+        and ps.suppkey not in (
+                select
+                        s.suppkey
+                from
+                        supplier s
+                where
+                        s.comment like '%Customer%Complaints%'
+        )
+group by
+        p.brand,
+        p.type,
+        p.size
+order by
+        supplier_cnt desc,
+        p.brand,
+        p.type,
+        p.size;
+        
+-- TPC 4
+
+select
+        o.orderpriority,
+        count(*) as order_count
+from
+        orders o
+where
+        o.orderdate >= date '1993-06-01'
+        and o.orderdate < date '1993-06-01' + interval '3' month
+        and exists (
+                select
+                        *
+                from
+                        lineitem l
+                where
+                        l.orderkey = o.orderkey
+                        and l.commitdate < l.receiptdate
+        )
+group by
+        o.orderpriority
+order by
+        o.orderpriority;
+        
+-- TPC 17
+select
+        sum(l.extendedprice) / 7.0 as avg_yearly
+from
+        lineitem l,
+        part p
+where
+        p.partkey = l.partkey
+        and p.brand = 'Brand#32'
+        and p.container = 'MED DRUM'
+        and l.quantity < (
+                select
+                        0.2 * avg(l.quantity)
+                from
+                        lineitem
+                where
+                        l.partkey = p.partkey
+        );

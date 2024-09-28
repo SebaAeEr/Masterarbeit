@@ -668,6 +668,6 @@ def analyse_1_6_13():
         plt.show()
 
 
-#TPC()
+TPC()
 # analyse_Query("8")
 analyse_1_6_13()
