@@ -36,7 +36,7 @@ def transTimes(time):
 
 def CollectOPData(i, tabs):
     blockedwall = i["blockedWall"]
-    printEingerückt("Wall time: " + blockedwall, tabs)
+
     spilltemp = convertByteToGB(i["spilledDataSize"])
     printEingerückt("Spill Data: " + str(spilltemp) + " GB", tabs)
     cpu_time = (
@@ -49,7 +49,42 @@ def CollectOPData(i, tabs):
         + transTimes(i["getOutputWall"])
         + transTimes(i["finishWall"])
     )
-    return max(wall_time, transTimes(blockedwall)), cpu_time, spilltemp
+    printEingerückt("Wall time: " + str(wall_time), tabs)
+    return wall_time, cpu_time, spilltemp
+
+
+def makeBarFig(data, xlabels, ylabel, show_bar_label: bool = True):
+    fig, ax = plt.subplots()
+    x = np.arange(len(xlabels))
+    width = 0.4
+
+    bottom = np.zeros(len(xlabels))
+    for label, data in data.items():
+        rects = ax.bar(x, data, width, label=label, bottom=bottom)
+        bottom += data
+        if show_bar_label:
+            ax.bar_label(rects, padding=2, fontsize=20)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(xlabels, fontsize=20)
+    ax.legend(loc="upper right", fontsize=20)
+    ax.set_ylabel(ylabel, fontsize=20)
+    ax.grid(visible=True, linestyle="dashed")
+    ax.set_axisbelow(True)
+    plt.show()
+
+
+def makeScatterFig(xdata, ydata, labels, xlabel, ylabel):
+    fig, ax = plt.subplots()
+
+    ax.scatter(xdata, ydata, marker="o", s=70)
+    for i, txt in enumerate(labels):
+        ax.annotate(txt, (xdata[i], ydata[i]))
+    ax.set_xlabel(xlabel, fontsize=20)
+    ax.set_ylabel(ylabel, fontsize=20)
+    ax.grid(visible=True, linestyle="dashed")
+    ax.set_axisbelow(True)
+    plt.show()
 
 
 abspath = os.path.abspath(__file__)
@@ -280,11 +315,17 @@ def TPC():
         except:
             print("File " + name + " not found.")
             try:
-                name = "tpc_" + str(k) + "(failed).json"
+                name = "tpc_" + str(k) + "_6_1000.json"
                 f = open(os.path.join(directory, name))
             except:
-                print("failed to open failed!")
-                continue
+                # continue
+                try:
+                    name = "tpc_" + str(k) + "(failed).json"
+                    f = open(os.path.join(directory, name))
+                except:
+                    print("failed to open failed!")
+                    continue
+
         query_names.append("Query " + str(k))
         data = json.load(f)
 
@@ -367,80 +408,38 @@ def TPC():
 
     memcounter += 1
 
-    fig, ax = plt.subplots()
-    x = np.arange(len(query_names))
-    width = 0.4  # the width of the bars
-    rects = ax.bar(x, query_p_user_mem, width, label="Peak User Memory")
-    ax.bar_label(rects, padding=2)
+    filter = np.array(spilledData) != 0
 
     other = np.subtract(
         spilledData,
         np.add(np.add(query_agg_spills, query_join_spills), query_hash_spills),
     )
     spills = {
-        "Join": query_join_spills,
-        "Aggregation": query_agg_spills,
-        "Hash": query_hash_spills,
-        "Other": other,
+        "Join": np.array(query_join_spills)[filter],
+        "Aggregation": np.array(query_agg_spills)[filter],
+        "Hash": np.array(query_hash_spills)[filter],
+        "Other": np.array(other)[filter],
     }
-    bottom = np.zeros(len(query_join_spills))
-    for label, data in spills.items():
-        rects = ax.bar(x + width, data, width, label=label, bottom=bottom)
-        bottom += data
-        ax.bar_label(rects, padding=2)
-
-    ax.set_xticks(x + width / 2)
-    ax.set_xticklabels(query_names)
-    ax.legend(loc="upper right")
-    ax.set_ylabel("Spilled Data in GB")
-    plt.show()
-
-    fig, ax = plt.subplots()
-
-    ax.scatter(query_times, spilledData)
-    for i, txt in enumerate(query_names):
-        ax.annotate(txt, (query_times[i], spilledData[i]))
-    ax.set_xlabel("Wall time of Query in min")
-    ax.set_ylabel("Data spilled in GB")
-    plt.show()
-
-    fig, ax = plt.subplots()
-    op_names = ["Joins", "Aggregations"]
-    rects = ax.bar(x, query_joins, width, label="Joins")
-    ax.bar_label(rects, padding=2)
-    rects = ax.bar(x + width, query_aggs, width, label="Aggregations")
-    ax.bar_label(rects, padding=2)
-    ax.set_xticks(x + width / 2)
-    ax.set_xticklabels(query_names)
-    ax.legend(loc="upper right")
-    ax.set_ylabel("Number of Operations in Query")
-    plt.show()
-
-    fig, ax = plt.subplots(1, 2)
-    ax21 = ax[0]
-
-    other_times = np.subtract(
+    makeBarFig(spills, np.array(query_names)[filter], "Spilled Data in GB")
+    makeScatterFig(
         query_times,
-        np.add(
-            np.add(np.add(query_times_join, query_times_agg), query_times_ex),
-            query_times_hash,
-        ),
+        spilledData,
+        query_names,
+        "Execution time in min",
+        "Data spilled in GB",
     )
-    times = {
-        "Join": query_times_join,
-        "Aggregation": query_times_agg,
-        # "Exchange": query_times_ex,
-        "Hash": query_times_hash,
-        # "Other": all_time,
-    }
-    bottom = np.zeros(len(query_join_spills))
-    for label, data in times.items():
-        rects = ax21.bar(query_names, data, width, label=label, bottom=bottom)
-        bottom += data
-        ax21.bar_label(rects, padding=2)
-    ax21.legend(loc="upper right")
-    ax21.set_ylabel("Wall time of Query in min")
-    ax22 = ax[1]
+
+    # fig, ax = plt.subplots()
+    # op_names = ["Joins", "Aggregations"]
+    # rects = ax.bar(x, query_joins, width, label="Joins")
+    # ax.bar_label(rects, padding=2)
+    # rects = ax.bar(x + width, query_aggs, width, label="Aggregations")
+    # ax.bar_label(rects, padding=2)
+    # ax.set_xticks(x + width / 2)
+    # ax.set_xticklabels(query_names, fontsize=15)
+    # ax.legend(loc="upper right")
+    # ax.set_ylabel("Number of Operations in Query")
+    # plt.show()
 
     other_times = np.subtract(
         query_times,
@@ -456,14 +455,7 @@ def TPC():
         "Hash": query_times_cpu_hash,
         # "Other": all_time,
     }
-    bottom = np.zeros(len(query_join_spills))
-    for label, data in times.items():
-        rects = ax22.bar(query_names, data, width, label=label, bottom=bottom)
-        bottom += data
-        ax22.bar_label(rects, padding=2)
-    ax22.legend(loc="upper right")
-    ax22.set_ylabel("CPU time of Query in min")
-    plt.show()
+    makeBarFig(times, query_names, "Wall time in min", show_bar_label=False)
 
     fig, ax = plt.subplots(1, 2)
     ax31 = ax[0]
@@ -585,16 +577,23 @@ def analyse_1_6_13():
     data_scale = [100, 300, 1000]
     worker_size = [4, 5, 6]
     query_names = []
-    query_times = np.zeros((3, 3, 3), float)
-    spilledData = np.zeros((3, 3, 3), float)
-    query_p_user_mem = [[[]]]
-    for qid in range(3):
+    query_times = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
+    spilledData = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
+    wall_time_agg = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
+    wall_time_exc = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
+    wall_time_hash = np.zeros(
+        (len(query_ids), len(worker_size), len(data_scale)), float
+    )
+    wall_time_join = np.zeros(
+        (len(query_ids), len(worker_size), len(data_scale)), float
+    )
+    for qid in range(len(query_ids)):
         query_names.append("Query " + str(query_ids[qid]))
         tabs = 0
         printEingerückt(str(qid) + ":", tabs)
         tabs += 1
-        for scale in range(3):
-            for worker in range(3):
+        for scale in range(len(data_scale)):
+            for worker in range(len(worker_size)):
                 name = (
                     "tpc_"
                     + str(query_ids[qid])
@@ -616,11 +615,11 @@ def analyse_1_6_13():
 
                 qTime = transTimes(data["queryStats"]["executionTime"])
                 printEingerückt("ExecutionTime: " + str(qTime), tabs)
-                query_times[worker][scale][qid] = qTime
+                query_times[qid][worker][scale] = qTime
 
                 qData = convertByteToGB(data["queryStats"]["spilledDataSize"])
                 printEingerückt("Spilled Data: " + str(qData) + " GB", tabs)
-                spilledData[worker][scale][qid] = qData
+                spilledData[qid][scale][worker] = qData
 
                 # p_user_mem = convertByteToGB(data["queryStats"]["peakUserMemoryReservation"])
                 # printEingerückt("Peak User Memory: " + str(p_user_mem) + " GB", tabs)
@@ -631,43 +630,65 @@ def analyse_1_6_13():
                     printEingerückt(i["operatorType"], tabs)
                     if i["operatorType"] == "HashBuilderOperator":
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
+                        wall_time_hash[qid][scale][worker] += wtime
 
                     elif i["operatorType"] == "LookupJoinOperator":
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
+                        wall_time_join[qid][scale][worker] += wtime
 
                     elif i["operatorType"] == "HashAggregationOperator":
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
+                        wall_time_agg[qid][scale][worker] += wtime
 
                     elif i["operatorType"] == "AggregationOperator":
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
+                        wall_time_agg[qid][scale][worker] += wtime
+
                     elif "Exchange" in i["operatorType"]:
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
+                        wall_time_exc[qid][scale][worker] += wtime
                     else:
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
+                        wall_time_exc[qid][scale][worker] += wtime
                 f.close()
         tabs -= 1
 
-    for h in range(2):
+    for h in range(1):
         data = query_times if h == 0 else spilledData
 
-        fig, axs = plt.subplots(3, 1)
         x = np.arange(len(query_ids))
         width = 0.25  # the width of the bars
-        labels = ["Scale factor 100", "Scale factor 300", "Scale factor 1000"]
+        labels = ["4GB Heapspace", "5GB Heapspace", "6GB Heapspace"]
         for k in range(3):
-            ax = axs[k]
+            fig, axs = plt.subplots()
+            ax = axs
             bottom = np.zeros(len(query_ids))
             for i in range(3):
                 rects = ax.bar(x + width * i, data[k][i], width, label=labels[i])
-                ax.bar_label(rects, padding=2)
-
+                ax.bar_label(rects, padding=2, fontsize=20)
             ax.set_xticks(x + width)
-            ax.set_xticklabels(query_ids)
-            ax.legend(loc="upper right")
-            ax.set_ylabel("Query Execution-time in min")
-        plt.show()
+            ax.set_xticklabels(data_scale, fontsize=20)
+            ax.legend(loc="upper right", fontsize=20)
+            ax.set_ylabel("Query Execution-time in min", fontsize=20)
+            ax.grid(visible=True, linestyle="dashed")
+            ax.set_axisbelow(True)
+
+    for k in range(3):
+        times = {
+            "Join": np.array(wall_time_join[2][k]),
+            "Aggregation": np.array(wall_time_agg[2][k]),
+            "Hash": np.array(wall_time_hash[2][k]),
+            "Exchange": np.array(wall_time_exc[2][k]),
+        }
+        # makeBarFig(times, np.array(labels), "Wall time in min")
+
+    makeBarFig(
+        {"Spilled Data": np.array(spilledData[2][2])},
+        labels,
+        "Spilled data in GB",
+    )
 
 
-TPC()
+# TPC()
 # analyse_Query("8")
 analyse_1_6_13()
