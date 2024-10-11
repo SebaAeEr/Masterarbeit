@@ -6,7 +6,7 @@ nohup
 kind create cluster --name trino
 helm install -f conf/conf.yaml trino trino/trino
 kubectl port-forward trino-coordinator-... 8080:8080
-nohup kubectl port-forward trino-coordinator-9b549ddb8-4dp6s 8080:8080 &
+nohup kubectl port-forward trino-coordinator-b87bd9566-fwpr6 8080:8080 &
 
 ssh -L 8080:localhost:8080 erasmus@atkemper4.in.tum.de
 nohup trino --server http://localhost:8080 --catalog tpch --schema sf1000 --output-format=null --file queries/tpc_pretty.txt &
@@ -37,4 +37,16 @@ LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/supplier.tbl' INTO TABLE sup
 LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw-300/part.tbl'         INTO TABLE part       FIELDS TERMINATED BY '|';
 LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/partsupp.tbl' INTO TABLE partsupp   FIELDS TERMINATED BY '|'; 
 LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/orders.tbl'     INTO TABLE orders     FIELDS TERMINATED BY '|'; 
-LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/lineitem.tbl' INTO TABLE lineitem   FIELDS TERMINATED BY '|'; 
+LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/lineitem.tbl' INTO TABLE lineitem   FIELDS TERMINATED BY '|';
+
+
+
+CREATE SCHEMA minio.tiny
+
+WITH (location = 's3a://tiny/');
+
+CREATE TABLE customer
+WITH (
+    format = 'PARQUET'
+) 
+AS SELECT * FROM tpch.sf300.customer; 

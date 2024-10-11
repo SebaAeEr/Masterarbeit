@@ -573,24 +573,27 @@ def analyse_Query(number):
 def analyse_1_6_13():
     memcounter = 0
     tabs = 0
-    query_ids = [1, 6, 13]
-    data_scale = [100, 300, 1000]
-    worker_size = [4, 5, 6]
+    query_ids = [4, 17, 20]  # [1, 6, 13]
+    data_scale = [1000]  # [100, 300, 1000]
+    worker_size = [8, 9, 10]  # [4, 5, 6]
     query_names = []
     query_times = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
-    spilledData = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
-    wall_time_agg = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
-    wall_time_exc = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
+    spilledData = np.zeros((len(query_ids), len(data_scale), len(worker_size)), float)
+    wall_time_agg = np.zeros((len(query_ids), len(data_scale), len(worker_size)), float)
+    wall_time_exc = np.zeros((len(query_ids), len(data_scale), len(worker_size)), float)
     wall_time_hash = np.zeros(
-        (len(query_ids), len(worker_size), len(data_scale)), float
+        (len(query_ids), len(data_scale), len(worker_size)), float
     )
     wall_time_join = np.zeros(
-        (len(query_ids), len(worker_size), len(data_scale)), float
+        (len(query_ids), len(data_scale), len(worker_size)), float
     )
+    spill_agg = np.zeros((len(query_ids), len(data_scale), len(worker_size)), float)
+    spill_hash = np.zeros((len(query_ids), len(data_scale), len(worker_size)), float)
+    spill_join = np.zeros((len(query_ids), len(data_scale), len(worker_size)), float)
     for qid in range(len(query_ids)):
         query_names.append("Query " + str(query_ids[qid]))
         tabs = 0
-        printEingerückt(str(qid) + ":", tabs)
+        printEingerückt(str(query_ids[qid]) + ":", tabs)
         tabs += 1
         for scale in range(len(data_scale)):
             for worker in range(len(worker_size)):
@@ -631,18 +634,21 @@ def analyse_1_6_13():
                     if i["operatorType"] == "HashBuilderOperator":
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
                         wall_time_hash[qid][scale][worker] += wtime
-
+                        spill_hash[qid][scale][worker] += spill
                     elif i["operatorType"] == "LookupJoinOperator":
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
                         wall_time_join[qid][scale][worker] += wtime
+                        spill_join[qid][scale][worker] += spill
 
                     elif i["operatorType"] == "HashAggregationOperator":
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
                         wall_time_agg[qid][scale][worker] += wtime
+                        spill_agg[qid][scale][worker] += spill
 
                     elif i["operatorType"] == "AggregationOperator":
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
                         wall_time_agg[qid][scale][worker] += wtime
+                        spill_agg[qid][scale][worker] += spill
 
                     elif "Exchange" in i["operatorType"]:
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
@@ -653,40 +659,48 @@ def analyse_1_6_13():
                 f.close()
         tabs -= 1
 
-    for h in range(1):
-        data = query_times if h == 0 else spilledData
+    labels = [
+        str(worker_size[0]) + "GB Heapspace",
+        str(worker_size[1]) + "GB Heapspace",
+        str(worker_size[2]) + "GB Heapspace",
+    ]
+    # for h in range(1):
+    #     data = query_times if h == 0 else spilledData
 
-        x = np.arange(len(query_ids))
-        width = 0.25  # the width of the bars
-        labels = ["4GB Heapspace", "5GB Heapspace", "6GB Heapspace"]
-        for k in range(3):
-            fig, axs = plt.subplots()
-            ax = axs
-            bottom = np.zeros(len(query_ids))
-            for i in range(3):
-                rects = ax.bar(x + width * i, data[k][i], width, label=labels[i])
-                ax.bar_label(rects, padding=2, fontsize=20)
-            ax.set_xticks(x + width)
-            ax.set_xticklabels(data_scale, fontsize=20)
-            ax.legend(loc="upper right", fontsize=20)
-            ax.set_ylabel("Query Execution-time in min", fontsize=20)
-            ax.grid(visible=True, linestyle="dashed")
-            ax.set_axisbelow(True)
+    #     x = np.arange(len(query_ids))
+    #     width = 0.25  # the width of the bars
+    #
+    #     for k in range(3):
+    #         fig, axs = plt.subplots()
+    #         ax = axs
+    #         bottom = np.zeros(len(query_ids))
+    #         for i in range(3):
+    #             rects = ax.bar(x + width * i, data[k][i], width, label=labels[i])
+    #             ax.bar_label(rects, padding=2, fontsize=20)
+    #         ax.set_xticks(x + width)
+    #         ax.set_xticklabels(data_scale, fontsize=20)
+    #         ax.legend(loc="upper right", fontsize=20)
+    #         ax.set_ylabel("Query Execution-time in min", fontsize=20)
+    #         ax.grid(visible=True, linestyle="dashed")
+    #         ax.set_axisbelow(True)
 
     for k in range(3):
         times = {
-            "Join": np.array(wall_time_join[2][k]),
-            "Aggregation": np.array(wall_time_agg[2][k]),
-            "Hash": np.array(wall_time_hash[2][k]),
-            "Exchange": np.array(wall_time_exc[2][k]),
+            "Join": np.array(wall_time_join[k][0]),
+            "Aggregation": np.array(wall_time_agg[k][0]),
+            "Hash": np.array(wall_time_hash[k][0]),
+            #   "Exchange": np.array(wall_time_exc[k][0]),
         }
-        # makeBarFig(times, np.array(labels), "Wall time in min")
-
-    makeBarFig(
-        {"Spilled Data": np.array(spilledData[2][2])},
-        labels,
-        "Spilled data in GB",
-    )
+        makeBarFig(times, np.array(labels), "Wall time in min")
+        makeBarFig(
+            {
+                "Join": np.array(spill_join[k][0]),
+                "Aggregation": np.array(spill_agg[k][0]),
+                "Hash": np.array(spill_hash[k][0]),
+            },
+            labels,
+            "Spilled data in GB",
+        )
 
 
 # TPC()
