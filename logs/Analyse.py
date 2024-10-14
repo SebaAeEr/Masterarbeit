@@ -54,20 +54,34 @@ def CollectOPData(i, tabs):
 
 
 def makeBarFig(data, xlabels, ylabel, show_bar_label: bool = True):
+
     fig, ax = plt.subplots()
     x = np.arange(len(xlabels))
-    width = 0.4
+    width = 0.25
+    space = 0.05
+    x = np.arange(len(xlabels))
+    colors = plt.cm.viridis.colors
+    nth = int(len(colors) / len(list(data[0].keys())))
+    colors = colors[nth - 1 :: nth]
+    for i in range(len(data)):
+        bottom = np.zeros(len(xlabels))
+        counter = 0
+        for label, datum in data[i].items():
+            rects = ax.bar(
+                x + (space + width) * i,
+                datum,
+                width,
+                bottom=bottom,
+                color=colors[counter],
+            )
+            bottom += datum
+            counter += 1
+            if show_bar_label:
+                ax.bar_label(rects, padding=2, fontsize=20)
 
-    bottom = np.zeros(len(xlabels))
-    for label, data in data.items():
-        rects = ax.bar(x, data, width, label=label, bottom=bottom)
-        bottom += data
-        if show_bar_label:
-            ax.bar_label(rects, padding=2, fontsize=20)
-
-    ax.set_xticks(x)
+    ax.set_xticks(x + (space + width) * (len(data) - 1) * 0.5)
     ax.set_xticklabels(xlabels, fontsize=20)
-    ax.legend(loc="upper right", fontsize=20)
+    ax.legend(list(data[0].keys()), loc="upper right", fontsize=20)
     ax.set_ylabel(ylabel, fontsize=20)
     ax.grid(visible=True, linestyle="dashed")
     ax.set_axisbelow(True)
@@ -573,23 +587,23 @@ def analyse_Query(number):
 def analyse_1_6_13():
     memcounter = 0
     tabs = 0
-    query_ids = [4, 17, 20]  # [1, 6, 13]
-    data_scale = [1000]  # [100, 300, 1000]
-    worker_size = [8, 9, 10]  # [4, 5, 6]
+    query_ids = [1, 6, 13]  # [4, 17, 20]  # [1, 6, 13]
+    data_scale = [100, 300, 1000]  # [300, 1000]  # [100, 300, 1000]
+    worker_size = [4, 5, 6]  # [8, 9, 10]  # [4, 5, 6]
     query_names = []
     query_times = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
-    spilledData = np.zeros((len(query_ids), len(data_scale), len(worker_size)), float)
-    wall_time_agg = np.zeros((len(query_ids), len(data_scale), len(worker_size)), float)
-    wall_time_exc = np.zeros((len(query_ids), len(data_scale), len(worker_size)), float)
+    spilledData = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
+    wall_time_agg = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
+    wall_time_exc = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
     wall_time_hash = np.zeros(
-        (len(query_ids), len(data_scale), len(worker_size)), float
+        (len(query_ids), len(worker_size), len(data_scale)), float
     )
     wall_time_join = np.zeros(
-        (len(query_ids), len(data_scale), len(worker_size)), float
+        (len(query_ids), len(worker_size), len(data_scale)), float
     )
-    spill_agg = np.zeros((len(query_ids), len(data_scale), len(worker_size)), float)
-    spill_hash = np.zeros((len(query_ids), len(data_scale), len(worker_size)), float)
-    spill_join = np.zeros((len(query_ids), len(data_scale), len(worker_size)), float)
+    spill_agg = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
+    spill_hash = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
+    spill_join = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
     for qid in range(len(query_ids)):
         query_names.append("Query " + str(query_ids[qid]))
         tabs = 0
@@ -622,7 +636,7 @@ def analyse_1_6_13():
 
                 qData = convertByteToGB(data["queryStats"]["spilledDataSize"])
                 printEingerückt("Spilled Data: " + str(qData) + " GB", tabs)
-                spilledData[qid][scale][worker] = qData
+                spilledData[qid][worker][scale] = qData
 
                 # p_user_mem = convertByteToGB(data["queryStats"]["peakUserMemoryReservation"])
                 # printEingerückt("Peak User Memory: " + str(p_user_mem) + " GB", tabs)
@@ -633,71 +647,88 @@ def analyse_1_6_13():
                     printEingerückt(i["operatorType"], tabs)
                     if i["operatorType"] == "HashBuilderOperator":
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
-                        wall_time_hash[qid][scale][worker] += wtime
-                        spill_hash[qid][scale][worker] += spill
+                        wall_time_hash[qid][worker][scale] += wtime
+                        spill_hash[qid][worker][scale] += spill
                     elif i["operatorType"] == "LookupJoinOperator":
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
-                        wall_time_join[qid][scale][worker] += wtime
-                        spill_join[qid][scale][worker] += spill
+                        wall_time_join[qid][worker][scale] += wtime
+                        spill_join[qid][worker][scale] += spill
 
                     elif i["operatorType"] == "HashAggregationOperator":
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
-                        wall_time_agg[qid][scale][worker] += wtime
-                        spill_agg[qid][scale][worker] += spill
+                        wall_time_agg[qid][worker][scale] += wtime
+                        spill_agg[qid][worker][scale] += spill
 
                     elif i["operatorType"] == "AggregationOperator":
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
-                        wall_time_agg[qid][scale][worker] += wtime
-                        spill_agg[qid][scale][worker] += spill
+                        wall_time_agg[qid][worker][scale] += wtime
+                        spill_agg[qid][worker][scale] += spill
 
                     elif "Exchange" in i["operatorType"]:
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
-                        wall_time_exc[qid][scale][worker] += wtime
+                        wall_time_exc[qid][worker][scale] += wtime
                     else:
                         wtime, cputime, spill = CollectOPData(i, tabs + 1)
-                        wall_time_exc[qid][scale][worker] += wtime
+                        wall_time_exc[qid][worker][scale] += wtime
                 f.close()
         tabs -= 1
 
-    labels = [
-        str(worker_size[0]) + "GB Heapspace",
-        str(worker_size[1]) + "GB Heapspace",
-        str(worker_size[2]) + "GB Heapspace",
-    ]
-    # for h in range(1):
+    labels = ["100GB", "300GB", "1000GB"]
+    # for h in range(2):
     #     data = query_times if h == 0 else spilledData
-
-    #     x = np.arange(len(query_ids))
-    #     width = 0.25  # the width of the bars
-    #
     #     for k in range(3):
-    #         fig, axs = plt.subplots()
-    #         ax = axs
-    #         bottom = np.zeros(len(query_ids))
-    #         for i in range(3):
-    #             rects = ax.bar(x + width * i, data[k][i], width, label=labels[i])
-    #             ax.bar_label(rects, padding=2, fontsize=20)
-    #         ax.set_xticks(x + width)
-    #         ax.set_xticklabels(data_scale, fontsize=20)
-    #         ax.legend(loc="upper right", fontsize=20)
-    #         ax.set_ylabel("Query Execution-time in min", fontsize=20)
-    #         ax.grid(visible=True, linestyle="dashed")
-    #         ax.set_axisbelow(True)
+    #         times = [
+    #             {"": np.array(data[k][0])},
+    #             {"": np.array(data[k][1])},
+    #             {"": np.array(data[k][2])},
+    #         ]
+    #         makeBarFig(times, np.array(labels), "Wall time in min", False)
 
+    # labels = [
+    #     str(worker_size[0]) + "GB Heapspace",
+    #     str(worker_size[1]) + "GB Heapspace",
+    #     str(worker_size[2]) + "GB Heapspace",
+    # ]
     for k in range(3):
-        times = {
-            "Join": np.array(wall_time_join[k][0]),
-            "Aggregation": np.array(wall_time_agg[k][0]),
-            "Hash": np.array(wall_time_hash[k][0]),
-            #   "Exchange": np.array(wall_time_exc[k][0]),
-        }
+        times = [
+            {
+                "Join": np.array(wall_time_join[k][0]),
+                "Aggregation": np.array(wall_time_agg[k][0]),
+                "Hash": np.array(wall_time_hash[k][0]),
+                #   "Exchange": np.array(wall_time_exc[k][0]),
+            },
+            {
+                "Join": np.array(wall_time_join[k][1]),
+                "Aggregation": np.array(wall_time_agg[k][1]),
+                "Hash": np.array(wall_time_hash[k][1]),
+                #   "Exchange": np.array(wall_time_exc[k][0]),
+            },
+            {
+                "Join": np.array(wall_time_join[k][2]),
+                "Aggregation": np.array(wall_time_agg[k][2]),
+                "Hash": np.array(wall_time_hash[k][2]),
+                #   "Exchange": np.array(wall_time_exc[k][0]),
+            },
+        ]
         makeBarFig(times, np.array(labels), "Wall time in min")
         makeBarFig(
-            {
-                "Join": np.array(spill_join[k][0]),
-                "Aggregation": np.array(spill_agg[k][0]),
-                "Hash": np.array(spill_hash[k][0]),
-            },
+            [
+                {
+                    "Join": np.array(spill_join[k][0]),
+                    "Aggregation": np.array(spill_agg[k][0]),
+                    "Hash": np.array(spill_hash[k][0]),
+                },
+                {
+                    "Join": np.array(spill_join[k][1]),
+                    "Aggregation": np.array(spill_agg[k][1]),
+                    "Hash": np.array(spill_hash[k][1]),
+                },
+                {
+                    "Join": np.array(spill_join[k][2]),
+                    "Aggregation": np.array(spill_agg[k][2]),
+                    "Hash": np.array(spill_hash[k][2]),
+                },
+            ],
             labels,
             "Spilled data in GB",
         )
