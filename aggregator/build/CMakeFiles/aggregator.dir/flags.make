@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = 
+CXX_INCLUDES = -I/home/sebthelegend/Masterarbeit/aggregator/jsoncpp/dist
 
-CXX_FLAGS = -std=gnu++14
+CXX_FLAGS = -g -std=gnu++23
 

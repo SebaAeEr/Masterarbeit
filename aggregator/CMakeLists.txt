@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.9.1)
 project(aggregator)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 23)
+include_directories(jsoncpp/dist)
+#add_library(aggregator)
+#set_property(TARGET aggregator PROPERTY CXX_STANDART 23)
 add_executable(aggregator text.cpp jsoncpp/dist/json/json.h jsoncpp/dist/json/json-forwards.h jsoncpp/dist/jsoncpp.cpp)
