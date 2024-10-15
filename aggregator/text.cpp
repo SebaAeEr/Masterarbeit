@@ -119,10 +119,21 @@ int aggregate(std::string inputfilename, std::string outputfilename)
 int test(std::string file1name, std::string file2name)
 {
     int fd = open(file1name.c_str(), O_RDONLY);
+    if (fd == -1)
+    {
+        perror("Error opening file for writing");
+        exit(EXIT_FAILURE);
+    }
     struct stat stats;
     stat(file1name.c_str(), &stats);
     size_t size = stats.st_size;
     char *mappedFile = static_cast<char *>(mmap(nullptr, size, PROT_READ, MAP_SHARED, fd, 0));
+    if (mappedFile == MAP_FAILED)
+    {
+        close(fd);
+        perror("Error mmapping the file");
+        exit(EXIT_FAILURE);
+    }
     Json::CharReaderBuilder readerBuilder;
     Json::Value inputDataAsJson;
     std::string err;
@@ -159,9 +170,20 @@ int test(std::string file1name, std::string file2name)
     close(fd);
 
     int fd2 = open(file2name.c_str(), O_RDONLY);
+    if (fd2 == -1)
+    {
+        perror("Error opening file for writing");
+        exit(EXIT_FAILURE);
+    }
     stat(file2name.c_str(), &stats);
     size = stats.st_size;
     mappedFile = static_cast<char *>(mmap(nullptr, size, PROT_READ, MAP_SHARED, fd2, 0));
+    if (mappedFile == MAP_FAILED)
+    {
+        close(fd);
+        perror("Error mmapping the file");
+        exit(EXIT_FAILURE);
+    }
     std::unordered_map<std::string, int> hashmap2;
     for (int i = 0; i < size; ++i)
     {
@@ -216,7 +238,9 @@ int main(int argc, char **argv)
     std::string tpc_sup = argv[2];
     std::string agg_output = "output_" + tpc_sup;
     aggregate(co_output, agg_output);
+    std::cout << "Aggregation finished. Checking results." << std::endl;
     return test(agg_output, tpc_sup);
     // return aggregate("test.txt", "output_test.json");
-    //   return aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
+    /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
+    return test("tpc_13_output_sup_tiny_c.json", "tpc_13_sup_tiny.json"); */
 }
