@@ -210,10 +210,13 @@ int test(std::string file1name, std::string file2name)
     return 0;
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
-    return test("tpc_13_output_sup_tiny_c.json", "tpc_13_sup_tiny.json");
+    std::string co_output = argv[1];
+    std::string tpc_sup = argv[2];
+    std::string agg_output = "output_" + tpc_sup;
+    aggregate(co_output, agg_output);
+    return test(agg_output, tpc_sup);
     // return aggregate("test.txt", "output_test.json");
     //   return aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
 }
