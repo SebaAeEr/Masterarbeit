@@ -69,7 +69,7 @@ int writeHashmap(std::unordered_map<int, int> hmap, int file, int start)
     lseek(file, start + output_size - 1, SEEK_SET);
     if (write(file, "", 1) == -1)
     {
-        close(fd);
+        close(file);
         perror("Error writing last byte of the file");
         exit(EXIT_FAILURE);
     }
@@ -77,7 +77,7 @@ int writeHashmap(std::unordered_map<int, int> hmap, int file, int start)
     char *mappedoutputFile = static_cast<char *>(mmap(nullptr, output_size, PROT_WRITE | PROT_READ, MAP_SHARED, file, 0));
     if (mappedoutputFile == MAP_FAILED)
     {
-        close(fd);
+        close(file);
         perror("Error mmapping the file");
         exit(EXIT_FAILURE);
     }
@@ -248,6 +248,7 @@ int aggregate(std::string inputfilename, std::string outputfilename)
     {
         writeHashmap(hashmap, output_fd, 0);
     }
+    return 0;
 }
 
 int test(std::string file1name, std::string file2name)
