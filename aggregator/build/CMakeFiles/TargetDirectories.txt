@@ -1,3 +1,0 @@
-/home/sebthelegend/Masterarbeit/aggregator/build/CMakeFiles/aggregator.dir
-/home/sebthelegend/Masterarbeit/aggregator/build/CMakeFiles/edit_cache.dir
-/home/sebthelegend/Masterarbeit/aggregator/build/CMakeFiles/rebuild_cache.dir
