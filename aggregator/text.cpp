@@ -14,7 +14,7 @@ int aggregate(std::string inputfilename, std::string outputfilename)
     struct stat stats;
     stat(inputfilename.c_str(), &stats);
     size_t size = stats.st_size;
-    std::cout << "size: " << stats.st_size << std::endl;
+    std::cout << "Input file size: " << stats.st_size << std::endl;
     void *mappedFile = mmap(nullptr, size, PROT_READ, MAP_SHARED, fd, 0);
     char *fileChars = static_cast<char *>(mappedFile);
     Json::CharReaderBuilder readerBuilder;
@@ -79,20 +79,13 @@ int aggregate(std::string inputfilename, std::string outputfilename)
     munmap(mappedFile, size);
     close(fd);
 
-    Json::Value outputDataJson;
-    Json::Value outputLineJson;
-
+    long unsigned int output_size = 0;
     for (auto &it : hashmap)
     {
-        outputLineJson["custkey"] = it.first;
-        outputLineJson["_col1"] = it.second;
-        outputDataJson.append(outputLineJson);
-        outputLineJson.clear();
+        std::string temp_line = "{\"custkey\":" + it.first + ",\"_col1\":" + std::to_string(it.second) + "}\n";
+        output_size += strlen(temp_line.c_str());
     }
-    std::string jsonString = outputDataJson.toStyledString();
-    // std::cout << jsonString << std::endl;
     int output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
-    size_t output_size = (strlen(jsonString.c_str()));
     lseek(output_fd, output_size - 1, SEEK_SET);
     if (write(output_fd, "", 1) == -1)
     {
@@ -100,7 +93,7 @@ int aggregate(std::string inputfilename, std::string outputfilename)
         perror("Error writing last byte of the file");
         exit(EXIT_FAILURE);
     }
-    std::cout << output_size << std::endl;
+    std::cout << "Output file size: " << output_size << std::endl;
     char *mappedoutputFile = static_cast<char *>(mmap(nullptr, output_size, PROT_WRITE | PROT_READ, MAP_SHARED, output_fd, 0));
     if (mappedoutputFile == MAP_FAILED)
     {
@@ -109,7 +102,22 @@ int aggregate(std::string inputfilename, std::string outputfilename)
         exit(EXIT_FAILURE);
     }
 
-    memcpy(mappedoutputFile, jsonString.c_str(), output_size);
+    int mapped_count = 0;
+    for (auto &it : hashmap)
+    {
+        std::string temp_line = "{\"custkey\":" + it.first + ",\"_col1\":" + std::to_string(it.second) + "}\n";
+        for (auto &itt : temp_line)
+        {
+            mappedoutputFile[mapped_count] = itt;
+            mapped_count += 1;
+        }
+    }
+
+    if (msync(mappedoutputFile, output_size, MS_SYNC) == -1)
+    {
+        perror("Could not sync the file to disk");
+    }
+    // memcpy(mappedoutputFile, jsonString.c_str(), output_size);
 
     munmap(mappedoutputFile, output_size);
     close(output_fd);
