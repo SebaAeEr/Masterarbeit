@@ -1,1 +1,0 @@
-/usr/bin/c++ -g CMakeFiles/aggregator.dir/text.cpp.o CMakeFiles/aggregator.dir/jsoncpp/dist/jsoncpp.cpp.o -o aggregator 
