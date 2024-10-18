@@ -130,7 +130,7 @@ int writeHashmap(std::unordered_map<int, int> *hmap, int file, int start)
 }
 
 // aggregate inputfilename and write results into outpufilename
-int aggregate(std::string inputfilename, std::string outputfilename)
+int aggregate(std::string inputfilename, std::string outputfilename, float memLimit)
 {
     // Inits and decls
     long pagesize = sysconf(_SC_PAGE_SIZE);
@@ -152,15 +152,13 @@ int aggregate(std::string inputfilename, std::string outputfilename)
     std::cout << "phyMemBase: " << phyMemBase << std::endl;
     float avg = 0.4;
     float hash_avg = -1;
-    float memLimit = 0.02;
     int *spill;
     bool spill_occ = false;
-    int spill_size;
+    long spill_size;
     std::vector<std::pair<int, int>> spills;
-    int head = 0;
+    long head = 0;
     int numHashRows = estimateNumEntries(avg, memLimit, phyMemBase, 0);
-    std::cout << numHashRows << std::endl;
-    int freed_space = 0;
+    long freed_space = 0;
 
     // open inputfile and get size from stats
     int fd = open(inputfilename.c_str(), O_RDONLY);
@@ -218,14 +216,13 @@ int aggregate(std::string inputfilename, std::string outputfilename)
                         if (!spill_occ && hashmap.size() == 100000)
                         {
                             // calc avg as Phy mem used by hashtable + mapping / hashtable size
-                            int curphyValue = getPhyValue();
-                            avg = (curphyValue + ((freed_space >> 10) - phyMemBase)) / (float)(hashmap.size());
+                            avg = (getPhyValue() + ((freed_space >> 10) - phyMemBase)) / (float)(hashmap.size());
 
                             // update numHashRows
                             numHashRows = estimateNumEntries(avg, memLimit, phyMemBase, 0);
 
                             std::cout << numHashRows << std::endl;
-                            std::cout << "total: " << curphyValue << " hashmap size: " << hashmap.size() << " Setting average to: " << avg << " setting numHashRows to: " << numHashRows << std::endl;
+                            std::cout << " Setting average to: " << avg << " setting numHashRows to: " << numHashRows << std::endl;
                         }
 
                         // Check if Estimations exceed memlimit
@@ -300,8 +297,8 @@ int aggregate(std::string inputfilename, std::string outputfilename)
                                 }
 
                                 // Write int to Mapping
-                                int counter = spill_file.second / sizeof(int);
-                                int writehead = counter;
+                                long counter = spill_file.second / sizeof(int);
+                                long writehead = counter;
                                 for (auto &it : hashmap)
                                 {
                                     spill[counter] = it.first;
@@ -360,14 +357,14 @@ int aggregate(std::string inputfilename, std::string outputfilename)
     // Open the outputfile to write results
     int output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
 
-    int orig_hash_size = hashmap.size();
+    size_t orig_hash_size = hashmap.size();
 
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (spill_occ)
     {
         // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
-        int input_head_base = 0;
-        int output_head = 0;
+        long input_head_base = 0;
+        long output_head = 0;
         bool locked = true;
 
         // create mapping to spill
@@ -375,9 +372,9 @@ int aggregate(std::string inputfilename, std::string outputfilename)
         // merge and fill hashmap with all spills
         while (locked)
         {
-            int num_entries = 0;
+            long num_entries = 0;
             numHashRows = estimateNumEntries(avg, memLimit, phyMemBase, freed_space);
-            int input_head = 0; // input_head_base;
+            long input_head = 0; // input_head_base;
             locked = false;
             int *spill_map = static_cast<int *>(mmap(nullptr, spill_file.second, PROT_WRITE | PROT_READ, MAP_SHARED, spill_file.first, 0));
 
@@ -576,14 +573,16 @@ int main(int argc, char **argv)
 {
     std::string co_output = argv[1];
     std::string tpc_sup = argv[2];
+    std::string memLimit_string = argv[3];
+    float memLimit = std::stof(memLimit_string);
     std::string agg_output = "output_" + tpc_sup;
     auto start = std::chrono::high_resolution_clock::now();
-    aggregate(co_output, agg_output);
+    aggregate(co_output, agg_output, memLimit);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()) / 1000000;
     std::cout << "Aggregation finished. With time: " << duration << "seconds. Checking results." << std::endl;
     return test(agg_output, tpc_sup);
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
-    return test("tpc_13_output_sup_tiny_c.json", "tpc_13_sup_tiny.json"); */
+    return test("tpc_13_output_sup_tiny_c.json", "tpc_13_sup_tiny.json");S */
 }
