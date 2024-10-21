@@ -1,3 +1,6 @@
 *.json
 aggregator/jsoncpp/
 aggregator/build/
+aggregator/sparsehash
+aggregator/unordered_dense
+aggregator/emhash
