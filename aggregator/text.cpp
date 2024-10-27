@@ -77,7 +77,7 @@ int writeHashmap(emhash8::HashMap<int, int> *hmap, int file, int start)
     for (auto &it : *hmap)
         output_size += strlen(std::to_string(it.first).c_str()) + strlen(std::to_string(it.second).c_str());
     output_size += strlen("{\"custkey\":,\"_col1\":}\n") * hmap->size();
-    std::cout << "Output file size: " << output_size << std::endl;
+    // std::cout << "Output file size: " << output_size << std::endl;
 
     // Extend file file.
     lseek(file, start + output_size - 1, SEEK_SET);
@@ -132,8 +132,10 @@ int writeHashmap(emhash8::HashMap<int, int> *hmap, int file, int start)
     return output_size;
 }
 
-void fillHashmap(int id, std::vector<emhash8::HashMap<int, int> *> *emHashmaps, int file, int start, size_t size, bool addOffset, float memLimit, float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size)
+void fillHashmap(int id, std::vector<emhash8::HashMap<int, int> *> *emHashmaps, int file, int start, size_t size, bool addOffset, float memLimit,
+                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> &shared_freed_space)
 {
+    auto start_time = std::chrono::high_resolution_clock::now();
     emhash8::HashMap<int, int> *hmap = new emhash8::HashMap<int, int>;
     int phyMembase = getPhyValue();
     long pagesize = sysconf(_SC_PAGE_SIZE);
@@ -157,6 +159,7 @@ void fillHashmap(int id, std::vector<emhash8::HashMap<int, int> *> *emHashmaps, 
     int numHashRows = estimateNumEntries(avg, memLimit, phyMembase, 0);
     int head = 0;
     int freed_space = 0;
+    long unsigned numLinesLocal = 0;
     std::string okey, lineObjectValue;
     std::pair<int, size_t> spill_file(-1, 0);
     // loop through entire mapping
@@ -273,7 +276,8 @@ void fillHashmap(int id, std::vector<emhash8::HashMap<int, int> *> *emHashmaps, 
 
                             if (spill_file.first == -1)
                             {
-                                spill_file.first = open("spill_file_" + id, O_RDWR | O_CREAT | O_TRUNC, 0777);
+                                std::string name = "spill_file_" + std::to_string(id);
+                                spill_file.first = open(name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
                             }
 
                             // extend file
@@ -318,13 +322,14 @@ void fillHashmap(int id, std::vector<emhash8::HashMap<int, int> *> *emHashmaps, 
                             hmap->clear();
                             munmap(&spill[writehead], spill_file.second + spill_mem_size - writehead * sizeof(int));
                             spill_file.second += spill_mem_size;
-                            std::cout << "Spilled with size: " << spill_mem_size << std::endl;
+                            // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
                         }
                     }
                 }
                 // After line is read clear it and set reading to false till the next {
                 reading = false;
                 numLines.fetch_add(1);
+                numLinesLocal++;
             }
         }
     }
@@ -333,7 +338,11 @@ void fillHashmap(int id, std::vector<emhash8::HashMap<int, int> *> *emHashmaps, 
     if (spill_file.first != -1)
     {
         spill_files->push_back(spill_file);
+        std::cout << "Thread: " << id << " spilled with size: " << spill_file.second << std::endl;
     }
+    shared_freed_space.fetch_add(freed_space);
+    auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
+    std::cout << "Thread " << id << " finished scanning. With time: " << duration << "s. Scanned Lines: " << numLinesLocal << ". microseconds/line: " << duration * 1000000 / numLinesLocal << ". Spilled with size: " << spill_file.second << std::endl;
 }
 
 // aggregate inputfilename and write results into outpufilename
@@ -341,19 +350,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
 {
     // Inits and decls
     long pagesize = sysconf(_SC_PAGE_SIZE);
-    std::cout << "pagesize: " << pagesize << std::endl;
     std::string err;
-    int ckey;
-    std::string okey, lineObjectValue;
-    std::unordered_map<int, int> hashmap;
-    bool reading = false;
     int phyMemBase = getPhyValue();
     int resetphyMemBase = phyMemBase;
-    std::cout << "phyMemBase: " << phyMemBase << std::endl;
-    bool spill_occ = false;
-
-    long head = 0;
-    long freed_space = 0;
 
     // open inputfile and get size from stats
     int fd = open(inputfilename.c_str(), O_RDONLY);
@@ -373,6 +372,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
     std::vector<emhash8::HashMap<int, int> *> emHashmaps = std::vector<emhash8::HashMap<int, int> *>();
     std::vector<std::pair<int, size_t>> spills = std::vector<std::pair<int, size_t>>();
     std::atomic<unsigned long> numLines = 0;
+    std::atomic<unsigned long> freed_space = 0;
     std::atomic<unsigned long> comb_hash_size = 0;
     float avg = 0.4;
 
@@ -380,11 +380,13 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
     size_t t2_size = size - t1_size * (threadNumber - 1);
     std::cout << "t1 size: " << t1_size << " t2 size: " << t2_size << std::endl;
     std::vector<std::thread> threads;
+    auto start_time = std::chrono::high_resolution_clock::now();
+
     for (int i = 0; i < threadNumber - 1; i++)
     {
-        threads.push_back(std::thread(fillHashmap, i, &emHashmaps, fd, t1_size * i, t1_size, true, memLimit / threadNumber, std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size)));
+        threads.push_back(std::thread(fillHashmap, i, &emHashmaps, fd, t1_size * i, t1_size, true, memLimit / threadNumber, std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), std::ref(freed_space)));
     }
-    threads.push_back(std::thread(fillHashmap, threadNumber, &emHashmaps, fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size)));
+    threads.push_back(std::thread(fillHashmap, threadNumber, &emHashmaps, fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), std::ref(freed_space)));
 
     while (numLines.load() < 100000)
     {
@@ -398,7 +400,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
         thread.join();
     }
     close(fd);
+    auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
+    std::cout << "Scanning finished with time: " << duration << "s. Scanned Lines: " << numLines << ". seconds/line: " << duration * 1000000 / numLines << std::endl;
 
+    start_time = std::chrono::high_resolution_clock::now();
     emhash8::HashMap<int, int> *emHashmap = emHashmaps.back();
     emHashmaps.pop_back();
     for (auto maps = emHashmaps.rbegin(); maps != emHashmaps.rend(); ++maps)
@@ -416,8 +421,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
         }
         emHashmaps.pop_back();
     }
+    duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
+    std::cout << "Merging of hastables finished with time: " << duration << "s." << std::endl;
+    start_time = std::chrono::high_resolution_clock::now();
 
     float hash_avg = (getPhyValue() - phyMemBase) / (float)(emHashmap->size());
+    // std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " hash_avg: " << hash_avg << std::endl;
 
     // calc optimistic new avg to better fit spill files as: 8/avgLineLength * (hash_avg - avg)
     float avglineLengtth = size / numLines.load();
@@ -425,15 +434,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
     // avg = avg + (float)(sizeof(int) - avglineLengtth) / 1024;
     // avg *= 8 / avglineLengtth;
 
-    std::cout << " new avg: " << avg << " hashmap size: " << emHashmap->size() << std::endl;
-    int numHashRows = estimateNumEntries(avg, memLimit, phyMemBase, 0);
+    // std::cout << "new avg: " << avg << " hashmap size: " << emHashmap->size() << std::endl;
 
     // Free up rest of mapping of input file and close the file
-    // munmap(&mappedFile[head], size - head);
-    freed_space += size - head;
     close(fd);
 
-    std::cout << "Scanning finished." << std::endl;
+    // std::cout << "Scanning finished." << std::endl;
 
     // Open the outputfile to write results
     int output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
@@ -446,13 +452,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
         long input_head_base = 0;
         long output_head = 0;
         bool locked = true;
-        std::cout << "reading spills." << std::endl;
         int *spill_map = nullptr;
         unsigned long comb_spill_size = 0;
         for (auto &it : spills)
             comb_spill_size += it.second;
 
-        std::cout << "comb_spill_size: " << comb_spill_size << std::endl;
+        // std::cout << "comb_spill_size: " << comb_spill_size << std::endl;
 
         // create mapping to spill
 
@@ -460,7 +465,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
         while (locked)
         {
             long num_entries = 0;
-            numHashRows = estimateNumEntries(avg, memLimit, phyMemBase, freed_space);
+            int numHashRows = estimateNumEntries(avg, memLimit, phyMemBase, freed_space);
             long input_head = 0; // input_head_base;
             locked = false;
             int offset = 0;
@@ -470,7 +475,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
             // Go through entire mapping
             for (int i = input_head_base; i < comb_spill_size / sizeof(int); i += 2)
             {
-                if (i > sum / sizeof(int))
+                if (i >= sum / sizeof(int))
                 {
                     sum = 0;
                     for (auto &it : spills)
@@ -478,14 +483,15 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                         sum += it.second;
                         if (i < sum / sizeof(int))
                         {
-                            if (spill_map != nullptr)
+                            if (spill_map != nullptr && mapping_size - input_head * sizeof(int) > 0)
                             {
                                 // save empty flag and release the mapping
                                 if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(int)) == -1)
                                 {
-                                    perror("Could not free memory in merge 2!");
+                                    std::cout << "invalid size: " << mapping_size - input_head * sizeof(int) << std::endl;
+                                    perror("Could not free memory in merge 2_1!");
                                 }
-                                freed_space = 0;
+                                freed_space += mapping_size - input_head * sizeof(int);
                                 numHashRows = estimateNumEntries(avg, memLimit, phyMemBase, freed_space);
                             }
                             spill_map = static_cast<int *>(mmap(nullptr, it.second, PROT_WRITE | PROT_READ, MAP_SHARED, it.first, 0));
@@ -496,9 +502,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                                 exit(EXIT_FAILURE);
                             }
                             madvise(spill_map, it.second, MADV_SEQUENTIAL | MADV_WILLNEED);
-                            offset = sum - it.second;
+                            input_head = 0;
+                            offset = (sum - it.second) / sizeof(int);
                             mapping_size = it.second;
-                            std::cout << "sum: " << sum << " offset: " << offset << std::endl;
+                            // std::cout << "sum: " << sum << " offset: " << offset << std::endl;
                             break;
                         }
                     }
@@ -508,7 +515,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                 int custkey = spill_map[newi];
                 int count = spill_map[newi + 1];
                 // Update count if customerkey is in hashmap and delete pair in spill
-                if (emHashmap->contains(ckey))
+                if (emHashmap->contains(custkey))
                 {
                     // update count
                     (*emHashmap)[custkey] += count;
@@ -566,16 +573,21 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
             emHashmap->clear();
             freed_space = 0;
         }
-        close(spill_file.first);
+        for (auto &it : spills)
+            close(it.first);
+        duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
+        std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << std::endl;
     }
     else
     {
         std::cout << "writing to output file" << std::endl;
         // write hashmap to output file
         writeHashmap(emHashmap, output_fd, 0);
+        duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
+        std::cout << "Writing output finished with time: " << duration << "s." << std::endl;
     }
     close(output_fd);
-    std::cout << "test" << std::endl;
+
     return 0;
 }
 
@@ -708,7 +720,7 @@ int main(int argc, char **argv)
     aggregate(co_output, agg_output, memLimit, threadNumber);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()) / 1000000;
-    std::cout << "Aggregation finished. With time: " << duration << "seconds. Checking results." << std::endl;
+    std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
     return test(agg_output, tpc_sup);
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
