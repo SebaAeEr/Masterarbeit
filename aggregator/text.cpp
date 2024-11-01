@@ -401,7 +401,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
     std::pair<int, int> spill_file = std::pair<int, int>(-1, 0);
     std::unordered_map<std::string, std::string> lineObjects;
     int readingMode = -1;
-    memLimit *= 0.98;
+    memLimit -= 0.005;
 
     // https://martin.ankerl.com/2022/08/27/hashmap-bench-01/#emhash8__HashMap
 
@@ -434,16 +434,16 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
 
     for (int i = 0; i < threadNumber - 1; i++)
     {
-        threads.push_back(std::thread(fillHashmap, i, &emHashmaps, fd, t1_size * i, t1_size, true, memLimit / threadNumber, phyMemBase, std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), std::ref(freed_space)));
+        threads.push_back(std::thread(fillHashmap, i, &emHashmaps, fd, t1_size * i, t1_size, true, memLimit / threadNumber, phyMemBase / threadNumber, std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), std::ref(freed_space)));
     }
-    threads.push_back(std::thread(fillHashmap, threadNumber, &emHashmaps, fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, phyMemBase, std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), std::ref(freed_space)));
+    threads.push_back(std::thread(fillHashmap, threadNumber, &emHashmaps, fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, phyMemBase / threadNumber, std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), std::ref(freed_space)));
 
-    while (numLines.load() < 500000)
+    while (numLines.load() < 100000)
     {
     }
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
     avg = (getPhyValue() - phyMemBase) / (float)(comb_hash_size.load());
-    avg *= 1.2;
+    avg *= 1.3;
     std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " numLInes: " << comb_hash_size.load() << " avg: " << avg << std::endl;
 
     for (auto &thread : threads)
