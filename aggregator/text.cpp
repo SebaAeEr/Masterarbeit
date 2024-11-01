@@ -219,7 +219,10 @@ void fillHashmap(int id, std::vector<emhash8::HashMap<int, int> *> *emHashmaps, 
             // finish reading a line when }
             if (char_temp == '}')
             {
-                ckey = std::stoi(lineObjects["custkey"]);
+                if (ckey = std::stoi(lineObjects["custkey"]) == -1)
+                {
+                    perror("stoi failed.");
+                };
                 okey = lineObjects["orderkey"];
 
                 // add 1 to count when customerkey is already in hashmap
