@@ -140,7 +140,7 @@ int writeHashmap(emhash8::HashMap<int, int> *hmap, int file, int start)
     return output_size;
 }
 
-void fillHashmap(int id, std::vector<emhash8::HashMap<int, int> *> *emHashmaps, int file, int start, size_t size, bool addOffset, float memLimit, int phyMembase,
+void fillHashmap(int id, std::vector<emhash8::HashMap<int, int> *> *emHashmaps, int file, size_t start, size_t size, bool addOffset, float memLimit, int phyMembase,
                  float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> &shared_freed_space)
 {
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -158,7 +158,7 @@ void fillHashmap(int id, std::vector<emhash8::HashMap<int, int> *> *emHashmaps, 
         perror("Error mmapping the file");
         exit(EXIT_FAILURE);
     }
-    madvise(mappedFile, size, MADV_SEQUENTIAL | MADV_WILLNEED);
+    madvise(mappedFile, size + offset, MADV_SEQUENTIAL | MADV_WILLNEED);
     bool reading = false;
     std::unordered_map<std::string, std::string> lineObjects;
     int readingMode = -1;
@@ -219,11 +219,15 @@ void fillHashmap(int id, std::vector<emhash8::HashMap<int, int> *> *emHashmaps, 
             // finish reading a line when }
             if (char_temp == '}')
             {
-                if (ckey = std::stoi(lineObjects["custkey"]) == -1)
+                try
                 {
-                    perror("stoi failed.");
-                };
-                okey = lineObjects["orderkey"];
+                    ckey = std::stoi(lineObjects["custkey"]) == -1;
+                    okey = lineObjects["orderkey"];
+                }
+                catch (std::exception &err)
+                {
+                    std::cout << "conversion error on \"" << lineObjects["custkey"] << "\" : " << err.what() << std::endl;
+                }
 
                 // add 1 to count when customerkey is already in hashmap
                 if (hmap->contains(ckey))
