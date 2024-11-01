@@ -413,7 +413,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
     std::atomic<unsigned long> numLines = 0;
     std::atomic<unsigned long> freed_space = 0;
     std::atomic<unsigned long> comb_hash_size = 0;
-    float avg = 0.4;
+    float avg = 0.5;
 
     size_t t1_size = size / threadNumber - (size / threadNumber % pagesize);
     size_t t2_size = size - t1_size * (threadNumber - 1);
@@ -438,7 +438,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
     }
     threads.push_back(std::thread(fillHashmap, threadNumber, &emHashmaps, fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, phyMemBase, std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), std::ref(freed_space)));
 
-    while (numLines.load() < 100000)
+    while (numLines.load() < 500000)
     {
     }
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
