@@ -559,14 +559,6 @@ void printSize(bool &finished, float memLimit)
     std::cout << "Max Size: " << maxSize << std::endl;
 }
 
-void mergeHashEntries(std::array<int, max_size> *mainValues, std::array<int, max_size> *mergeValues)
-{
-    for (int i = 0; i < value_number; i++)
-    {
-        (*mainValues)[i] += (*mergeValues)[i];
-    }
-}
-
 // aggregate inputfilename and write results into outpufilename
 int aggregate(std::string inputfilename, std::string outputfilename, float memLimit, int threadNumber, bool measure_mem)
 {
@@ -664,7 +656,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
         {
             if (emHashmap.contains(tuple.first))
             {
-                mergeHashEntries(&emHashmap[tuple.first], &tuple.second);
+                for (int k = 0; k < value_number; k++)
+                {
+                    emHashmap[tuple.first][k] += tuple.second[k];
+                }
             }
             else
             {
@@ -755,11 +750,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                             input_head = 0;
                             offset = (sum - it.second) / sizeof(int);
                             mapping_size = it.second;
-                            // std::cout << "sum: " << sum << " offset: " << offset << " head: " << input_head_base << " i: " << i << std::endl;
+                            std::cout << "sum: " << sum << " offset: " << offset << " head: " << input_head_base << " i: " << i << std::endl;
                             break;
                         }
                     }
                 }
+                // std::cout << "start" << std::endl;
                 newi = i - offset;
                 int ognewi = newi;
 
@@ -775,19 +771,20 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                 std::array<int, max_size> keys = {};
                 std::array<int, max_size> values = {};
 
-                for (int i = 0; i < key_number; i++)
+                for (int k = 0; k < key_number; k++)
                 {
-                    keys[i] = spill_map[newi];
+                    keys[k] = spill_map[newi];
                     newi++;
                 }
 
-                for (int i = 0; i < value_number; i++)
+                for (int k = 0; k < value_number; k++)
                 {
-                    values[i] = spill_map[newi];
+                    values[k] = spill_map[newi];
                     newi++;
                 }
                 newi--;
                 i = newi + offset;
+                // std::cout << "free" << std::endl;
 
                 // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
                 if (emHashmap.size() * hash_avg + (newi - input_head + 2) * sizeof(int) * (1ull >> 10) >= memLimit * (1ull << 20) && (newi - input_head + 2) * sizeof(int) > pagesize)
@@ -806,12 +803,17 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                     numHashRows = estimateNumEntries(avg, memLimit, phyMemBase, freed_space, -1);
                     // std::cout << "hashmap size: " << emHashmap.size() * hash_avg << " freed space: " << (newi - input_head + 2) * sizeof(int) * (1ull >> 10) << "memLimit" << memLimit * (1ull << 20) << std::endl;
                 }
-
-                // Update count if customerkey is in hashmap and delete pair in spill
+                // std::cout << "merging/adding" << std::endl;
+                //  Update count if customerkey is in hashmap and delete pair in spill
                 if (emHashmap.contains(keys))
                 {
-                    mergeHashEntries(&emHashmap[keys], &values);
-                    // delete pair in spill
+                    for (int i = 0; i < value_number; i++)
+                    {
+                        emHashmap[keys][i] += values[i];
+                    }
+                    // mergeHashEntries(&emHashmap[keys], &values);
+                    //  std::cout << "temp merging" << std::endl;
+                    //    delete pair in spill
                     spill_map[ognewi] = -1;
                 }
                 else
@@ -841,7 +843,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
             {
                 perror("Could not free memory in merge 2!");
             }
-            // std::cout << "hashmap size: " << emHashmap.size() << std::endl;
+            std::cout << "hashmap size: " << emHashmap.size() << std::endl;
             //   write merged hashmap to the result and update head to point at the end of the file
             output_head += writeHashmap(&emHashmap, output_fd, output_head);
             emHashmap.clear();
@@ -850,7 +852,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
         for (auto &it : spills)
             close(it.first);
         duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
-        std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << std::endl;
+        // std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << std::endl;
     }
     else
     {
@@ -904,6 +906,10 @@ int test(std::string file1name, std::string file2name)
     for (unsigned long i = 0; i < size; ++i)
     {
         i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
+        if (i == -1)
+        {
+            break;
+        }
         try
         {
             for (int k = 0; k < key_number; k++)
@@ -951,6 +957,10 @@ int test(std::string file1name, std::string file2name)
     for (unsigned long i = 0; i < size; ++i)
     {
         i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
+        if (i == -1)
+        {
+            break;
+        }
         try
         {
             for (int k = 0; k < key_number; k++)
@@ -963,7 +973,7 @@ int test(std::string file1name, std::string file2name)
             }
             else
             {
-                opValue = std::stoi(lineObjects[opKeyName]);
+                opValue = std::stoi(lineObjects["_col1"]);
             }
         }
         catch (std::exception &err)
@@ -978,26 +988,32 @@ int test(std::string file1name, std::string file2name)
     }
     munmap(mappedFile, size);
     close(fd2);
+    std::cout << "Scanning finished" << std::endl;
 
     if (hashmap2.size() != hashmap.size())
     {
         std::cout << "Files have different number of keys." << " File1: " << hashmap.size() << " File2: " << hashmap2.size() << std::endl;
         return 0;
     }
+    bool same = true;
     for (auto &it : hashmap)
     {
         if (!hashmap2.contains(it.first))
         {
             std::cout << "File 2 does not contain: " << it.first[0] << std::endl;
-            // return 0;
+            same = false;
         }
-        if (hashmap2[it.first] != it.second)
+        if (hashmap2[it.first][0] != it.second[0])
         {
             std::cout << "File 2 has different value for key: " << it.first[0] << "; File 1: " << it.second[0] << "; File 2: " << hashmap2[it.first][0] << std::endl;
-            // return 0;
+            same = false;
         }
     }
-    std::cout << "Files are the Same!" << std::endl;
+    if (same)
+    {
+        std::cout << "Files are the Same!" << std::endl;
+    }
+
     return 0;
 }
 
