@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <vector>
 #include <string>
-#include <json/json.h>
+// #include <json/json.h>
 #include <unordered_map>
 #include <stdio.h>
 #include <chrono>
@@ -339,7 +339,7 @@ void execOperation(std::array<int, max_size> *hashValue, enum Operation op, int 
     }
 }
 
-void addPair(emhash8::HashMap<std::array<int, max_size>, std::array<int, max_size>, decltype(hash), decltype(comp)> *hmap, enum Operation op, std::array<int, max_size> keys, int opValue)
+void addPair(emhash8::HashMap<std::array<int, max_size>, std::array<int, max_size>, decltype(hash), decltype(comp)> *hmap, std::array<int, max_size> keys, int opValue)
 {
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
     switch (op)
@@ -388,7 +388,7 @@ void addPair(emhash8::HashMap<std::array<int, max_size>, std::array<int, max_siz
 }
 
 void fillHashmap(int id, emhash8::HashMap<std::array<int, max_size>, std::array<int, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, float memLimit, int phyMembase,
-                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> &shared_freed_space)
+                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> &shared_freed_space, unsigned long *shared_diff)
 {
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -421,10 +421,12 @@ void fillHashmap(int id, emhash8::HashMap<std::array<int, max_size>, std::array<
     int opValue = -1;
     std::string okey, lineObjectValue;
     std::pair<int, size_t> spill_file(-1, 0);
+
     // loop through entire mapping
     for (unsigned long i = 0; i < size + offset; i++)
     {
         i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
+        *shared_diff = i - head;
         if (i == -1)
         {
             break;
@@ -465,7 +467,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<int, max_size>, std::array<
         {
 
             // add customerkey, count pair to hashmap. When orderkey is not null count starts at 1.
-            addPair(hmap, op, keys, opValue);
+            addPair(hmap, keys, opValue);
             comb_hash_size.fetch_add(1);
 
             // Check if Estimations exceed memlimit
@@ -605,6 +607,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
     std::atomic<unsigned long> numLines = 0;
     std::atomic<unsigned long> freed_space = 0;
     std::atomic<unsigned long> comb_hash_size = 0;
+    std::vector<unsigned long> diff;
+    for (int i = 0; i < threadNumber; i++)
+    {
+        diff.push_back(0);
+    }
     float avg = 0.5;
 
     size_t t1_size = size / threadNumber - (size / threadNumber % pagesize);
@@ -619,15 +626,23 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, i, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber, phyMemBase / threadNumber,
-                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), std::ref(freed_space)));
+                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), std::ref(freed_space), &diff[i]));
     }
     emHashmaps[threadNumber - 1] = {};
     threads.push_back(std::thread(fillHashmap, threadNumber, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, phyMemBase / threadNumber,
-                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), std::ref(freed_space)));
+                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), std::ref(freed_space), &diff[threadNumber - 1]));
 
     while (numLines.load() < 100000)
     {
     }
+    unsigned long reservedMem = 0;
+    for (int i = 0; i < threadNumber; i++)
+    {
+        reservedMem += diff[i];
+    }
+    float hash_avg = (getPhyValue() - phyMemBase - (reservedMem >> 10)) / (float)(comb_hash_size.load());
+    std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " hash_avg: " << hash_avg << std::endl;
+
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
     avg = (getPhyValue() - phyMemBase) / (float)(comb_hash_size.load());
     avg *= 1.3;
@@ -663,10 +678,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
     std::cout << "Merging of hastables finished with time: " << duration << "s." << std::endl;
     start_time = std::chrono::high_resolution_clock::now();
-
-    float hash_avg = (getPhyValue() - phyMemBase) / (float)(emHashmap.size());
-    std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " hash_avg: " << hash_avg << std::endl;
-
     // calc optimistic new avg to better fit spill files as: 8/avgLineLength * (hash_avg - avg)
     float avglineLengtth = size / numLines.load();
     avg = hash_avg + (avg - hash_avg) * (sizeof(int) * 2 / avglineLengtth) + 0.02;
@@ -877,37 +888,46 @@ int test(std::string file1name, std::string file2name)
         perror("Error mmapping the file");
         exit(EXIT_FAILURE);
     }
-    Json::CharReaderBuilder readerBuilder;
-    Json::Value inputDataAsJson;
-    std::string err;
-    const std::unique_ptr<Json::CharReader> reader(readerBuilder.newCharReader());
-    std::string line = "";
+    std::string coloumns[key_number + 1];
+    for (int i = 0; i < key_number; i++)
+    {
+        coloumns[i] = key_names[i];
+    }
+    coloumns[key_number] = "_col1";
+    std::unordered_map<std::string, std::string> lineObjects;
     std::string ckey;
     int count;
-    std::unordered_map<std::string, int> hashmap;
+    emhash8::HashMap<std::array<int, max_size>, std::array<int, max_size>, decltype(hash), decltype(comp)> hashmap;
     bool reading = false;
+    int opValue;
+    std::array<int, max_size> keys;
     for (unsigned long i = 0; i < size; ++i)
     {
-        if (mappedFile[i] == '{')
+        i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
+        try
         {
-            reading = true;
-        }
-        if (reading)
-        {
-            line += mappedFile[i];
-            if (mappedFile[i] == '}')
+            for (int k = 0; k < key_number; k++)
             {
-                if (reader->parse(line.c_str(), line.c_str() + line.length(), &inputDataAsJson, &err))
-                {
-                    ckey = inputDataAsJson["custkey"].asString();
-                    count = inputDataAsJson["_col1"].asInt();
-                    std::pair<std::string, int> pair(ckey, count);
-                    hashmap.insert(pair);
-                }
-                line.clear();
-                reading = false;
+                keys[k] = std::stoi(lineObjects[key_names[k]]);
+            }
+            if (lineObjects[opKeyName] == "null")
+            {
+                opValue = -1;
+            }
+            else
+            {
+                opValue = std::stoi(lineObjects["_col1"]);
             }
         }
+        catch (std::exception &err)
+        {
+            for (auto &it : lineObjects)
+            {
+                std::cout << it.first << ", " << it.second << std::endl;
+            }
+            std::cout << "conversion error test on: " << err.what() << std::endl;
+        }
+        addPair(&hashmap, keys, opValue);
     }
     munmap(mappedFile, size);
     close(fd);
@@ -927,28 +947,34 @@ int test(std::string file1name, std::string file2name)
         perror("Error mmapping the file");
         exit(EXIT_FAILURE);
     }
-    std::unordered_map<std::string, int> hashmap2;
+    emhash8::HashMap<std::array<int, max_size>, std::array<int, max_size>, decltype(hash), decltype(comp)> hashmap2;
     for (unsigned long i = 0; i < size; ++i)
     {
-        if (mappedFile[i] == '{')
+        i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
+        try
         {
-            reading = true;
-        }
-        if (reading)
-        {
-            line += mappedFile[i];
-            if (mappedFile[i] == '}')
+            for (int k = 0; k < key_number; k++)
             {
-                if (reader->parse(line.c_str(), line.c_str() + line.length(), &inputDataAsJson, &err))
-                {
-                    ckey = inputDataAsJson["custkey"].asString();
-                    count = inputDataAsJson["_col1"].asInt();
-                    std::pair<std::string, int> pair(ckey, count);
-                    hashmap2.insert(pair);
-                }
-                line.clear();
+                keys[k] = std::stoi(lineObjects[key_names[k]]);
+            }
+            if (lineObjects[opKeyName] == "null")
+            {
+                opValue = -1;
+            }
+            else
+            {
+                opValue = std::stoi(lineObjects[opKeyName]);
             }
         }
+        catch (std::exception &err)
+        {
+            for (auto &it : lineObjects)
+            {
+                std::cout << it.first << ", " << it.second << std::endl;
+            }
+            std::cout << "conversion error test on: " << err.what() << std::endl;
+        }
+        addPair(&hashmap2, keys, opValue);
     }
     munmap(mappedFile, size);
     close(fd2);
@@ -962,12 +988,12 @@ int test(std::string file1name, std::string file2name)
     {
         if (!hashmap2.contains(it.first))
         {
-            std::cout << "File 2 does not contain: " << it.first << std::endl;
+            std::cout << "File 2 does not contain: " << it.first[0] << std::endl;
             // return 0;
         }
         if (hashmap2[it.first] != it.second)
         {
-            std::cout << "File 2 has different value for key: " << it.first << "; File 1: " << it.second << "; File 2: " << hashmap2[it.first] << std::endl;
+            std::cout << "File 2 has different value for key: " << it.first[0] << "; File 1: " << it.second[0] << "; File 2: " << hashmap2[it.first][0] << std::endl;
             // return 0;
         }
     }
@@ -985,7 +1011,8 @@ int main(int argc, char **argv)
     bool measure_mem = false;
     if (argc > 6)
     {
-        std::istringstream("true") >> std::boolalpha >> measure_mem;
+        std::string measure_mem_string = argv[6];
+        measure_mem = measure_mem_string == "true";
     }
 
     int threadNumber = std::stoi(threadNumber_string);
@@ -1012,7 +1039,6 @@ int main(int argc, char **argv)
         key_number = 1;
     }
     }
-    std::cout << "ztest" << std::endl;
     std::string agg_output = "output_" + tpc_sup;
     auto start = std::chrono::high_resolution_clock::now();
 
