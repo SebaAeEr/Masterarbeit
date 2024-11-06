@@ -750,7 +750,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                             input_head = 0;
                             offset = (sum - it.second) / sizeof(int);
                             mapping_size = it.second;
-                            std::cout << "sum: " << sum << " offset: " << offset << " head: " << input_head_base << " i: " << i << std::endl;
+                            // std::cout << "sum: " << sum << " offset: " << offset << " head: " << input_head_base << " i: " << i << std::endl;
                             break;
                         }
                     }
@@ -843,8 +843,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
             {
                 perror("Could not free memory in merge 2!");
             }
-            std::cout << "hashmap size: " << emHashmap.size() << std::endl;
-            //   write merged hashmap to the result and update head to point at the end of the file
+            // std::cout << "hashmap size: " << emHashmap.size() << std::endl;
+            //    write merged hashmap to the result and update head to point at the end of the file
             output_head += writeHashmap(&emHashmap, output_fd, output_head);
             emHashmap.clear();
             freed_space = 0;
