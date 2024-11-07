@@ -483,6 +483,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                     unsigned long freed_space_temp = (i - head + 1) - ((i - head + 1) % pagesize);
                     if (munmap(&mappedFile[head], freed_space_temp) == -1)
                     {
+                        std::cout << "head: " << head << " freed_space_temp: " << freed_space_temp << std::endl;
                         perror("Could not free memory!");
                     }
 
