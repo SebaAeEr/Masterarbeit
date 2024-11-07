@@ -723,6 +723,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
             {
                 if (i >= sum / sizeof(unsigned long))
                 {
+                    std::cout << "start setting new map" << std::endl;
                     sum = 0;
                     for (auto &it : spills)
                     {
@@ -752,6 +753,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                             offset = (sum - it.second) / sizeof(unsigned long);
                             mapping_size = it.second;
                             // std::cout << "sum: " << sum << " offset: " << offset << " head: " << input_head_base << " i: " << i << std::endl;
+                            std::cout << "finish setting new map" << std::endl;
                             break;
                         }
                     }
@@ -839,6 +841,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                     }
                 }
             }
+            std::cout << "start writing" << std::endl;
             // save empty flag and release the mapping
             if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(unsigned long)) == -1)
             {
@@ -849,6 +852,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
             output_head += writeHashmap(&emHashmap, output_fd, output_head);
             emHashmap.clear();
             freed_space = 0;
+            std::cout << "finish writing" << std::endl;
         }
         for (auto &it : spills)
             close(it.first);
