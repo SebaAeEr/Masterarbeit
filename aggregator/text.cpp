@@ -119,7 +119,6 @@ int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     // Calc the output size for hmap.
     long pagesize = sysconf(_SC_PAGE_SIZE);
     unsigned long output_size = 0;
-    auto test = hmap->begin();
     for (auto &it : *hmap)
     {
         for (auto &itt : it.first)
@@ -166,8 +165,8 @@ int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     }
 
     // Write into file through mapping. Starting at the given start point.
-    int mapped_count = start;
-    int head = 0;
+    unsigned long mapped_count = start;
+    unsigned long head = 0;
     for (auto &it : *hmap)
     {
         std::string temp_line = "{";
@@ -195,7 +194,7 @@ int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             if (mapped_count - head > pagesize * 100)
             {
                 // calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
-                int freed_space_temp = (mapped_count - head) - ((mapped_count - head) % pagesize);
+                unsigned long freed_space_temp = (mapped_count - head) - ((mapped_count - head) % pagesize);
                 if (munmap(&mappedoutputFile[head], freed_space_temp) == -1)
                 {
                     perror("Could not free memory in writeHashmap!");
