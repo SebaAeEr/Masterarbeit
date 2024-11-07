@@ -480,7 +480,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 if (i - head + 1 > pagesize)
                 {
                     // calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
-                    int freed_space_temp = (i - head + 1) - ((i - head + 1) % pagesize);
+                    unsigned long freed_space_temp = (i - head + 1) - ((i - head + 1) % pagesize);
                     if (munmap(&mappedFile[head], freed_space_temp) == -1)
                     {
                         perror("Could not free memory!");
@@ -790,8 +790,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                 if (emHashmap.size() * hash_avg + (newi - input_head + 2) * sizeof(unsigned long) * (1ull >> 10) >= memLimit * (1ull << 20) && (newi - input_head + 2) * sizeof(unsigned long) > pagesize)
                 {
                     //  calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
-                    int used_space = (newi - input_head + 2) * sizeof(unsigned long);
-                    int freed_space_temp = used_space - (used_space % pagesize);
+                    unsigned long used_space = (newi - input_head + 2) * sizeof(unsigned long);
+                    unsigned long freed_space_temp = used_space - (used_space % pagesize);
                     if (munmap(&spill_map[input_head], freed_space_temp) == -1)
                     {
                         perror("Could not free memory in merge 1!");
