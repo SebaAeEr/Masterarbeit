@@ -114,7 +114,7 @@ int estimateNumEntries(float avg, float memLimit, int phyMemBase, int realeased,
 }
 
 // Write hashmap hmap into file with head on start.
-int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, int start)
+int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, unsigned long start)
 {
     // Calc the output size for hmap.
     long pagesize = sysconf(_SC_PAGE_SIZE);
