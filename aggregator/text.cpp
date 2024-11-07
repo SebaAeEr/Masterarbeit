@@ -435,7 +435,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
         {
             for (int k = 0; k < key_number; k++)
             {
-                keys[k] = std::stoi(lineObjects[key_names[k]]);
+                keys[k] = std::stol(lineObjects[key_names[k]]);
             }
             if (lineObjects[opKeyName] == "null")
             {
@@ -443,7 +443,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
             }
             else
             {
-                opValue = std::stoi(lineObjects[opKeyName]);
+                opValue = std::stol(lineObjects[opKeyName]);
             }
         }
         catch (std::exception &err)
@@ -914,7 +914,7 @@ int test(std::string file1name, std::string file2name)
         {
             for (int k = 0; k < key_number; k++)
             {
-                keys[k] = std::stoi(lineObjects[key_names[k]]);
+                keys[k] = std::stol(lineObjects[key_names[k]]);
             }
             if (lineObjects[opKeyName] == "null")
             {
@@ -922,7 +922,7 @@ int test(std::string file1name, std::string file2name)
             }
             else
             {
-                opValue = std::stoi(lineObjects["_col1"]);
+                opValue = std::stol(lineObjects["_col1"]);
             }
         }
         catch (std::exception &err)
@@ -965,7 +965,7 @@ int test(std::string file1name, std::string file2name)
         {
             for (int k = 0; k < key_number; k++)
             {
-                keys[k] = std::stoi(lineObjects[key_names[k]]);
+                keys[k] = std::stol(lineObjects[key_names[k]]);
             }
             if (lineObjects[opKeyName] == "null")
             {
@@ -973,7 +973,7 @@ int test(std::string file1name, std::string file2name)
             }
             else
             {
-                opValue = std::stoi(lineObjects["_col1"]);
+                opValue = std::stol(lineObjects["_col1"]);
             }
         }
         catch (std::exception &err)
