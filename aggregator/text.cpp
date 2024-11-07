@@ -758,7 +758,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                 }
                 // std::cout << "start" << std::endl;
                 newi = i - offset;
-                int ognewi = newi;
+                unsigned long ognewi = newi;
 
                 if (spill_map[newi] == -1)
                 {
