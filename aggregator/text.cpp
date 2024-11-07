@@ -418,6 +418,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
     unsigned long numLinesLocal = 0;
     unsigned long maxHmapSize = 0;
     unsigned long opValue = -1;
+    unsigned long maxSize = 0;
     std::string okey, lineObjectValue;
     std::pair<int, size_t> spill_file(-1, 0);
 
@@ -467,52 +468,56 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
 
             // add customerkey, count pair to hashmap. When orderkey is not null count starts at 1.
             addPair(hmap, keys, opValue);
-            comb_hash_size.fetch_add(1);
-
-            // Check if Estimations exceed memlimit
-            // if (hashmap.size() * avg + phyMemBase > memLimit * (1ull << 20))
-            if (hmap->size() >= numHashRows * 0.9)
+            if (hmap->size() > maxSize)
             {
-                // std::cout << "memLimit broken. Estimated mem used: " << hashmap.size() * avg + phyMemBase << " Real memory usage: " << getPhyValue() << std::endl;
+                comb_hash_size.fetch_add(1);
+            }
+        }
 
-                // Free up space from mapping that is no longer needed.
-                if (i - head + 1 > pagesize)
+        // Check if Estimations exceed memlimit
+        // if (hashmap.size() * avg + phyMemBase > memLimit * (1ull << 20))
+        if (hmap->size() * avg + (i - head + 1) * (1ull >> 10) >= memLimit * (1ull << 20))
+        {
+            std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + (i - head + 1) * (1ull >> 10) << " size: " << hmap->size() << " avg: " << avg << " diff: " << i - head << std::endl;
+
+            // Free up space from mapping that is no longer needed.
+            if (i - head + 1 > pagesize)
+            {
+                // calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
+                unsigned long freed_space_temp = (i - head + 1) - ((i - head + 1) % pagesize);
+                if (munmap(&mappedFile[head], freed_space_temp) == -1)
                 {
-                    // calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
-                    unsigned long freed_space_temp = (i - head + 1) - ((i - head + 1) % pagesize);
-                    if (munmap(&mappedFile[head], freed_space_temp) == -1)
-                    {
-                        std::cout << "head: " << head << " freed_space_temp: " << freed_space_temp << std::endl;
-                        perror("Could not free memory!");
-                    }
-
-                    // std::cout << "Releasing memory: " << freed_space << std::endl;
-
-                    // Update Head to point at the new unfreed mapping space.
-
-                    freed_space += freed_space_temp;
-                    // Update numHashRows so that the estimations are still correct.
-                    numHashRows = estimateNumEntries(avg, memLimit, phyMembase, freed_space, maxHmapSize);
-                    // std::cout << "diff: " << i - head + 1 << " freed space: " << freed_space_temp << " Estimated Rows: " << numHashRows << std::endl;
-                    //  phyMemBase -= freed_space >> 10;
-                    head += freed_space_temp;
+                    std::cout << "head: " << head << " freed_space_temp: " << freed_space_temp << std::endl;
+                    perror("Could not free memory!");
                 }
 
-                // compare estimation again to memLimit
-                if (hmap->size() > numHashRows)
+                // std::cout << "Releasing memory: " << freed_space << std::endl;
+
+                // Update Head to point at the new unfreed mapping space.
+
+                freed_space += freed_space_temp;
+                // Update numHashRows so that the estimations are still correct.
+                numHashRows = estimateNumEntries(avg, memLimit, phyMembase, freed_space, maxHmapSize);
+                // std::cout << "diff: " << i - head + 1 << " freed space: " << freed_space_temp << " Estimated Rows: " << numHashRows << std::endl;
+                //  phyMemBase -= freed_space >> 10;
+                head += freed_space_temp;
+            }
+
+            // compare estimation again to memLimit
+            if (hmap->size() * avg + (i - head + 1) * (1ull >> 10) >= memLimit * (1ull << 20))
+            {
+
+                // Reset freed_space and update numHashRows so that Estimation stay correct
+                freed_space = 0;
+                if (maxHmapSize == 0)
                 {
-
-                    // Reset freed_space and update numHashRows so that Estimation stay correct
-                    freed_space = 0;
-                    if (maxHmapSize == 0)
-                    {
-                        maxHmapSize = hmap->size();
-                        // std::cout << "new MaxSize: " << maxHmapSize << std::endl;
-                    }
-                    numHashRows = estimateNumEntries(avg, memLimit, phyMembase, freed_space, maxHmapSize);
-
-                    spillToFile(hmap, &spill_file, id, pagesize);
+                    maxHmapSize = hmap->size();
+                    // std::cout << "new MaxSize: " << maxHmapSize << std::endl;
                 }
+                numHashRows = estimateNumEntries(avg, memLimit, phyMembase, freed_space, maxHmapSize);
+                // comb_hash_size -= hmap->size();
+                maxSize = hmap->size();
+                spillToFile(hmap, &spill_file, id, pagesize);
             }
         }
         // After line is read clear it and set reading to false till the next {
@@ -532,8 +537,11 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
     std::cout << "Thread " << id << " finished scanning. With time: " << duration << "s. Scanned Lines: " << numLinesLocal << ". microseconds/line: " << duration * 1000000 / numLinesLocal << ". Spilled with size: " << spill_file.second << std::endl;
 }
 
-void printSize(bool &finished, float memLimit)
+void printSize(bool &finished, float memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::vector<unsigned long> diff, float *avg)
 {
+    int phyMemBase = getPhyValue();
+    bool first = true;
+
     // int counter = 0;
     float maxSize = 0;
     while (!finished)
@@ -542,11 +550,37 @@ void printSize(bool &finished, float memLimit)
         if (size > maxSize)
         {
             maxSize = size;
+            if (memLimit * 0.95 < size)
+            {
+                unsigned long reservedMem = 0;
+                for (int i = 0; i < threadNumber; i++)
+                {
+                    reservedMem += diff[i];
+                }
+                *avg = (getPhyValue() - phyMemBase - (reservedMem >> 10)) / (float)(comb_hash_size.load());
+                std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
+                // std::cout << "TOO BIG! " << size << std::endl;
+                sleep(1);
+            }
         }
-        if (memLimit < size)
+        if (memLimit * 0.8 < size && first)
         {
+            first = false;
+            unsigned long reservedMem = 0;
+            for (int i = 0; i < threadNumber; i++)
+            {
+                reservedMem += diff[i];
+            }
+            *avg = (getPhyValue() - phyMemBase - (reservedMem >> 10)) / (float)(comb_hash_size.load());
+            std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
             // std::cout << "TOO BIG! " << size << std::endl;
             sleep(1);
+        }
+        else if (memLimit * 0.95 < size)
+        {
+            // avg *= 1.05;
+            // std::cout << "TOO BIG! " << size << " new avg: " << *avg << std::endl;
+            sleep(0.5);
         }
         /* else if (counter > 100)
         {
@@ -574,14 +608,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
     std::cout << "Input file size: " << stats.st_size << std::endl;
     std::pair<int, int> spill_file = std::pair<int, int>(-1, 0);
     std::unordered_map<std::string, std::string> lineObjects;
-    int readingMode = -1;
-    bool finished = false;
-    std::thread sizePrinter;
-    if (measure_mem)
-    {
-        sizePrinter = std::thread(printSize, std::ref(finished), memLimit);
-    }
-    memLimit -= 0.005;
 
     // https://martin.ankerl.com/2022/08/27/hashmap-bench-01/#emhash8__HashMap
 
@@ -604,12 +630,22 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
     {
         diff.push_back(0);
     }
-    float avg = 0.5;
 
     size_t t1_size = size / threadNumber - (size / threadNumber % pagesize);
     size_t t2_size = size - t1_size * (threadNumber - 1);
     std::cout << "t1 size: " << t1_size << " t2 size: " << t2_size << std::endl;
     std::vector<std::thread> threads;
+
+    float avg = 1;
+    int readingMode = -1;
+    bool finished = false;
+    std::thread sizePrinter;
+    if (measure_mem)
+    {
+        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, threadNumber, std::ref(comb_hash_size), diff, &avg);
+    }
+    memLimit -= 0.005;
+
     auto start_time = std::chrono::high_resolution_clock::now();
 
     int phyMemBase = getPhyValue();
@@ -624,22 +660,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
     threads.push_back(std::thread(fillHashmap, threadNumber, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, phyMemBase / threadNumber,
                                   std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), std::ref(freed_space), &diff[threadNumber - 1]));
 
-    while (numLines.load() < 100000)
-    {
-    }
-    unsigned long reservedMem = 0;
-    for (int i = 0; i < threadNumber; i++)
-    {
-        reservedMem += diff[i];
-    }
-    float hash_avg = (getPhyValue() - phyMemBase - (reservedMem >> 10)) / (float)(comb_hash_size.load());
-    std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " hash_avg: " << hash_avg << std::endl;
-
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
-    avg = (getPhyValue() - phyMemBase) / (float)(comb_hash_size.load());
+    /* avg = (getPhyValue() - phyMemBase) / (float)(comb_hash_size.load());
     avg *= 1.3;
     std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " #Hash entries: " << comb_hash_size.load() << " avg: " << avg << std::endl;
-
+ */
     for (auto &thread : threads)
     {
         thread.join();
@@ -722,6 +747,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
             {
                 if (i >= sum / sizeof(unsigned long))
                 {
+                    std::cout << "Start new mapping." << std::endl;
                     sum = 0;
                     for (auto &it : spills)
                     {
@@ -750,6 +776,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                             input_head = 0;
                             offset = (sum - it.second) / sizeof(unsigned long);
                             mapping_size = it.second;
+                            std::cout << "end new mapping." << std::endl;
                             // std::cout << "sum: " << sum << " offset: " << offset << " head: " << input_head_base << " i: " << i << std::endl;
                             break;
                         }
@@ -787,8 +814,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                 // std::cout << "free" << std::endl;
 
                 // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
-                if (emHashmap.size() * hash_avg + (newi - input_head + 2) * sizeof(unsigned long) * (1ull >> 10) >= memLimit * (1ull << 20) && (newi - input_head + 2) * sizeof(unsigned long) > pagesize)
+                if (emHashmap.size() * avg + (newi - input_head + 2) * sizeof(unsigned long) * (1ull >> 10) >= memLimit * (1ull << 20) && (newi - input_head + 2) * sizeof(unsigned long) > pagesize)
                 {
+                    std::cout << "Start freeing." << std::endl;
                     //  calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
                     unsigned long used_space = (newi - input_head + 2) * sizeof(unsigned long);
                     unsigned long freed_space_temp = used_space - (used_space % pagesize);
@@ -801,6 +829,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                     freed_space += freed_space_temp;
                     // Update numHashRows so that the estimations are still correct.
                     numHashRows = estimateNumEntries(avg, memLimit, phyMemBase, freed_space, -1);
+                    std::cout << "end freeing." << std::endl;
                     // std::cout << "hashmap size: " << emHashmap.size() * hash_avg << " freed space: " << (newi - input_head + 2) * sizeof(int) * (1ull >> 10) << "memLimit" << memLimit * (1ull << 20) << std::endl;
                 }
                 // std::cout << "merging/adding" << std::endl;
@@ -818,7 +847,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                 }
                 else
                 {
-                    if (!locked && emHashmap.size() * hash_avg + (newi - input_head + 2) * sizeof(unsigned long) * (1ull >> 10) < memLimit * (1ull << 20))
+                    if (!locked && emHashmap.size() * avg + (newi - input_head + 2) * sizeof(unsigned long) * (1ull >> 10) < memLimit * (1ull << 20))
                     {
                         // add pair to hashmap
                         std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>> pair{keys, values};
@@ -838,6 +867,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
                     }
                 }
             }
+            std::cout << "Start writing." << std::endl;
             // save empty flag and release the mapping
             if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(unsigned long)) == -1)
             {
@@ -848,6 +878,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, float memLi
             output_head += writeHashmap(&emHashmap, output_fd, output_head);
             emHashmap.clear();
             freed_space = 0;
+            std::cout << "end writing" << std::endl;
         }
         for (auto &it : spills)
             close(it.first);
