@@ -393,7 +393,6 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
     unsigned long opValue = 0;
     std::string okey, lineObjectValue;
     std::pair<int, size_t> spill_file(-1, 0);
-    std::cout << "phy start: " << getPhyValue() << std::endl;
 
     // loop through entire mapping
     for (unsigned long i = 0; i < size + offset; i++)
@@ -532,17 +531,6 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
                 sleep(0.5);
             }
         }
-        if (memLimit * 0.8 < size && first)
-        {
-            first = false;
-            unsigned long reservedMem = 0;
-            for (int i = 0; i < threadNumber; i++)
-            {
-                reservedMem += diff[i];
-            }
-            *avg = (size - phyMemBase - (reservedMem >> 10)) / (float)(comb_hash_size.load());
-            std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
-        }
         sleep(0.1);
     }
     std::cout << "second phase" << std::endl;
@@ -607,7 +595,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::cout << "t1 size: " << t1_size << " t2 size: " << t2_size << std::endl;
     std::vector<std::thread> threads;
 
-    float avg = 100;
+    float avg = 1;
     int readingMode = -1;
     int finished = 0;
     std::thread sizePrinter;
@@ -635,12 +623,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     avg *= 1.3;
     std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " #Hash entries: " << comb_hash_size.load() << " avg: " << avg << std::endl;
  */
-    std::cout << "before phy: " << getPhyValue() << std::endl;
     for (auto &thread : threads)
     {
         thread.join();
     }
-    std::cout << "after phy: " << getPhyValue() << std::endl;
     close(fd);
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
     std::cout << "Scanning finished with time: " << duration << "s. Scanned Lines: " << numLines << ". seconds/line: " << duration * 1000000 / numLines << std::endl;
