@@ -518,8 +518,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         {
             maxSize = size;
         }
-        // if (memLimit * 0.95 < size)
-        //{
+
         unsigned long reservedMem = 0;
         for (int i = 0; i < threadNumber; i++)
         {
@@ -529,7 +528,10 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         {
             *avg = (size - phyMemBase - reservedMem) / (float)(comb_hash_size.load());
         }
-        std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
+        if (memLimit * 0.95 < size)
+        {
+            std::cout << "Reaching limit phy: " << size << " hash_avg: " << *avg << " hash size: " << comb_hash_size.load() << std::endl;
+        }
         sleep(0.1);
         // }
         /* }
