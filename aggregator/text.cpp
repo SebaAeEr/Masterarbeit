@@ -51,7 +51,7 @@ auto comp = [](const std::array<unsigned long, max_size> v1, const std::array<un
 
 // Aggregator(std::string *key_names, enum Operation op, std::string opKeyName, int key_number, int value_number) : key_names(key_names), op(op), opKeyName(opKeyName), key_number(key_number), value_number(value_number) {}
 
-int parseLine(char *line)
+size_t parseLine(char *line)
 {
     // https://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
     // This assumes that a digit will be found and the line ends in " Kb".
@@ -64,10 +64,10 @@ int parseLine(char *line)
     return i;
 }
 
-int getPhyValue()
+size_t getPhyValue()
 { // Note: this value is in KB!
     FILE *file = fopen("/proc/self/status", "r");
-    int result = -1;
+    int result = 0;
     char line[128];
 
     while (fgets(line, 128, file) != NULL)
