@@ -510,9 +510,16 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     int small_counter = 0;
     // int counter = 0;
     size_t maxSize = 0;
+    size_t size = 0;
     while (finished == 0)
     {
-        size_t size = getPhyValue() * 1024;
+        size_t newsize = getPhyValue() * 1024;
+        while (abs(size - newsize) > 5000000000)
+        {
+            newsize = getPhyValue() * 1024;
+        }
+        size = newsize;
+
         if (size >= maxSize)
         {
             maxSize = size;
