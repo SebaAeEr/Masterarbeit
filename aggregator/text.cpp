@@ -507,7 +507,8 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
 {
     int phyMemBase = (getPhyValue() + 1000) * 1024;
     bool first = true;
-
+    sleep(5);
+    int small_counter = 0;
     // int counter = 0;
     size_t maxSize = 0;
     while (finished == 0)
@@ -516,8 +517,25 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         if (size >= maxSize)
         {
             maxSize = size;
-            if (memLimit * 0.95 < size)
-            {
+        }
+        // if (memLimit * 0.95 < size)
+        //{
+        unsigned long reservedMem = 0;
+        for (int i = 0; i < threadNumber; i++)
+        {
+            reservedMem += diff[i];
+        }
+        if (finished == 0)
+        {
+            *avg = (size - phyMemBase - reservedMem) / (float)(comb_hash_size.load());
+        }
+        std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
+        sleep(0.1);
+        // }
+        /* }
+        if (size < memLimit * 0.6) {
+            small_counter++;
+            if (small_counter >= 50) {
                 unsigned long reservedMem = 0;
                 for (int i = 0; i < threadNumber; i++)
                 {
@@ -529,11 +547,12 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
                 }
                 std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
                 sleep(0.5);
+                small_counter = 0;
             }
-        }
-        sleep(0.1);
+        } else {
+            small_counter = 0;
+        } */
     }
-    std::cout << "second phase" << std::endl;
 
     while (finished == 1)
     {
@@ -810,8 +829,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     // std::cout << "hashmap size: " << emHashmap.size() * avg << " freed space: " << freed_space_temp << std::endl;
                 }
             }
-            std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
-            // save empty flag and release the mapping
+            // std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
+            //  save empty flag and release the mapping
             if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(unsigned long)) == -1)
             {
                 perror("Could not free memory in merge 2!");
