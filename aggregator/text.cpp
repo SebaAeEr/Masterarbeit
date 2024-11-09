@@ -563,7 +563,6 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         }*/
         sleep(0.1);
     }
-    std::cout << "second phase" << std::endl;
 
     while (finished == 1)
     {
@@ -580,7 +579,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         }
         sleep(0.1);
     }
-    std::cout << "Max Size: " << maxSize << std::endl;
+    std::cout << "Max Size: " << maxSize << "B." << std::endl;
 }
 
 // aggregate inputfilename and write results into outpufilename
@@ -658,8 +657,13 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         thread.join();
     }
     close(fd);
+    unsigned long o_spill = 0;
+    for (auto &spill : spills)
+    {
+        o_spill += spill.second;
+    }
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
-    std::cout << "Scanning finished with time: " << duration << "s. Scanned Lines: " << numLines << ". seconds/line: " << duration * 1000000 / numLines << std::endl;
+    std::cout << "Scanning finished with time: " << duration << "s. Scanned Lines: " << numLines << ". macroseconds/line: " << duration * 1000000 / numLines << " Overall spill: " << o_spill << "B." << std::endl;
 
     start_time = std::chrono::high_resolution_clock::now();
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap = emHashmaps[0];
@@ -702,6 +706,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
     // Open the outputfile to write results
     int output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+    start_time = std::chrono::high_resolution_clock::now();
+    unsigned long written_lines = 0;
+    unsigned long read_lines = 0;
 
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty())
@@ -730,6 +737,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             unsigned long sum = 0;
             unsigned long newi = 0;
             size_t mapping_size = 0;
+
             // Go through entire mapping
             for (unsigned long i = input_head_base; i < comb_spill_size / sizeof(unsigned long); i++)
             {
@@ -779,6 +787,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     }
                     continue;
                 }
+
                 std::array<unsigned long, max_size> keys = {};
                 std::array<unsigned long, max_size> values = {};
 
@@ -801,6 +810,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 //  Update count if customerkey is in hashmap and delete pair in spill
                 if (emHashmap.contains(keys))
                 {
+                    read_lines++;
                     for (int i = 0; i < value_number; i++)
                     {
                         emHashmap[keys][i] += values[i];
@@ -811,6 +821,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 }
                 else if (!locked)
                 {
+                    read_lines++;
                     std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>> pair{keys, values};
                     emHashmap.insert(pair);
                     // delete pair in spill
@@ -841,6 +852,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 }
             }
             // std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
+            written_lines += emHashmap.size();
             //  save empty flag and release the mapping
             if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(unsigned long)) == -1)
             {
@@ -854,16 +866,16 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         for (auto &it : spills)
             close(it.first);
         duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
-        // std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << std::endl;
+        std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
     }
     else
     {
-        std::cout << "writing to output file" << std::endl;
+        // std::cout << "writing to output file" << std::endl;
 
         // write hashmap to output file
         writeHashmap(&emHashmap, output_fd, 0);
         duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
-        std::cout << "Writing output finished with time: " << duration << "s." << std::endl;
+        std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
     }
     close(output_fd);
     if (measure_mem)
