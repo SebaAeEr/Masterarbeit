@@ -410,7 +410,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
             {
                 keys[k] = std::stol(lineObjects[key_names[k]]);
             }
-            if (lineObjects[opKeyName] == "null")
+            if (lineObjects[opKeyName] == "null" || lineObjects[opKeyName] == "")
             {
                 opValue = ULONG_MAX;
             }
@@ -866,16 +866,17 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         for (auto &it : spills)
             close(it.first);
         duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
-        std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
+        std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
     }
     else
     {
         // std::cout << "writing to output file" << std::endl;
+        written_lines += emHashmap.size();
 
         // write hashmap to output file
         writeHashmap(&emHashmap, output_fd, 0);
         duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
-        std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
+        std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
     }
     close(output_fd);
     if (measure_mem)
@@ -1048,6 +1049,7 @@ int main(int argc, char **argv)
     int threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
     size_t memLimit = std::stof(memLimit_string) * (1ul << 30);
+    std::cout << tpc_query << std::endl;
 
     switch (tpc_query)
     {
@@ -1058,6 +1060,38 @@ int main(int argc, char **argv)
         op = count;
         opKeyName = "orderkey";
         key_number = 1;
+        value_number = 1;
+        break;
+    }
+    case (4):
+    {
+        std::string tmp = "orderkey";
+        key_names[0] = tmp;
+        op = exists;
+        opKeyName = "";
+        key_number = 1;
+        value_number = 0;
+        break;
+    }
+    case (17):
+    {
+        std::string tmp = "partkey";
+        key_names[0] = tmp;
+        op = average;
+        opKeyName = "quantity";
+        key_number = 1;
+        value_number = 2;
+        break;
+    }
+    case (20):
+    {
+        std::string tmp = "partkey";
+        key_names[0] = tmp;
+        tmp = "suppkey";
+        key_names[1] = tmp;
+        op = sum;
+        opKeyName = "quantity";
+        key_number = 2;
         value_number = 1;
         break;
     }
