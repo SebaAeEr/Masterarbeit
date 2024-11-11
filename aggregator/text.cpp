@@ -493,15 +493,26 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
         numLinesLocal++;
     }
 
-    munmap(&mappedFile[head], size - head);
+    if (munmap(&mappedFile[head], size - head) == -1)
+    {
+        std::cout << "head: " << head << " freed_space_temp: " << size - head << std::endl;
+        perror("Could not free memory in end of thread!");
+    }
 
     if (spill_file.first != -1)
     {
         spill_files->push_back(spill_file);
         // std::cout << "Thread: " << id << " spilled with size: " << spill_file.second << std::endl;
     }
-    auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
-    std::cout << "Thread " << id << " finished scanning. With time: " << duration << "s. Scanned Lines: " << numLinesLocal << ". microseconds/line: " << duration * 1000000 / numLinesLocal << ". Spilled with size: " << spill_file.second << std::endl;
+    try
+    {
+        auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
+        std::cout << "Thread " << id << " finished scanning. With time: " << duration << "s. Scanned Lines: " << numLinesLocal << ". microseconds/line: " << duration * 1000000 / numLinesLocal << ". Spilled with size: " << spill_file.second << std::endl;
+    }
+    catch (std::exception &err)
+    {
+        std::cout << "Not able to print time: " << err.what() << std::endl;
+    }
 }
 
 void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::vector<unsigned long> diff, float *avg)
@@ -536,7 +547,6 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
                     reservedMem += diff[i];
                 }
                 *avg = (size - phyMemBase - reservedMem) / (float)(comb_hash_size.load());
-                *avg *= 1.05;
                 std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
                 sleep(0.5);
             }
