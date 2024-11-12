@@ -305,7 +305,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
 {
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket("trinobucket");
-    request.SetKey(("trinobucket/" + uniqueName).c_str());
+    request.SetKey(uniqueName.c_str());
     const std::shared_ptr<Aws::StringStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
 
     // Calc spill size
@@ -317,12 +317,12 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     {
         for (int i = 0; i < key_number; i++)
         {
-            *in_stream << it.first[i];
+            *in_stream << std::to_string(it.first[i]);
             counter++;
         }
         for (int i = 0; i < value_number; i++)
         {
-            *in_stream << it.second[i];
+            *in_stream << std::to_string(it.second[i]);
             counter++;
         }
     }
