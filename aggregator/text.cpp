@@ -13,6 +13,10 @@
 #include <hash_table8.hpp>
 #include <thread>
 #include <mutex>
+#include <aws/core/Aws.h>
+#include <aws/core/auth/AWSCredentialsProviderChain.h>
+#include <aws/s3/S3Client.h>
+#include <aws/s3/model/PutObjectRequest.h>
 
 enum Operation
 {
@@ -297,6 +301,41 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
 
+void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uniqueName, long pagesize, size_t free_mem, Aws::S3::S3Client *minio_client)
+{
+    Aws::S3::Model::PutObjectRequest request;
+    request.SetBucket("trinobucket");
+    request.SetKey(("trinobucket/" + uniqueName).c_str());
+    const std::shared_ptr<Aws::StringStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+
+    // Calc spill size
+    size_t spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
+
+    // Write int to Mapping
+    unsigned long counter = 0;
+    for (auto &it : *hmap)
+    {
+        for (int i = 0; i < key_number; i++)
+        {
+            *in_stream << it.first[i];
+            counter++;
+        }
+        for (int i = 0; i < value_number; i++)
+        {
+            *in_stream << it.second[i];
+            counter++;
+        }
+    }
+    request.SetBody(in_stream);
+    request.SetContentLength(spill_mem_size);
+    auto outcome = minio_client->PutObject(request);
+
+    if (!outcome.IsSuccess())
+    {
+        std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
+    }
+}
+
 void execOperation(std::array<unsigned long, max_size> *hashValue, int value)
 {
     switch (op)
@@ -363,7 +402,7 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
 }
 
 void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit, int phyMembase,
-                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff)
+                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff, Aws::S3::S3Client *minio_client)
 {
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -392,6 +431,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
     unsigned long numLinesLocal = 0;
     unsigned long maxHmapSize = 0;
     unsigned long opValue = 0;
+    int spill_number = 0;
     std::string okey, lineObjectValue;
     std::pair<int, size_t> spill_file(-1, 0);
 
@@ -484,7 +524,9 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                     // std::cout << "new MaxSize: " << maxHmapSize << std::endl;
                 }
                 // comb_hash_size -= hmap->size();
-                spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
+                // spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
+                spillToMinio(hmap, std::to_string(id) + "_" + std::to_string(spill_number), pagesize, pagesize * 20, minio_client);
+                spill_number++;
                 // hmap->clear();
             }
         }
@@ -527,7 +569,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     while (finished == 0 || finished == 1)
     {
         size_t newsize = getPhyValue() * 1024;
-        while (abs(size - newsize) > 5000000000)
+        while (abs(static_cast<long>(size - newsize)) > 5000000000)
         {
             newsize = getPhyValue() * 1024;
         }
@@ -562,7 +604,13 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 {
     // Inits and decls
     long pagesize = sysconf(_SC_PAGE_SIZE);
-    std::string err;
+
+    Aws::SDKOptions options;
+    Aws::InitAPI(options);
+    Aws::Client::ClientConfiguration c_config;
+    c_config.endpointOverride = "http://131.159.16.208:9000";
+    Aws::Auth::AWSCredentials cred("erasmus", "tumThesis123");
+    Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
 
     // open inputfile and get size from stats
     int fd = open(inputfilename.c_str(), O_RDONLY);
@@ -616,11 +664,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, i, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber, phyMemBase / threadNumber,
-                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i]));
+                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i], &minio_client));
     }
     emHashmaps[threadNumber - 1] = {};
     threads.push_back(std::thread(fillHashmap, threadNumber - 1, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, phyMemBase / threadNumber,
-                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1]));
+                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1], &minio_client));
 
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
     /* avg = (getPhyValue() - phyMemBase) / (float)(comb_hash_size.load());
@@ -915,6 +963,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         finished++;
         sizePrinter.join();
     }
+    Aws::ShutdownAPI(options);
     return 0;
 }
 
@@ -1123,11 +1172,13 @@ int main(int argc, char **argv)
     }
     }
     std::string agg_output = "output_" + tpc_sup;
+
     auto start = std::chrono::high_resolution_clock::now();
 
     aggregate(co_output, agg_output, memLimit, threadNumber, true);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()) / 1000000;
+
     std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
     return test(agg_output, tpc_sup);
     // return aggregate("test.txt", "output_test.json");
