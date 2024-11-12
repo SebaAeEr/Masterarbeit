@@ -161,9 +161,16 @@ int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         }
         else
         {
+            // std::cout << it.second[0] << ", " << it.second[1] << ": " << std::to_string(it.second[0] / (float)(it.second[1])) << std::endl;
             temp_line += ",\"_col1\":" + std::to_string(it.second[0] / (float)(it.second[1])) + "}";
         }
-
+        // std::cout << temp_line << std::endl;
+        /*  int test_array[5] = {221877, 1359142, 1615111, 760010, 238675};
+         int *foo = std::find(std::begin(test_array), std::end(test_array), it.first[0]);
+         if (foo != std::end(test_array))
+         {
+             std::cout << "key: " << it.first[0] << ", " << it.first[1] << "; " << it.second[0] << ", " << it.second[1] << ": " << std::to_string(it.second[0] / (float)(it.second[1])) << std::endl;
+         } */
         for (auto &itt : temp_line)
         {
             mappedoutputFile[mapped_count] = itt;
@@ -402,7 +409,7 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
 }
 
 void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit, int phyMembase,
-                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff, Aws::S3::S3Client *minio_client)
+                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff)
 {
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -524,8 +531,8 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                     // std::cout << "new MaxSize: " << maxHmapSize << std::endl;
                 }
                 // comb_hash_size -= hmap->size();
-                // spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
-                spillToMinio(hmap, std::to_string(id) + "_" + std::to_string(spill_number), pagesize, pagesize * 20, minio_client);
+                spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
+                // spillToMinio(hmap, std::to_string(id) + "_" + std::to_string(spill_number), pagesize, pagesize * 20);
                 spill_number++;
                 // hmap->clear();
             }
@@ -589,7 +596,8 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
                     reservedMem += diff[i];
                 }
                 *avg = (size - phyMemBase - reservedMem) / (float)(comb_hash_size.load());
-                std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
+                *avg *= 1.1;
+                // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
                 sleep(0.5);
             }
         }
@@ -605,14 +613,14 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // Inits and decls
     long pagesize = sysconf(_SC_PAGE_SIZE);
 
-    Aws::SDKOptions options;
+    /* Aws::SDKOptions options;
     Aws::InitAPI(options);
     Aws::Client::ClientConfiguration c_config;
     c_config.verifySSL = true;
     c_config.region = "us-west-1";
     c_config.endpointOverride = "http://131.159.16.208:9000";
     Aws::Auth::AWSCredentials cred("erasmus", "tumThesis123");
-    Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
+    Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false); */
 
     // open inputfile and get size from stats
     int fd = open(inputfilename.c_str(), O_RDONLY);
@@ -666,11 +674,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, i, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber, phyMemBase / threadNumber,
-                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i], &minio_client));
+                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i]));
     }
     emHashmaps[threadNumber - 1] = {};
     threads.push_back(std::thread(fillHashmap, threadNumber - 1, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, phyMemBase / threadNumber,
-                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1], &minio_client));
+                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1]));
 
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
     /* avg = (getPhyValue() - phyMemBase) / (float)(comb_hash_size.load());
@@ -742,6 +750,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     unsigned long freed_mem = 0;
     unsigned long overall_size = 0;
 
+    // merge_test(&emHashmap, pagesize, &avg, output_fd, spills[0], &diff[0], &comb_hash_size, memLimit);
+
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty())
     {
@@ -752,8 +762,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         bool locked = true;
         unsigned long *spill_map = nullptr;
         unsigned long comb_spill_size = 0;
-        std::array<unsigned long, max_size> keys;
-        std::array<unsigned long, max_size> values;
+        std::array<unsigned long, max_size> keys = {0, 0};
+        std::array<unsigned long, max_size> values = {0, 0};
 
         unsigned long num_entries = 0;
         unsigned long input_head = 0;
@@ -788,6 +798,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             for (unsigned long i = input_head_base; i < comb_spill_size / sizeof(unsigned long); i++)
             {
                 if (i >= sum / sizeof(unsigned long))
+
                 {
                     // std::cout << "New mapping" << std::endl;
                     sum = 0;
@@ -805,7 +816,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                                     perror("Could not free memory in merge 2_1!");
                                 }
                                 freed_mem += mapping_size - input_head * sizeof(unsigned long);
-                                // std::cout << "Last head: " << input_head << " should be: " << (mapping_size - (mapping_size - input_head * sizeof(unsigned long))) / sizeof(unsigned long) << std::endl;
+                                // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(unsigned long) << std::endl;
                             }
                             unsigned long map_start = i * sizeof(unsigned long) - (sum - it.second) - ((i * sizeof(unsigned long) - (sum - it.second)) % pagesize);
                             mapping_size = it.second - map_start;
@@ -822,7 +833,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                             input_head = 0;
                             offset = ((sum - it.second) + map_start) / sizeof(unsigned long);
 
-                            // std::cout << "sum: " << sum / sizeof(unsigned long) << " offset: " << offset << " head: " << input_head_base << " map_start: " << map_start << " i: " << i << std::endl;
+                            // std::cout << "sum: " << sum / sizeof(unsigned long) << " offset: " << offset << " head: " << input_head_base << " map_start: " << map_start / sizeof(unsigned long) << " i: " << i << std::endl;
                             break;
                         }
                     }
@@ -834,10 +845,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 if (spill_map[newi] == ULONG_MAX)
                 {
                     i += key_number;
-                    if (op == average)
-                    {
-                        i++;
-                    }
+                    i += value_number - 1;
                 }
                 else
                 {
@@ -854,6 +862,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     }
                     newi--;
                     i = newi + offset;
+                    /* int test_array[5] = {221877};
+                    int *foo = std::find(std::begin(test_array), std::end(test_array), keys[0]);
+                    if (foo != std::end(test_array))
+                    {
+                        std::cout << "key: " << keys[0] << ", " << keys[1] << "; " << " contained: " << emHashmap.contains(keys) << " value: " << emHashmap[keys][0] << " i: " << i << std::endl;
+                    } */
                     // std::cout << "free" << std::endl;
 
                     // std::cout << "merging/adding" << std::endl;
@@ -861,10 +875,24 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     if (emHashmap.contains(keys))
                     {
                         read_lines++;
+
+                        std::array<unsigned long, max_size> temp = emHashmap[keys];
+                        /* int test_array[5] = {221877, 1359142, 1615111, 760010, 238675};
+                        int *foo = std::find(std::begin(test_array), std::end(test_array), keys[0]);
+                        if (foo != std::end(test_array))
+                        {
+                            std::cout << "key: " << keys[0] << "; " << values[0] << ", " << values[1] << " in Hash: " << temp[0] << ", " << temp[1] << std::endl;
+                        } */
+
                         for (int k = 0; k < value_number; k++)
                         {
-                            emHashmap[keys][k] += values[k];
+                            temp[k] += values[k];
                         }
+                        emHashmap[keys] = temp;
+                        /* if (foo != std::end(test_array))
+                        {
+                            std::cout << "key: " << keys[0] << "; " << emHashmap[keys][0] << ", " << emHashmap[keys][1] << std::endl;
+                        } */
                         // mergeHashEntries(&emHashmap[keys], &values);
                         //    delete pair in spill
                         spill_map[ognewi] = ULONG_MAX;
@@ -872,6 +900,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     else if (!locked)
                     {
                         read_lines++;
+                        /* int test_array[5] = {221877, 1359142, 1615111, 760010, 238675};
+                        int *foo = std::find(std::begin(test_array), std::end(test_array), keys[0]);
+                        if (foo != std::end(test_array))
+                        {
+                            std::cout << "ADD key: " << keys[0] << "; " << values[0] << ", " << values[1] << std::endl;
+                        } */
                         emHashmap.insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
                         if (emHashmap.size() > maxHashsize)
                         {
@@ -881,16 +915,16 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         spill_map[ognewi] = ULONG_MAX;
                     }
                 }
-                if (old_avg != avg)
+                /* if (old_avg != avg)
                 {
                     // std::cout << "calc size: " << emHashmap.size() * avg + (newi - input_head) * sizeof(unsigned long) << " hashsize: " << emHashmap.size() << " comb hash size: " << comb_hash_size << " reserve size: " << (newi - input_head) * sizeof(unsigned long) << " diff: " << diff[0] << std::endl;
                     old_avg = avg;
                     comb_hash_size = emHashmap.size();
                     maxHashsize = emHashmap.size();
-                }
+                } */
 
                 // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
-                if (emHashmap.size() * avg + (newi - input_head) * sizeof(unsigned long) >= memLimit * 0.8)
+                if (emHashmap.size() * avg + (newi - input_head) * sizeof(unsigned long) >= memLimit * 0.7)
                 {
                     unsigned long used_space = (newi - input_head) * sizeof(unsigned long);
                     if (used_space > pagesize)
@@ -901,6 +935,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         {
                             perror("Could not free memory in merge 1!");
                         }
+                        // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(unsigned long) + input_head << std::endl;
                         freed_mem += freed_space_temp;
                         // Update Head to point at the new unfreed mapping space.
                         input_head += freed_space_temp / sizeof(unsigned long);
@@ -909,7 +944,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
                         // std::cout << "hashmap size: " << emHashmap.size() * avg << " freed space: " << freed_space_temp << std::endl;
                     }
-                    if (!locked && used_space <= pagesize * 21)
+                    if (!locked && used_space <= pagesize * 40)
                     {
                         // std::cout << "head base: " << input_head_base << std::endl;
                         locked = true;
@@ -924,14 +959,16 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             {
                 perror("Could not free memory in merge 2!");
             }
-            // std::cout << "Last head: " << input_head << " should be: " << (mapping_size - (mapping_size - input_head * sizeof(unsigned long))) / sizeof(unsigned long) << std::endl;
+            // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(unsigned long) << std::endl;
+            //  std::cout << "Last head: " << input_head << " should be: " << (mapping_size - (mapping_size - input_head * sizeof(unsigned long))) / sizeof(unsigned long) << std::endl;
             freed_mem += mapping_size - input_head * sizeof(unsigned long);
             // std::cout << "merger: freed_mem: " << freed_mem << " size: " << overall_size << std::endl;
             overall_size = 0;
             freed_mem = 0;
+            // std::cout << "write: " << emHashmap[{221877}][0] << std::endl;
 
             // write merged hashmap to the result and update head to point at the end of the file
-            output_head += writeHashmap(&emHashmap, output_fd, output_head, pagesize * 10);
+            output_head += writeHashmap(&emHashmap, output_fd, output_head, pagesize * 30);
             if (emHashmap.size() > maxHashsize)
             {
                 maxHashsize = emHashmap.size();
@@ -965,7 +1002,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         finished++;
         sizePrinter.join();
     }
-    Aws::ShutdownAPI(options);
+    // Aws::ShutdownAPI(options);
     return 0;
 }
 
@@ -997,9 +1034,9 @@ int test(std::string file1name, std::string file2name)
     std::unordered_map<std::string, std::string> lineObjects;
     std::string ckey;
     int count;
-    emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hashmap;
+    emhash8::HashMap<std::array<unsigned long, max_size>, float, decltype(hash), decltype(comp)> hashmap;
     bool reading = false;
-    unsigned long opValue;
+    float opValue;
     std::array<unsigned long, max_size> keys;
     for (unsigned long i = 0; i < size; ++i)
     {
@@ -1014,7 +1051,7 @@ int test(std::string file1name, std::string file2name)
             {
                 keys[k] = std::stol(lineObjects[key_names[k]]);
             }
-            opValue = std::stol(lineObjects["_col1"]);
+            opValue = std::stof(lineObjects["_col1"]);
         }
         catch (std::exception &err)
         {
@@ -1025,7 +1062,7 @@ int test(std::string file1name, std::string file2name)
             std::cout << "conversion error test on file 1: " << err.what() << std::endl;
             return -1;
         }
-        addPair(&hashmap, keys, opValue);
+        hashmap.insert(std::pair<std::array<unsigned long, max_size>, float>{keys, opValue});
     }
     munmap(mappedFile, size);
     close(fd);
@@ -1045,7 +1082,7 @@ int test(std::string file1name, std::string file2name)
         perror("Error mmapping the file");
         exit(EXIT_FAILURE);
     }
-    emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hashmap2;
+    emhash8::HashMap<std::array<unsigned long, max_size>, float, decltype(hash), decltype(comp)> hashmap2;
     for (unsigned long i = 0; i < size; ++i)
     {
         i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
@@ -1059,7 +1096,7 @@ int test(std::string file1name, std::string file2name)
             {
                 keys[k] = std::stol(lineObjects[key_names[k]]);
             }
-            opValue = std::stol(lineObjects["_col1"]);
+            opValue = std::stof(lineObjects["_col1"]);
         }
         catch (std::exception &err)
         {
@@ -1070,7 +1107,7 @@ int test(std::string file1name, std::string file2name)
             std::cout << "conversion error test on file 2: " << err.what() << std::endl;
             return -1;
         }
-        addPair(&hashmap2, keys, opValue);
+        hashmap2.insert(std::pair<std::array<unsigned long, max_size>, float>{keys, opValue});
     }
     munmap(mappedFile, size);
     close(fd2);
@@ -1089,9 +1126,9 @@ int test(std::string file1name, std::string file2name)
             std::cout << "File 2 does not contain: " << it.first[0] << std::endl;
             same = false;
         }
-        if (hashmap2[it.first][0] != it.second[0])
+        if (std::abs(hashmap2[it.first] - it.second) > 0.001)
         {
-            std::cout << "File 2 has different value for key: " << it.first[0] << "; File 1: " << it.second[0] << "; File 2: " << hashmap2[it.first][0] << std::endl;
+            std::cout << "File 2 has different value for key: " << it.first[0] << "; File 1: " << it.second << "; File 2: " << hashmap2[it.first] << std::endl;
             same = false;
         }
     }
@@ -1110,12 +1147,6 @@ int main(int argc, char **argv)
     std::string memLimit_string = argv[3];
     std::string threadNumber_string = argv[4];
     std::string tpc_query_string = argv[5];
-    bool measure_mem = false;
-    if (argc > 6)
-    {
-        std::string measure_mem_string = argv[6];
-        measure_mem = measure_mem_string == "true";
-    }
 
     int threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
@@ -1180,7 +1211,6 @@ int main(int argc, char **argv)
     aggregate(co_output, agg_output, memLimit, threadNumber, true);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()) / 1000000;
-
     std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
     return test(agg_output, tpc_sup);
     // return aggregate("test.txt", "output_test.json");
