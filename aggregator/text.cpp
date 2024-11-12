@@ -608,6 +608,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     Aws::Client::ClientConfiguration c_config;
+    c_config.verifySSL = false;
     c_config.endpointOverride = "http://131.159.16.208:9000";
     Aws::Auth::AWSCredentials cred("erasmus", "tumThesis123");
     Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
