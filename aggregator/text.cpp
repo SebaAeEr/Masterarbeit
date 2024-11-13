@@ -614,6 +614,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     long pagesize = sysconf(_SC_PAGE_SIZE);
 
     Aws::SDKOptions options;
+    options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
     Aws::Client::ClientConfiguration c_config;
     c_config.verifySSL = false;
