@@ -312,7 +312,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
 {
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket("trinobucket");
-    request.SetKey(uniqueName.c_str());
+    request.SetKey(("/" + uniqueName).c_str());
     const std::shared_ptr<Aws::StringStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
 
     // Calc spill size
@@ -409,7 +409,7 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
 }
 
 void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit, int phyMembase,
-                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff)
+                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff, Aws::S3::S3Client *minio_client)
 {
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -531,8 +531,8 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                     // std::cout << "new MaxSize: " << maxHmapSize << std::endl;
                 }
                 // comb_hash_size -= hmap->size();
-                spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
-                // spillToMinio(hmap, std::to_string(id) + "_" + std::to_string(spill_number), pagesize, pagesize * 20);
+                // spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
+                spillToMinio(hmap, std::to_string(id) + "_" + std::to_string(spill_number), pagesize, pagesize * 20, minio_client);
                 spill_number++;
                 // hmap->clear();
             }
@@ -613,14 +613,15 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // Inits and decls
     long pagesize = sysconf(_SC_PAGE_SIZE);
 
-    /* Aws::SDKOptions options;
+    Aws::SDKOptions options;
     Aws::InitAPI(options);
     Aws::Client::ClientConfiguration c_config;
-    c_config.verifySSL = true;
+    c_config.verifySSL = false;
     c_config.region = "us-west-1";
+    c_config.scheme = Aws::Http::Scheme::HTTP;
     c_config.endpointOverride = "http://131.159.16.208:9000";
     Aws::Auth::AWSCredentials cred("erasmus", "tumThesis123");
-    Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false); */
+    Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
 
     // open inputfile and get size from stats
     int fd = open(inputfilename.c_str(), O_RDONLY);
@@ -674,11 +675,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, i, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber, phyMemBase / threadNumber,
-                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i]));
+                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i], &minio_client));
     }
     emHashmaps[threadNumber - 1] = {};
     threads.push_back(std::thread(fillHashmap, threadNumber - 1, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, phyMemBase / threadNumber,
-                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1]));
+                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1], &minio_client));
 
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
     /* avg = (getPhyValue() - phyMemBase) / (float)(comb_hash_size.load());
@@ -862,13 +863,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     }
                     newi--;
                     i = newi + offset;
-                    /* int test_array[5] = {221877};
-                    int *foo = std::find(std::begin(test_array), std::end(test_array), keys[0]);
-                    if (foo != std::end(test_array))
-                    {
-                        std::cout << "key: " << keys[0] << ", " << keys[1] << "; " << " contained: " << emHashmap.contains(keys) << " value: " << emHashmap[keys][0] << " i: " << i << std::endl;
-                    } */
-                    // std::cout << "free" << std::endl;
 
                     // std::cout << "merging/adding" << std::endl;
                     //  Update count if customerkey is in hashmap and delete pair in spill
@@ -877,22 +871,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         read_lines++;
 
                         std::array<unsigned long, max_size> temp = emHashmap[keys];
-                        /* int test_array[5] = {221877, 1359142, 1615111, 760010, 238675};
-                        int *foo = std::find(std::begin(test_array), std::end(test_array), keys[0]);
-                        if (foo != std::end(test_array))
-                        {
-                            std::cout << "key: " << keys[0] << "; " << values[0] << ", " << values[1] << " in Hash: " << temp[0] << ", " << temp[1] << std::endl;
-                        } */
 
                         for (int k = 0; k < value_number; k++)
                         {
                             temp[k] += values[k];
                         }
                         emHashmap[keys] = temp;
-                        /* if (foo != std::end(test_array))
-                        {
-                            std::cout << "key: " << keys[0] << "; " << emHashmap[keys][0] << ", " << emHashmap[keys][1] << std::endl;
-                        } */
                         // mergeHashEntries(&emHashmap[keys], &values);
                         //    delete pair in spill
                         spill_map[ognewi] = ULONG_MAX;
@@ -900,12 +884,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     else if (!locked)
                     {
                         read_lines++;
-                        /* int test_array[5] = {221877, 1359142, 1615111, 760010, 238675};
-                        int *foo = std::find(std::begin(test_array), std::end(test_array), keys[0]);
-                        if (foo != std::end(test_array))
-                        {
-                            std::cout << "ADD key: " << keys[0] << "; " << values[0] << ", " << values[1] << std::endl;
-                        } */
                         emHashmap.insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
                         if (emHashmap.size() > maxHashsize)
                         {
@@ -915,13 +893,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         spill_map[ognewi] = ULONG_MAX;
                     }
                 }
-                /* if (old_avg != avg)
-                {
-                    // std::cout << "calc size: " << emHashmap.size() * avg + (newi - input_head) * sizeof(unsigned long) << " hashsize: " << emHashmap.size() << " comb hash size: " << comb_hash_size << " reserve size: " << (newi - input_head) * sizeof(unsigned long) << " diff: " << diff[0] << std::endl;
-                    old_avg = avg;
-                    comb_hash_size = emHashmap.size();
-                    maxHashsize = emHashmap.size();
-                } */
 
                 // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
                 if (emHashmap.size() * avg + (newi - input_head) * sizeof(unsigned long) >= memLimit * 0.7)
