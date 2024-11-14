@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <vector>
 #include <string>
+#include <iostream>
 // #include <json/json.h>
 #include <unordered_map>
 #include <stdio.h>
@@ -86,6 +87,17 @@ size_t getPhyValue()
     return result;
 }
 
+int writeString(char *mapping, const std::string &string)
+{
+    int counter = 0;
+    for (auto &it : string)
+    {
+        mapping[counter] = it;
+        counter++;
+    }
+    return counter;
+}
+
 // Write hashmap hmap into file with head on start.
 int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, unsigned long start, unsigned long free_mem)
 {
@@ -146,44 +158,46 @@ int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     unsigned long head = 0;
     for (auto &it : *hmap)
     {
-        std::string temp_line = "{";
+        mapped_count += writeString(&mappedoutputFile[mapped_count], "{");
+        // std::string temp_line = "{";
         for (int k = 0; k < key_number; k++)
         {
-            temp_line += "\"" + key_names[k] + "\":" + std::to_string(it.first[k]);
+            mapped_count += writeString(&mappedoutputFile[mapped_count], "\"");
+            mapped_count += writeString(&mappedoutputFile[mapped_count], key_names[k]);
+            mapped_count += writeString(&mappedoutputFile[mapped_count], "\":");
+            mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.first[k]));
+            // temp_line += "\"" + key_names[k] + "\":" + std::to_string(it.first[k]);
             if (k + 1 < key_number)
             {
-                temp_line += ",";
+                // temp_line += ",";
+                mapped_count += writeString(&mappedoutputFile[mapped_count], ",");
             }
         }
+        mapped_count += writeString(&mappedoutputFile[mapped_count], ",\"_col1\":");
         if (op != average)
         {
-            temp_line += ",\"_col1\":" + std::to_string(it.second[0]) + "}";
+            // temp_line += ",\"_col1\":" + std::to_string(it.second[0]) + "}";
+            mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0]));
         }
         else
         {
-            // std::cout << it.second[0] << ", " << it.second[1] << ": " << std::to_string(it.second[0] / (float)(it.second[1])) << std::endl;
-            temp_line += ",\"_col1\":" + std::to_string(it.second[0] / (float)(it.second[1])) + "}";
+            mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0] / (float)(it.second[1])));
+            // temp_line += ",\"_col1\":" + std::to_string(it.second[0] / (float)(it.second[1])) + "}";
         }
+        mapped_count += writeString(&mappedoutputFile[mapped_count], "}");
         // std::cout << temp_line << std::endl;
-        /*  int test_array[5] = {221877, 1359142, 1615111, 760010, 238675};
-         int *foo = std::find(std::begin(test_array), std::end(test_array), it.first[0]);
-         if (foo != std::end(test_array))
-         {
-             std::cout << "key: " << it.first[0] << ", " << it.first[1] << "; " << it.second[0] << ", " << it.second[1] << ": " << std::to_string(it.second[0] / (float)(it.second[1])) << std::endl;
-         } */
-        for (auto &itt : temp_line)
+        // for (auto &itt : temp_line)
+        //{
+
+        unsigned long used_space = (mapped_count - head);
+        if (used_space >= free_mem && used_space > pagesize)
         {
-            mappedoutputFile[mapped_count] = itt;
-            mapped_count++;
-            unsigned long used_space = (mapped_count - head);
-            if (used_space >= free_mem && used_space > pagesize)
-            {
-                unsigned long freed_space = used_space - (used_space % pagesize);
-                munmap(&mappedoutputFile[head], freed_space);
-                head += freed_space;
-                freed_mem += freed_space;
-            }
+            unsigned long freed_space = used_space - (used_space % pagesize);
+            munmap(&mappedoutputFile[head], freed_space);
+            head += freed_space;
+            freed_mem += freed_space;
         }
+        //}
     }
 
     // free mapping and return the size of output of hmap.
@@ -317,22 +331,24 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
 
     // Calc spill size
     size_t spill_mem_size = 0;
-    spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
+    // spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
 
     // Write int to Mapping
     for (auto &it : *hmap)
     {
         for (int i = 0; i < key_number; i++)
         {
-            //*in_stream << std::to_string(it.first[i]);
-            *in_stream << it.first[i];
-            // spill_mem_size += std::to_string(it.first[i]).length();
+            std::string temp_string = std::to_string(it.first[i]);
+            *in_stream << temp_string;
+            *in_stream << ",";
+            spill_mem_size += temp_string.length() + 1;
         }
         for (int i = 0; i < value_number; i++)
         {
-            //*in_stream << std::to_string(it.second[i]);
-            *in_stream << it.second[i];
-            // spill_mem_size += std::to_string(it.second[i]).length();
+            std::string temp_string = std::to_string(it.second[i]);
+            *in_stream << temp_string;
+            *in_stream << ",";
+            spill_mem_size += temp_string.length() + 1;
         }
     }
     request.SetBody(in_stream);
@@ -343,6 +359,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     {
         std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
     }
+    hmap->clear();
 }
 
 void execOperation(std::array<unsigned long, max_size> *hashValue, int value)
@@ -534,8 +551,10 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 }
                 // comb_hash_size -= hmap->size();
                 // spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
+                std::cout << "Spilling" << std::endl;
                 spillToMinio(hmap, std::to_string(id) + "_" + std::to_string(spill_number), pagesize, pagesize * 20, minio_client);
                 spill_number++;
+                std::cout << "Spilling ended" << std::endl;
                 // hmap->clear();
             }
         }
@@ -583,6 +602,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             newsize = getPhyValue() * 1024;
         }
         size = newsize;
+        std::cout << "phy: " << size << std::endl;
 
         if (size > old_size)
         {
@@ -599,7 +619,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
                 }
                 *avg = (size - phyMemBase - reservedMem) / (float)(comb_hash_size.load());
                 *avg *= 1.1;
-                // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
+                std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
                 sleep(0.5);
             }
         }
