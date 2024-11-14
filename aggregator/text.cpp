@@ -602,7 +602,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             newsize = getPhyValue() * 1024;
         }
         size = newsize;
-        std::cout << "phy: " << size << std::endl;
+        // std::cout << "phy: " << size << std::endl;
 
         if (size > old_size)
         {
