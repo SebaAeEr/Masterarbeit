@@ -313,28 +313,28 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket("trinobucket");
     request.SetKey(("/" + uniqueName).c_str());
-    const std::shared_ptr<Aws::StringStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+    const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::IOStream>("");
 
     // Calc spill size
-    size_t spill_mem_size = 0; // hmap->size() * sizeof(unsigned long) * (key_number + value_number);
+    size_t spill_mem_size = 0;
+    spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
 
     // Write int to Mapping
-    unsigned long counter = 0;
     for (auto &it : *hmap)
     {
         for (int i = 0; i < key_number; i++)
         {
-            *in_stream << std::to_string(it.first[i]);
-            counter++;
-            spill_mem_size += std::to_string(it.first[i]).length();
+            //*in_stream << std::to_string(it.first[i]);
+            *in_stream << it.first[i];
+            // spill_mem_size += std::to_string(it.first[i]).length();
         }
         for (int i = 0; i < value_number; i++)
         {
-            *in_stream << std::to_string(it.second[i]);
-            counter++;
-            spill_mem_size += std::to_string(it.second[i]).length();
+            //*in_stream << std::to_string(it.second[i]);
+            *in_stream << it.second[i];
+            // spill_mem_size += std::to_string(it.second[i]).length();
         }
-        }
+    }
     request.SetBody(in_stream);
     request.SetContentLength(spill_mem_size);
     auto outcome = minio_client->PutObject(request);
