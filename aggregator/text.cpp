@@ -343,6 +343,16 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         {
             std::cout << it.first[0] << ", " << it.second[0] << std::endl;
             std::cout << "Real bytes: " << std::bitset<32>(it.first[0]) << std::endl;
+            std::cout << "ChatGPT: ";
+            char byteArray[sizeof(long int)];
+            std::memcpy(byteArray, &it.first[0], sizeof(long int));
+            for (size_t i = 0; i < sizeof(long int); ++i)
+            {
+                // Print each byte in hexadecimal format
+                std::cout << std::hex << (0xFF & byteArray[i]) << " ";
+            }
+            std::cout << std::endl;
+
             std::cout << "Bytes: ";
             for (int i = 0; i < key_number; i++)
             {
