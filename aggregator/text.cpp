@@ -655,6 +655,10 @@ std::pair<std::basic_iostream<char> &, size_t> readS3(std::string &name, Aws::S3
     if (outcome.IsSuccess())
     {
         std::cout << "Success in reading" << std::endl;
+        char *buf = new char[sizeof(unsigned long)];
+        std::cout << "Trying to read bytes" << std::endl;
+        result.read(buf, sizeof(unsigned long));
+        std::cout << "Read bytes" << std::endl;
         return {result, length};
     }
     else
@@ -958,6 +962,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 spill.first.read(buf, sizeof(unsigned long) * number_of_longs);
                 if (!spill.first)
                 {
+                    std::cout << "breaking" << std::endl;
                     break;
                 }
                 std::cout << "Trying to cast" << std::endl;
