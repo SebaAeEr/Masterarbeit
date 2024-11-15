@@ -333,33 +333,39 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     // Calc spill size
     size_t spill_mem_size = 0;
     spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
+    int counter = 0;
 
     // Write int to Mapping
     for (auto &it : *hmap)
     {
-        for (int i = 0; i < key_number; i++)
+        if (counter < 10)
         {
-            char *pointer = static_cast<char *>(static_cast<void *>(&it.first[i]));
-            for (int x = 0; x < sizeof(unsigned long); x++)
-                *in_stream << pointer[x];
-            /*  std::string temp_string = std::to_string(it.first[i]);
-             *in_stream << temp_string;
-             *in_stream << ",";
-             spill_mem_size += temp_string.length() + 1; */
+            std::cout << it.first[0] << ", " << it.second[0] << std::endl;
+            for (int i = 0; i < key_number; i++)
+            {
+                char *pointer = static_cast<char *>(static_cast<void *>(&it.first[i]));
+                for (int x = 0; x < sizeof(unsigned long); x++)
+                    *in_stream << pointer[x];
+                /*  std::string temp_string = std::to_string(it.first[i]);
+                 *in_stream << temp_string;
+                 *in_stream << ",";
+                 spill_mem_size += temp_string.length() + 1; */
+            }
+            for (int i = 0; i < value_number; i++)
+            {
+                char *pointer = static_cast<char *>(static_cast<void *>(&it.second[i]));
+                for (int x = 0; x < sizeof(unsigned long); x++)
+                    *in_stream << pointer[x];
+                /* std::string temp_string = std::to_string(it.second[i]);
+                *in_stream << temp_string;
+                *in_stream << ",";
+                spill_mem_size += temp_string.length() + 1; */
+            }
         }
-        for (int i = 0; i < value_number; i++)
-        {
-            char *pointer = static_cast<char *>(static_cast<void *>(&it.second[i]));
-            for (int x = 0; x < sizeof(unsigned long); x++)
-                *in_stream << pointer[x];
-            /* std::string temp_string = std::to_string(it.second[i]);
-            *in_stream << temp_string;
-            *in_stream << ",";
-            spill_mem_size += temp_string.length() + 1; */
-        }
+        counter++;
     }
     request.SetBody(in_stream);
-    request.SetContentLength(spill_mem_size);
+    request.SetContentLength(20 * sizeof(unsigned long));
     auto outcome = minio_client->PutObject(request);
 
     if (!outcome.IsSuccess())
@@ -973,7 +979,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 spill.read(buf, sizeof(unsigned long) * number_of_longs);
                 if (!spill)
                 {
-                    std::cout << "breaking" << std::endl;
                     break;
                 }
                 static_cast<unsigned long *>(static_cast<void *>(buf));
