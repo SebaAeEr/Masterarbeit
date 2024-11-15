@@ -643,6 +643,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
 
 std::pair<std::basic_iostream<char> &, size_t> readS3(std::string &name, Aws::S3::S3Client *minio_client)
 {
+    std::cout << "Start reading" << std::endl;
     Aws::S3::Model::GetObjectRequest request;
     request.SetBucket("trinobucket");
     request.SetKey(name);
@@ -653,7 +654,7 @@ std::pair<std::basic_iostream<char> &, size_t> readS3(std::string &name, Aws::S3
 
     if (outcome.IsSuccess())
     {
-
+        std::cout << "Success in reading" << std::endl;
         return {result, length};
     }
     else
@@ -923,9 +924,12 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         // std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
         written_lines += hmap->size();
         //  save empty flag and release the mapping
-        if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(unsigned long)) == -1)
+        if (mapping_size - input_head * sizeof(unsigned long) > 0)
         {
-            perror("Could not free memory in merge 2!");
+            if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(unsigned long)) == -1)
+            {
+                perror("Could not free memory in merge 2!");
+            }
         }
         // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(unsigned long) << std::endl;
         //  std::cout << "Last head: " << input_head << " should be: " << (mapping_size - (mapping_size - input_head * sizeof(unsigned long))) / sizeof(unsigned long) << std::endl;
@@ -950,11 +954,13 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             while (true)
             {
                 char buf[sizeof(unsigned long) * number_of_longs];
+                std::cout << "Trying to read bytes" << std::endl;
                 spill.first.read(buf, sizeof(unsigned long) * number_of_longs);
                 if (!spill.first)
                 {
                     break;
                 }
+                std::cout << "Trying to cast" << std::endl;
                 static_cast<unsigned long *>(static_cast<void *>(buf));
                 for (int k = 0; k < key_number; k++)
                 {
@@ -965,6 +971,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 {
                     values[k] = buf[k + key_number];
                 }
+                std::cout << "Success in reading bytes: " << keys[0] << std::endl;
 
                 /* int temp_i = parseS3Spill(spill_buffer, head, buffer_size - last_bytes, &keys, &values, temp_buffer, 0, false);
                 if (temp_i < 0)
