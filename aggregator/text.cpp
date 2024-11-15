@@ -441,6 +441,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
     auto start_time = std::chrono::high_resolution_clock::now();
     long pagesize = sysconf(_SC_PAGE_SIZE);
     int offset = 0;
+    unsigned long spill_size = 0;
     if (addOffset)
         offset = 200;
     // map inputfile
@@ -556,12 +557,14 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                     maxHmapSize = hmap->size();
                     // std::cout << "new MaxSize: " << maxHmapSize << std::endl;
                 }
+                spill_size += hmap->size() * (key_number + value_number) * sizeof(unsigned long);
                 // comb_hash_size -= hmap->size();
                 // spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
                 // std::cout << "Spilling" << std::endl;
                 spillToMinio(hmap, std::to_string(id) + "_" + std::to_string(spill_number), pagesize, pagesize * 20, minio_client);
                 (*s3Spill_names).push_back(std::to_string(id) + "_" + std::to_string(spill_number));
                 spill_number++;
+
                 // std::cout << "Spilling ended" << std::endl;
                 //  hmap->clear();
             }
@@ -585,7 +588,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
     try
     {
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
-        std::cout << "Thread " << id << " finished scanning. With time: " << duration << "s. Scanned Lines: " << numLinesLocal << ". microseconds/line: " << duration * 1000000 / numLinesLocal << ". Spilled with size: " << spill_file.second << std::endl;
+        std::cout << "Thread " << id << " finished scanning. With time: " << duration << "s. Scanned Lines: " << numLinesLocal << ". microseconds/line: " << duration * 1000000 / numLinesLocal << ". Spilled with size: " << spill_size << std::endl;
     }
     catch (std::exception &err)
     {
@@ -1190,12 +1193,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     unsigned long maxHashsize = comb_hash_size;
     unsigned long freed_mem = 0;
     unsigned long overall_size = 0;
-    std::vector<std::pair<std::basic_iostream<char> &, size_t>> s3spills;
 
     // merge_test(&emHashmap, pagesize, &avg, output_fd, spills[0], &diff[0], &comb_hash_size, memLimit);
 
     // In case a spill occured, merge spills, otherwise just write hashmap
-    if (!spills.empty())
+    if (!spills.empty() || !s3Spill_names.empty())
     {
         merge(&emHashmap, &spills, comb_hash_size, &avg, pagesize, memLimit, &diff, outputfilename, &s3Spill_names, &minio_client);
     }
