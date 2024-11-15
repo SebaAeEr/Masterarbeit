@@ -951,7 +951,18 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         int number_of_longs = key_number + value_number;
         for (auto &spill_name : *s3spills)
         {
-            std::basic_iostream<char> *spill = readS3(spill_name, minio_client);
+            Aws::S3::Model::GetObjectRequest request;
+            request.SetBucket("trinobucket");
+            request.SetKey(spill_name);
+
+            auto outcome = minio_client->GetObject(request);
+            auto &spill = outcome.GetResult().GetBody();
+
+            if (!outcome.IsSuccess())
+            {
+                std::cout << "GetObject error " << spill_name << " " << outcome.GetError().GetMessage() << std::endl;
+                continue;
+            }
             int last_bytes = 0;
             bool last_buffer = false;
             // spill.first.read(spill_buffer, buffer_size);
@@ -960,8 +971,8 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 char *buf = new char[sizeof(unsigned long) * number_of_longs];
                 std::cout << "Trying to read bytes" << std::endl;
-                spill->read(buf, sizeof(unsigned long) * number_of_longs);
-                if (!(*spill))
+                spill.read(buf, sizeof(unsigned long) * number_of_longs);
+                if (!spill)
                 {
                     std::cout << "breaking" << std::endl;
                     break;
