@@ -342,6 +342,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         if (counter < 10)
         {
             std::cout << it.first[0] << ", " << it.second[0] << std::endl;
+            std::cout << "Real bytes: " << std::bitset<32>(it.first[0]) << std::endl;
             std::cout << "Bytes: ";
             for (int i = 0; i < key_number; i++)
             {
