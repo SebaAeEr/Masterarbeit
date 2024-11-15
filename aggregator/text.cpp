@@ -345,7 +345,11 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
             {
                 char *pointer = static_cast<char *>(static_cast<void *>(&it.first[i]));
                 for (int x = 0; x < sizeof(unsigned long); x++)
+                {
+                    std::cout << pointer[x];
                     *in_stream << pointer[x];
+                }
+                std::cout << std::endl;
                 /*  std::string temp_string = std::to_string(it.first[i]);
                  *in_stream << temp_string;
                  *in_stream << ",";
@@ -355,7 +359,9 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
             {
                 char *pointer = static_cast<char *>(static_cast<void *>(&it.second[i]));
                 for (int x = 0; x < sizeof(unsigned long); x++)
-                    *in_stream << pointer[x];
+                {std::cout << pointer[x];
+                    *in_stream << pointer[x];}std::cout << std::endl;
+
                 /* std::string temp_string = std::to_string(it.second[i]);
                 *in_stream << temp_string;
                 *in_stream << ",";
@@ -981,6 +987,11 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 {
                     break;
                 }
+                for (int k = 0; k< sizeof(unsigned long); k++) {
+                    std::cout << buf[k];
+                }
+                std::cout << std::endl;
+
                 static_cast<unsigned long *>(static_cast<void *>(buf));
                 for (int k = 0; k < key_number; k++)
                 {
@@ -991,8 +1002,9 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 {
                     values[k] = buf[k + key_number];
                 }
-                delete[] buf;
+                
                 std::cout << "Success in reading bytes: " << values[0] << std::endl;
+                delete[] buf;
 
                 /* int temp_i = parseS3Spill(spill_buffer, head, buffer_size - last_bytes, &keys, &values, temp_buffer, 0, false);
                 if (temp_i < 0)
