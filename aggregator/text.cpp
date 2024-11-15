@@ -953,7 +953,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             unsigned long head = 0;
             while (true)
             {
-                char buf[sizeof(unsigned long) * number_of_longs];
+                char *buf = new char[sizeof(unsigned long) * number_of_longs];
                 std::cout << "Trying to read bytes" << std::endl;
                 spill.first.read(buf, sizeof(unsigned long) * number_of_longs);
                 if (!spill.first)
@@ -971,6 +971,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 {
                     values[k] = buf[k + key_number];
                 }
+                delete[] buf;
                 std::cout << "Success in reading bytes: " << keys[0] << std::endl;
 
                 /* int temp_i = parseS3Spill(spill_buffer, head, buffer_size - last_bytes, &keys, &values, temp_buffer, 0, false);
@@ -1041,6 +1042,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         }
         hmap->clear();
         comb_hash_size = maxHashsize;
+
         locked = false;
         // std::cout << "End writing" << std::endl;
     }
@@ -1051,6 +1053,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     {
         remove(("spill_file_" + std::to_string(i)).c_str());
     }
+
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
 }
