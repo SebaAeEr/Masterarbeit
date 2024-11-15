@@ -969,7 +969,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 char *buf = new char[sizeof(unsigned long) * number_of_longs];
                 spill.read(buf, sizeof(unsigned long) * number_of_longs);
-                unsigned long test = long(buf[0] | buf[1] | buf[2] | buf[3] | buf[4] | buf[5] | buf[6] | buf[7]);
+                unsigned long test = long((unsigned char)(buf[0]) | (unsigned char)(buf[1]) | (unsigned char)(buf[2]) | (unsigned char)(buf[3]) | (unsigned char)(buf[4]) | (unsigned char)(buf[5]) | (unsigned char)(buf[6]) | (unsigned char)(buf[7]));
                 std::cout << test << std::endl;
                 if (!spill)
                 {
