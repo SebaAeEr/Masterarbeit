@@ -346,16 +346,18 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
             for (int i = 0; i < key_number; i++)
             {
                 unsigned char *pointer = static_cast<unsigned char *>(static_cast<void *>(&it.first[i]));
-                std::cout << std::bitset<8>(*pointer);
+
                 for (int k = 0; k < sizeof(unsigned long); k++)
-                    *in_stream << *pointer;
+                {
+                    std::cout << std::bitset<8>(pointer[k]);
+                    *in_stream << pointer[k];
+                }
             }
             for (int i = 0; i < value_number; i++)
             {
                 unsigned char *pointer = static_cast<unsigned char *>(static_cast<void *>(&it.second[i]));
-                std::cout << std::bitset<8>(*pointer);
                 for (int k = 0; k < sizeof(unsigned long); k++)
-                    *in_stream << *pointer;
+                    *in_stream << pointer[k];
             }
             std::cout << std::endl;
         }
