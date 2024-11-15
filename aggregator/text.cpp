@@ -970,14 +970,12 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             while (true)
             {
                 char *buf = new char[sizeof(unsigned long) * number_of_longs];
-                std::cout << "Trying to read bytes" << std::endl;
                 spill.read(buf, sizeof(unsigned long) * number_of_longs);
                 if (!spill)
                 {
                     std::cout << "breaking" << std::endl;
                     break;
                 }
-                std::cout << "Trying to cast" << std::endl;
                 static_cast<unsigned long *>(static_cast<void *>(buf));
                 for (int k = 0; k < key_number; k++)
                 {
@@ -989,7 +987,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     values[k] = buf[k + key_number];
                 }
                 delete[] buf;
-                std::cout << "Success in reading bytes: " << keys[0] << std::endl;
+                std::cout << "Success in reading bytes: " << values[0] << std::endl;
 
                 /* int temp_i = parseS3Spill(spill_buffer, head, buffer_size - last_bytes, &keys, &values, temp_buffer, 0, false);
                 if (temp_i < 0)
