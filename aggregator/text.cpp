@@ -344,31 +344,10 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
             for (int i = 0; i < key_number; i++)
             {
                 char *pointer = static_cast<char *>(static_cast<void *>(&it.first[i]));
-                for (int x = 0; x < sizeof(unsigned long); x++)
-                {
-                    std::cout << pointer[x];
-                    *in_stream << pointer[x];
-                }
-                std::cout << std::endl;
-                /*  std::string temp_string = std::to_string(it.first[i]);
-                 *in_stream << temp_string;
-                 *in_stream << ",";
-                 spill_mem_size += temp_string.length() + 1; */
             }
             for (int i = 0; i < value_number; i++)
             {
                 char *pointer = static_cast<char *>(static_cast<void *>(&it.second[i]));
-                for (int x = 0; x < sizeof(unsigned long); x++)
-                {
-                    std::cout << pointer[x];
-                    *in_stream << pointer[x];
-                }
-                std::cout << std::endl;
-
-                /* std::string temp_string = std::to_string(it.second[i]);
-                *in_stream << temp_string;
-                *in_stream << ",";
-                spill_mem_size += temp_string.length() + 1; */
             }
         }
         counter++;
@@ -985,7 +964,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             while (true)
             {
                 char *buf = new char[sizeof(unsigned long) * number_of_longs];
-                spill.read(buf, sizeof(unsigned long) * number_of_longs);
+                // spill.read(buf, sizeof(unsigned long) * number_of_longs);
                 if (!spill)
                 {
                     break;
@@ -995,12 +974,12 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 std::cout << buf[0] << ", " << buf[1] << std::endl;
                 for (int k = 0; k < key_number; k++)
                 {
-                    keys[k] = buf[k];
+                    spill >> keys[k]; // = buf[k];
                 }
 
                 for (int k = 0; k < value_number; k++)
                 {
-                    values[k] = buf[k + key_number];
+                    spill >> values[k]; // values[k] = buf[k + key_number];
                 }
 
                 std::cout << "Success in reading bytes: " << keys[0] << ", " << values[0] << std::endl;
