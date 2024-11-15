@@ -654,10 +654,11 @@ std::basic_iostream<char> *readS3(std::string &name, Aws::S3::S3Client *minio_cl
 
     if (outcome.IsSuccess())
     {
+        int number_of_longs = key_number + value_number;
         std::cout << "Success in reading" << std::endl;
-        char *buf = new char[sizeof(unsigned long)];
+        char *buf = new char[sizeof(unsigned long) * number_of_longs];
         std::cout << "Trying to read bytes" << std::endl;
-        result.read(buf, sizeof(unsigned long));
+        result.read(buf, sizeof(unsigned long) * number_of_longs);
         std::cout << "Read bytes" << std::endl;
         return &result;
     }
