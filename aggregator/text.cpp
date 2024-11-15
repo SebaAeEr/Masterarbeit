@@ -641,7 +641,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     std::cout << "Max Size: " << maxSize << "B." << std::endl;
 }
 
-std::basic_iostream<char> &readS3(std::string &name, Aws::S3::S3Client *minio_client)
+std::basic_iostream<char> *readS3(std::string &name, Aws::S3::S3Client *minio_client)
 {
     std::cout << "Start reading" << std::endl;
     Aws::S3::Model::GetObjectRequest request;
@@ -659,12 +659,12 @@ std::basic_iostream<char> &readS3(std::string &name, Aws::S3::S3Client *minio_cl
         std::cout << "Trying to read bytes" << std::endl;
         result.read(buf, sizeof(unsigned long));
         std::cout << "Read bytes" << std::endl;
-        return result;
+        return &result;
     }
     else
     {
         std::cout << "GetObject error " << name << " " << outcome.GetError().GetMessage() << std::endl;
-        return result;
+        return &result;
     }
 }
 
@@ -950,7 +950,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         int number_of_longs = key_number + value_number;
         for (auto &spill_name : *s3spills)
         {
-            std::basic_iostream<char> &spill = readS3(spill_name, minio_client);
+            std::basic_iostream<char> *spill = readS3(spill_name, minio_client);
             int last_bytes = 0;
             bool last_buffer = false;
             // spill.first.read(spill_buffer, buffer_size);
@@ -959,8 +959,8 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 char *buf = new char[sizeof(unsigned long) * number_of_longs];
                 std::cout << "Trying to read bytes" << std::endl;
-                spill.read(buf, sizeof(unsigned long) * number_of_longs);
-                if (!spill)
+                spill->read(buf, sizeof(unsigned long) * number_of_longs);
+                if (!(*spill))
                 {
                     std::cout << "breaking" << std::endl;
                     break;
