@@ -19,6 +19,7 @@
 #include <aws/s3/S3Client.h>
 #include <aws/s3/model/PutObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
+#include <bitset>
 
 enum Operation
 {
@@ -341,18 +342,22 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         if (counter < 10)
         {
             std::cout << it.first[0] << ", " << it.second[0] << std::endl;
+            std::cout << "Bytes: ";
             for (int i = 0; i < key_number; i++)
             {
                 unsigned char *pointer = static_cast<unsigned char *>(static_cast<void *>(&it.first[i]));
+                std::cout << std::bitset<8>(*pointer);
                 for (int k = 0; k < sizeof(unsigned long); k++)
                     *in_stream << *pointer;
             }
             for (int i = 0; i < value_number; i++)
             {
                 unsigned char *pointer = static_cast<unsigned char *>(static_cast<void *>(&it.second[i]));
+                std::cout << std::bitset<8>(*pointer);
                 for (int k = 0; k < sizeof(unsigned long); k++)
                     *in_stream << *pointer;
             }
+            std::cout << std::endl;
         }
         counter++;
     }
@@ -969,6 +974,12 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 char *buf = new char[sizeof(unsigned long) * number_of_longs];
                 spill.read(buf, sizeof(unsigned long) * number_of_longs);
+                std::cout << "bytes: ";
+                for (int k = 0; k < 8; k++)
+                {
+                    std::cout << std::bitset<8>((unsigned char)(buf[k]));
+                }
+                std::cout << std::endl;
                 unsigned long test = long((unsigned char)(buf[0]) | (unsigned char)(buf[1]) | (unsigned char)(buf[2]) | (unsigned char)(buf[3]) | (unsigned char)(buf[4]) | (unsigned char)(buf[5]) | (unsigned char)(buf[6]) | (unsigned char)(buf[7]));
                 std::cout << test << std::endl;
                 if (!spill)
