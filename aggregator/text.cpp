@@ -968,7 +968,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             while (true)
             {
                 char *buf = new char[sizeof(unsigned long) * number_of_longs];
-                // spill.read(buf, sizeof(unsigned long) * number_of_longs);
+                spill.read(buf, sizeof(unsigned long) * number_of_longs);
                 if (!spill)
                 {
                     break;
@@ -978,12 +978,12 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 std::cout << buf[0] << ", " << buf[1] << std::endl;
                 for (int k = 0; k < key_number; k++)
                 {
-                    spill >> keys[k]; // = buf[k];
+                    keys[k] = buf[k];
                 }
 
                 for (int k = 0; k < value_number; k++)
                 {
-                    spill >> values[k]; // values[k] = buf[k + key_number];
+                    values[k] = buf[k + key_number];
                 }
 
                 std::cout << "Success in reading bytes: " << keys[0] << ", " << values[0] << std::endl;
