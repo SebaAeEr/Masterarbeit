@@ -342,35 +342,21 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         if (counter < 10)
         {
             std::cout << it.first[0] << ", " << it.second[0] << std::endl;
-            std::cout << "Real bytes: " << std::bitset<32>(it.first[0]) << std::endl;
-            std::cout << "ChatGPT: ";
             char byteArray[sizeof(long int)];
-            std::memcpy(byteArray, &it.first[0], sizeof(long int));
-            for (size_t i = 0; i < sizeof(long int); ++i)
-            {
-                // Print each byte in hexadecimal format
-                std::cout << std::hex << (0xFF & byteArray[i]) << " ";
-            }
-            std::cout << std::endl;
-
-            std::cout << "Bytes: ";
             for (int i = 0; i < key_number; i++)
             {
-                unsigned char *pointer = static_cast<unsigned char *>(static_cast<void *>(&it.first[i]));
-
+                std::memcpy(byteArray, &it.first[i], sizeof(long int));
                 for (int k = 0; k < sizeof(unsigned long); k++)
                 {
-                    std::cout << std::bitset<8>(pointer[k]);
-                    *in_stream << pointer[k];
+                    *in_stream << byteArray[k];
                 }
             }
             for (int i = 0; i < value_number; i++)
             {
-                unsigned char *pointer = static_cast<unsigned char *>(static_cast<void *>(&it.second[i]));
+                std::memcpy(byteArray, &it.second[i], sizeof(long int));
                 for (int k = 0; k < sizeof(unsigned long); k++)
-                    *in_stream << pointer[k];
+                    *in_stream << byteArray[k];
             }
-            std::cout << std::endl;
         }
         counter++;
     }
@@ -985,16 +971,10 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             unsigned long head = 0;
             while (true)
             {
-                char *buf = new char[sizeof(unsigned long) * number_of_longs];
-                spill.read(buf, sizeof(unsigned long) * number_of_longs);
-                std::cout << "bytes: ";
-                for (int k = 0; k < 8; k++)
-                {
-                    std::cout << std::bitset<8>((unsigned char)(buf[k]));
-                }
-                std::cout << std::endl;
-                unsigned long test = long((unsigned char)(buf[0]) | (unsigned char)(buf[1]) | (unsigned char)(buf[2]) | (unsigned char)(buf[3]) | (unsigned char)(buf[4]) | (unsigned char)(buf[5]) | (unsigned char)(buf[6]) | (unsigned char)(buf[7]));
-                std::cout << test << std::endl;
+                unsigned long buf[number_of_longs];
+                char char_buf[sizeof(unsigned long) * number_of_longs];
+                spill.read(char_buf, sizeof(unsigned long) * number_of_longs);
+                std::memcpy(buf, &char_buf, sizeof(unsigned long) * number_of_longs);
                 if (!spill)
                 {
                     break;
@@ -1013,7 +993,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 }
 
                 std::cout << "Success in reading bytes: " << keys[0] << ", " << values[0] << std::endl;
-                delete[] buf;
 
                 /* int temp_i = parseS3Spill(spill_buffer, head, buffer_size - last_bytes, &keys, &values, temp_buffer, 0, false);
                 if (temp_i < 0)
