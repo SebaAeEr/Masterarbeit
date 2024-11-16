@@ -801,7 +801,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             auto &spill = outcome.GetResult().GetBody();
             auto spill_size = outcome.GetResult().GetContentLength();
             unsigned long numberOfEntries = spill_size / (sizeof(unsigned long) * (key_number + value_number));
-            std::cout << "#entries: " << numberOfEntries << ", " << std::ceil((float)(numberOfEntries) / 8) << std::endl;
             std::vector<char> bitmap = std::vector<char>(std::ceil((float)(numberOfEntries) / 8), 255);
             std::cout << "successful creation of bitmap with size: " << bitmap.size() << std::endl;
 
@@ -979,7 +978,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             unsigned long head = 0;
             while (true)
             {
-                std::cout << "accessing index: " << std::floor(head / 8) << std::endl;
+                std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8> (spill.second[std::floor(head / 8)]) << " AND " << std::bitset<8>(1 << (head % 8))<< std::endl;
                 if (spill.second[std::floor(head / 8)] & (1 << (head % 8)))
                 {
                     unsigned long buf[number_of_longs];
