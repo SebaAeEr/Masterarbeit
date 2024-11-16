@@ -978,9 +978,10 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             unsigned long head = 0;
             while (true)
             {
-                std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8> (spill.second[std::floor(head / 8)]) << " AND " << std::bitset<8>(1 << (head % 8))<< std::endl;
+                std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(spill.second[std::floor(head / 8)]) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << (spill.second[std::floor(head / 8)] & (1 << (head % 8))) << std::endl;
                 if (spill.second[std::floor(head / 8)] & (1 << (head % 8)))
                 {
+                    std::cout << "Is 1" << std::endl;
                     unsigned long buf[number_of_longs];
                     char char_buf[sizeof(unsigned long) * number_of_longs];
                     spill.first.read(char_buf, sizeof(unsigned long) * number_of_longs);
