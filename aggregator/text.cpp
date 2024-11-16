@@ -779,7 +779,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     std::array<unsigned long, max_size> keys = {0, 0};
     std::array<unsigned long, max_size> values = {0, 0};
     size_t mapping_size = 0;
-    std::vector<std::pair<Aws::IOStream &, std::vector<char>>> s3spills;
+    std::vector<std::pair<std::reference_wrapper<Aws::IOStream>, std::vector<char>>> s3spills;
 
     for (auto &it : *spills)
         comb_spill_size += it.second;
@@ -984,11 +984,11 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     std::cout << "Is 1" << std::endl;
                     unsigned long buf[number_of_longs];
                     char char_buf[sizeof(unsigned long) * number_of_longs];
-                    spill.first.read(char_buf, sizeof(unsigned long) * number_of_longs);
+                    spill.first.get().read(char_buf, sizeof(unsigned long) * number_of_longs);
                     std::memcpy(buf, &char_buf, sizeof(unsigned long) * number_of_longs);
-                    if (!spill.first)
+                    if (!spill.first.get())
                     {
-                        spill.first.seekg(0);
+                        spill.first.get().seekg(0);
                         break;
                     }
 
@@ -1037,7 +1037,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 }
                 else
                 {
-                    spill.first.ignore(sizeof(unsigned long) * number_of_longs);
+                    spill.first.get().ignore(sizeof(unsigned long) * number_of_longs);
                 }
             }
         }
