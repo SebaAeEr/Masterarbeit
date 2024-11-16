@@ -784,8 +784,10 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     for (auto &it : *spills)
         comb_spill_size += it.second;
 
+    int counter = 0;
     for (auto &name : *s3spillNames)
     {
+        if (counter ==0 ){
         Aws::S3::Model::GetObjectRequest request;
         request.SetBucket("trinobucket");
         request.SetKey(name);
@@ -806,6 +808,8 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
 
             s3spills.push_back({spill, bitmap});
         }
+        }
+        counter++;
     }
 
     // std::cout << "comb_spill_size: " << comb_spill_size << std::endl;
