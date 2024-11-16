@@ -994,7 +994,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     }
                     unsigned long buf[number_of_longs];
                     char char_buf[sizeof(unsigned long) * number_of_longs];
-                    spill.first.get().read(char_buf, sizeof(unsigned long) * number_of_longs);
+                    s3spills[0].first.get().read(char_buf, sizeof(unsigned long) * number_of_longs);
                     std::memcpy(buf, &char_buf, sizeof(unsigned long) * number_of_longs);
                     if (!spill.first.get())
                     {
