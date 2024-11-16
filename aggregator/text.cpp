@@ -802,15 +802,21 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             auto spill_size = outcome.GetResult().GetContentLength();
             unsigned long numberOfEntries = spill_size / (sizeof(unsigned long) * (key_number + value_number));
             std::cout << "#entries: " << numberOfEntries << ", " << std::ceil((float)(numberOfEntries) / 8) << std::endl;
-            std::vector<char> *bitmap;
+            std::vector<char> *bitmap = {};
             for (int i = 0; i < std::ceil((float)(numberOfEntries) / 8); i++)
             {
                 bitmap->push_back(255);
             }
             std::cout << "successful creation of bitmap with size: " << bitmap->size() << std::endl;
+
             s3spills.push_back({spill, bitmap});
         }
     }
+    for (int i = 0; i < s3spills.size(); i++)
+    {
+        std::cout << s3spills[i].second << ", ";
+    }
+    std::cout << std::endl;
 
     // std::cout << "comb_spill_size: " << comb_spill_size << std::endl;
 
