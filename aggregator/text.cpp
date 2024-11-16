@@ -20,6 +20,7 @@
 #include <aws/s3/model/PutObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <bitset>
+#include <cmath>
 
 enum Operation
 {
@@ -755,7 +756,7 @@ int parseS3Spill(char *buffer, int head, int buffer_size, std::array<unsigned lo
 }
 
 void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
-           float *avg, int pagesize, float memLimit, std::vector<unsigned long> *diff, std::string &outputfilename, std::vector<std::string> *s3spills, Aws::S3::S3Client *minio_client)
+           float *avg, int pagesize, float memLimit, std::vector<unsigned long> *diff, std::string &outputfilename, std::vector<std::string> *s3spillNames, Aws::S3::S3Client *minio_client)
 {
     // Open the outputfile to write results
     int output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
@@ -778,9 +779,36 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     std::array<unsigned long, max_size> keys = {0, 0};
     std::array<unsigned long, max_size> values = {0, 0};
     size_t mapping_size = 0;
+    std::vector<std::pair<Aws::IOStream &, std::vector<char> *>> s3spills;
 
     for (auto &it : *spills)
         comb_spill_size += it.second;
+
+    for (auto &name : *s3spillNames)
+    {
+        Aws::S3::Model::GetObjectRequest request;
+        request.SetBucket("trinobucket");
+        request.SetKey(name);
+        auto outcome = minio_client->GetObject(request);
+
+        if (!outcome.IsSuccess())
+        {
+            std::cout << "GetObject error " << name << " " << outcome.GetError().GetMessage() << std::endl;
+            continue;
+        }
+        else
+        {
+            auto &spill = outcome.GetResult().GetBody();
+            auto spill_size = outcome.GetResult().GetContentLength();
+            unsigned long numberOfEntries = spill_size / (sizeof(unsigned long) * (key_number + value_number));
+            std::vector<char> *bitmap;
+            for (int i = 0; i < std::ceil(numberOfEntries / 8); i++)
+            {
+                bitmap->push_back(0xff);
+            }
+            s3spills.push_back({spill, bitmap});
+        }
+    }
 
     // std::cout << "comb_spill_size: " << comb_spill_size << std::endl;
 
@@ -945,111 +973,67 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         overall_size = 0;
         freed_mem = 0;
         // std::cout << "write: " << emHashmap[{221877}][0] << std::endl;
-        size_t buffer_size = pagesize * 30;
 
-        char *spill_buffer = (char *)std::malloc(buffer_size);
-        char *temp_buffer;
-        size_t temp_buffer_size = 0;
         int number_of_longs = key_number + value_number;
-        for (auto &spill_name : *s3spills)
+        for (auto &spill : s3spills)
         {
-            Aws::S3::Model::GetObjectRequest request;
-            request.SetBucket("trinobucket");
-            request.SetKey(spill_name);
-
-            auto outcome = minio_client->GetObject(request);
-            auto &spill = outcome.GetResult().GetBody();
-
-            if (!outcome.IsSuccess())
-            {
-                std::cout << "GetObject error " << spill_name << " " << outcome.GetError().GetMessage() << std::endl;
-                continue;
-            }
-            int last_bytes = 0;
-            bool last_buffer = false;
-            // spill.first.read(spill_buffer, buffer_size);
             unsigned long head = 0;
             while (true)
             {
-                unsigned long buf[number_of_longs];
-                char char_buf[sizeof(unsigned long) * number_of_longs];
-                spill.read(char_buf, sizeof(unsigned long) * number_of_longs);
-                std::memcpy(buf, &char_buf, sizeof(unsigned long) * number_of_longs);
-                if (!spill)
+                if ((*spill.second)[std::floor(head / 8)] & (1 << (head % 8)))
                 {
-                    break;
-                }
-
-                static_cast<unsigned long *>(static_cast<void *>(buf));
-                std::cout << buf[0] << ", " << buf[1] << std::endl;
-                for (int k = 0; k < key_number; k++)
-                {
-                    keys[k] = buf[k];
-                }
-
-                for (int k = 0; k < value_number; k++)
-                {
-                    values[k] = buf[k + key_number];
-                }
-
-                std::cout << "Success in reading bytes: " << keys[0] << ", " << values[0] << std::endl;
-
-                /* int temp_i = parseS3Spill(spill_buffer, head, buffer_size - last_bytes, &keys, &values, temp_buffer, 0, false);
-                if (temp_i < 0)
-                {
-                    if (temp_buffer_size > 0)
-                    {
-                        free(temp_buffer);
-                    }
-                    if (!last_buffer)
-                    {
-                        temp_buffer_size = buffer_size - head;
-                        temp_buffer = (char *)std::malloc(buffer_size - head);
-                        for (int k = 0; k < temp_buffer_size; k++)
-                        {
-                            temp_buffer[k] = spill_buffer[head + k];
-                        }
-                        spill.first.read(spill_buffer, buffer_size);
-                        if (!spill.first)
-                        {
-                            last_buffer = true;
-                            last_bytes = spill.first.gcount();
-                        }
-                        head = parseS3Spill(spill_buffer, head, buffer_size - last_bytes, &keys, &values, temp_buffer, temp_buffer_size, true);
-                    }
-                    else
+                    unsigned long buf[number_of_longs];
+                    char char_buf[sizeof(unsigned long) * number_of_longs];
+                    spill.first.read(char_buf, sizeof(unsigned long) * number_of_longs);
+                    std::memcpy(buf, &char_buf, sizeof(unsigned long) * number_of_longs);
+                    if (!spill.first)
                     {
                         break;
                     }
-            }
-            else
-            {
-                head = temp_i;
-            }*/
-                if (hmap->contains(keys))
-                {
-                    read_lines++;
 
-                    std::array<unsigned long, max_size> temp = (*hmap)[keys];
+                    static_cast<unsigned long *>(static_cast<void *>(buf));
+                    std::cout << buf[0] << ", " << buf[1] << std::endl;
+                    for (int k = 0; k < key_number; k++)
+                    {
+                        keys[k] = buf[k];
+                    }
 
                     for (int k = 0; k < value_number; k++)
                     {
-                        temp[k] += values[k];
+                        values[k] = buf[k + key_number];
                     }
-                    (*hmap)[keys] = temp;
-                }
-                else if (!locked)
-                {
-                    read_lines++;
-                    hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
-                    if (hmap->size() > maxHashsize)
+                    if (hmap->contains(keys))
                     {
-                        comb_hash_size++;
+                        read_lines++;
+
+                        std::array<unsigned long, max_size> temp = (*hmap)[keys];
+
+                        for (int k = 0; k < value_number; k++)
+                        {
+                            temp[k] += values[k];
+                        }
+                        (*hmap)[keys] = temp;
+                        (*spill.second)[std::floor(head / 8)] &= ~(0x01 << (head % 8));
                     }
+                    else if (!locked)
+                    {
+                        read_lines++;
+                        hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
+                        if (hmap->size() > maxHashsize)
+                        {
+                            comb_hash_size++;
+                        }
+                        (*spill.second)[std::floor(head / 8)] &= ~(0x01 << (head % 8));
+                    }
+                    if (hmap->size() * (*avg) >= memLimit * 0.7)
+                    {
+                        locked = true;
+                    }
+                    head++;
                 }
-                if (hmap->size() * (*avg) + buffer_size >= memLimit * 0.7)
+                else
                 {
-                    locked = true;
+                    spill.first.ignore(sizeof(unsigned long) * number_of_longs);
                 }
             }
         }
