@@ -806,6 +806,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 bitmap->push_back(0xff);
             }
+            std::cout << "successful creation of bitmap with size: " << bitmap->size() << " #entries: " << numberOfEntries << std::endl;
             s3spills.push_back({spill, bitmap});
         }
     }
@@ -980,6 +981,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             unsigned long head = 0;
             while (true)
             {
+                std::cout << "accessing index: " << std::floor(head / 8) << std::endl;
                 if ((*spill.second)[std::floor(head / 8)] & (1 << (head % 8)))
                 {
                     unsigned long buf[number_of_longs];
@@ -1014,17 +1016,20 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                             temp[k] += values[k];
                         }
                         (*hmap)[keys] = temp;
+
                         (*spill.second)[std::floor(head / 8)] &= ~(0x01 << (head % 8));
                     }
                     else if (!locked)
                     {
                         read_lines++;
+                        std::cout << "Setting " << (*spill.second)[std::floor(head / 8)] << " xth: " << head % 8 << std::endl;
                         hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
                         if (hmap->size() > maxHashsize)
                         {
                             comb_hash_size++;
                         }
                         (*spill.second)[std::floor(head / 8)] &= ~(0x01 << (head % 8));
+                        std::cout << "After setting " << (*spill.second)[std::floor(head / 8)] << std::endl;
                     }
                     if (hmap->size() * (*avg) >= memLimit * 0.7)
                     {
