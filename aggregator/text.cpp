@@ -335,31 +335,26 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     // Calc spill size
     size_t spill_mem_size = 0;
     spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
-    int counter = 0;
 
     // Write int to Mapping
     for (auto &it : *hmap)
     {
-        if (counter < 10)
+        std::cout << it.first[0] << ", " << it.second[0] << std::endl;
+        char byteArray[sizeof(long int)];
+        for (int i = 0; i < key_number; i++)
         {
-            std::cout << it.first[0] << ", " << it.second[0] << std::endl;
-            char byteArray[sizeof(long int)];
-            for (int i = 0; i < key_number; i++)
+            std::memcpy(byteArray, &it.first[i], sizeof(long int));
+            for (int k = 0; k < sizeof(unsigned long); k++)
             {
-                std::memcpy(byteArray, &it.first[i], sizeof(long int));
-                for (int k = 0; k < sizeof(unsigned long); k++)
-                {
-                    *in_stream << byteArray[k];
-                }
-            }
-            for (int i = 0; i < value_number; i++)
-            {
-                std::memcpy(byteArray, &it.second[i], sizeof(long int));
-                for (int k = 0; k < sizeof(unsigned long); k++)
-                    *in_stream << byteArray[k];
+                *in_stream << byteArray[k];
             }
         }
-        counter++;
+        for (int i = 0; i < value_number; i++)
+        {
+            std::memcpy(byteArray, &it.second[i], sizeof(long int));
+            for (int k = 0; k < sizeof(unsigned long); k++)
+                *in_stream << byteArray[k];
+        }
     }
     request.SetBody(in_stream);
     request.SetContentLength(20 * sizeof(unsigned long));
@@ -623,7 +618,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             if (size > maxSize)
             {
                 maxSize = size;
-                std::cout << "phy: " << size << std::endl;
+                // std::cout << "phy: " << size << std::endl;
             }
             if (memLimit * 0.95 < size)
             {
@@ -670,89 +665,6 @@ std::basic_iostream<char> *readS3(std::string &name, Aws::S3::S3Client *minio_cl
         std::cout << "GetObject error " << name << " " << outcome.GetError().GetMessage() << std::endl;
         return &result;
     }
-}
-
-int parseS3Spill(char *buffer, int head, int buffer_size, std::array<unsigned long, max_size> *keys, std::array<unsigned long, max_size> *values, char *temp_buffer, int temp_buffer_size, bool use_temp)
-{
-    for (int i = 0; i < key_number; i++)
-    {
-        char buf[sizeof(unsigned long)];
-        for (int x = 0; x < sizeof(unsigned long); x++)
-        {
-            buf[x] = buffer[head + x];
-        }
-        (*keys)[i] = static_cast<unsigned long *>(static_cast<void *>(buf))[0];
-        /* bool found = false;
-        std::string key;
-        while (!found)
-        {
-            char char_temp;
-            if (use_temp)
-            {
-                char_temp = temp_buffer[head];
-            }
-            else
-            {
-                char_temp = buffer[head];
-            }
-            if (char_temp == ',')
-            {
-                found = true;
-            }
-            else
-            {
-                key += char_temp;
-            }
-            head++;
-            if (use_temp && head >= temp_buffer_size)
-            {
-                use_temp = false;
-                head = 0;
-            }
-            else if (head >= buffer_size)
-            {
-                return head * -1;
-            }
-        }
-        (*keys)[i] = std::stol(key); */
-    }
-    for (int i = 0; i < value_number; i++)
-    {
-        bool found = false;
-        std::string value;
-        while (!found)
-        {
-            char char_temp;
-            if (use_temp)
-            {
-                char_temp = temp_buffer[head];
-            }
-            else
-            {
-                char_temp = buffer[head];
-            }
-            if (char_temp == ',')
-            {
-                found = true;
-            }
-            else
-            {
-                value += char_temp;
-            }
-            head++;
-            if (use_temp && head >= temp_buffer_size)
-            {
-                use_temp = false;
-                head = 0;
-            }
-            else if (head >= buffer_size)
-            {
-                return head * -1;
-            }
-        }
-        (*values)[i] = std::stol(value);
-    }
-    return head;
 }
 
 void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
