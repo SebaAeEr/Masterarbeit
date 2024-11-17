@@ -718,7 +718,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             bitmap_sizes.push_back(std::ceil((float)(numberOfEntries) / 8));
         }
     }
-    if (bitmap_size_sum > memLimit * 0.3)
+    if (true)//(bitmap_size_sum > memLimit * 0.3)
     {
         int counter = 0;
         for (auto &size : bitmap_sizes)
@@ -1025,7 +1025,8 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                             {
                                 if (munmap(&bitmap_mapping[lower_head], freed_space_temp) == -1)
                                 {
-                                    perror("Could not free memory in merge 1!");
+                                    std::cout << freed_space_temp << std::endl;
+                                    perror("Could not free memory of bitmap 1!");
                                 }
                                 // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(unsigned long) + input_head << std::endl;
                                 freed_mem += freed_space_temp;
@@ -1045,16 +1046,17 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                             locked = true;
                         }
                     }
-                    head++;
                 }
                 else
                 {
                     spill.ignore(sizeof(unsigned long) * number_of_longs);
                 }
+                head++;
             }
             if (munmap(&bitmap_mapping[lower_head], head - lower_head) == -1)
             {
-                perror("Could not free memory in merge 1!");
+                std::cout << head - lower_head << std::endl;
+                perror("Could not free memory of bitmap 2!");
             }
         }
 
