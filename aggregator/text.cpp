@@ -1002,6 +1002,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     std::memcpy(buf, &char_buf, sizeof(unsigned long) * number_of_longs);
                     if (!spill)
                     {
+                        std::cout << "breaking" << std::endl;
                         break;
                     }
 
