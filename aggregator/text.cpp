@@ -787,30 +787,26 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     int counter = 0;
     for (auto &name : *s3spillNames)
     {
-        if (counter == 0)
+        Aws::S3::Model::GetObjectRequest request;
+        request.SetBucket("trinobucket");
+        request.SetKey(name);
+        auto outcome = minio_client->GetObject(request);
+
+        if (!outcome.IsSuccess())
         {
-            Aws::S3::Model::GetObjectRequest request;
-            request.SetBucket("trinobucket");
-            request.SetKey(name);
-            auto outcome = minio_client->GetObject(request);
-
-            if (!outcome.IsSuccess())
-            {
-                std::cout << "GetObject error " << name << " " << outcome.GetError().GetMessage() << std::endl;
-                continue;
-            }
-            else
-            {
-                std::reference_wrapper<Aws::IOStream> spill = outcome.GetResult().GetBody();
-                auto spill_size = outcome.GetResult().GetContentLength();
-                unsigned long numberOfEntries = spill_size / (sizeof(unsigned long) * (key_number + value_number));
-                std::vector<char> bitmap = std::vector<char>(std::ceil((float)(numberOfEntries) / 8), 255);
-                std::cout << "successful creation of bitmap with size: " << bitmap.size() << std::endl;
-
-                s3spills.push_back({spill, bitmap});
-            }
+            std::cout << "GetObject error " << name << " " << outcome.GetError().GetMessage() << std::endl;
+            continue;
         }
-        counter++;
+        else
+        {
+            std::reference_wrapper<Aws::IOStream> spill = outcome.GetResult().GetBody();
+            auto spill_size = outcome.GetResult().GetContentLength();
+            unsigned long numberOfEntries = spill_size / (sizeof(unsigned long) * (key_number + value_number));
+            std::vector<char> bitmap = std::vector<char>(std::ceil((float)(numberOfEntries) / 8), 255);
+            std::cout << "successful creation of bitmap with size: " << bitmap.size() << std::endl;
+
+            s3spills.push_back({spill, bitmap});
+        }
     }
 
     // std::cout << "comb_spill_size: " << comb_spill_size << std::endl;
@@ -978,27 +974,34 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         // std::cout << "write: " << emHashmap[{221877}][0] << std::endl;
 
         int number_of_longs = key_number + value_number;
-        for (auto &spill : s3spills)
+        int counter = 0;
+        for (auto &spillname : *s3spillNames)
         {
+            Aws::S3::Model::GetObjectRequest request;
+            request.SetBucket("trinobucket");
+            request.SetKey(spillname);
+            auto outcome = minio_client->GetObject(request);
+            auto &spill = outcome.GetResult().GetBody();
+
+            if (!outcome.IsSuccess())
+            {
+                std::cout << "GetObject error " << spillname << " " << outcome.GetError().GetMessage() << std::endl;
+                continue;
+            }
+            std::vector<char> bitmap = s3spills[counter].second;
+            counter++;
             unsigned long head = 0;
             while (true)
             {
-                std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(spill.second[std::floor(head / 8)]) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << (spill.second[std::floor(head / 8)] & (1 << (head % 8))) << std::endl;
-                if (spill.second[std::floor(head / 8)] & (1 << (head % 8)))
+                std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << (bitmap[std::floor(head / 8)] & (1 << (head % 8))) << std::endl;
+                if (bitmap[std::floor(head / 8)] & (1 << (head % 8)))
                 {
-                    std::cout << "Is 1" << std::endl;
-                    if (!spill.first.get())
-                    {
-                        std::cout << "bad" << std::endl;
-                        break;
-                    }
                     unsigned long buf[number_of_longs];
                     char char_buf[sizeof(unsigned long) * number_of_longs];
-                    s3spills[0].first.get().read(char_buf, sizeof(unsigned long) * number_of_longs);
+                    spill.read(char_buf, sizeof(unsigned long) * number_of_longs);
                     std::memcpy(buf, &char_buf, sizeof(unsigned long) * number_of_longs);
-                    if (!spill.first.get())
+                    if (!spill)
                     {
-                        spill.first.get().seekg(0);
                         break;
                     }
 
@@ -1025,19 +1028,19 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                         }
                         (*hmap)[keys] = temp;
 
-                        spill.second[std::floor(head / 8)] &= ~(0x01 << (head % 8));
+                        bitmap[std::floor(head / 8)] &= ~(0x01 << (head % 8));
                     }
                     else if (!locked)
                     {
                         read_lines++;
-                        std::cout << "Setting " << spill.second[std::floor(head / 8)] << " xth: " << head % 8 << std::endl;
+                        std::cout << "Setting " << bitmap[std::floor(head / 8)] << " xth: " << head % 8 << std::endl;
                         hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
                         if (hmap->size() > maxHashsize)
                         {
                             comb_hash_size++;
                         }
-                        spill.second[std::floor(head / 8)] &= ~(0x01 << (head % 8));
-                        std::cout << "After setting " << spill.second[std::floor(head / 8)] << std::endl;
+                        bitmap[std::floor(head / 8)] &= ~(0x01 << (head % 8));
+                        std::cout << "After setting " << bitmap[std::floor(head / 8)] << std::endl;
                     }
                     if (hmap->size() * (*avg) >= memLimit * 0.7)
                     {
@@ -1047,7 +1050,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 }
                 else
                 {
-                    spill.first.get().ignore(sizeof(unsigned long) * number_of_longs);
+                    spill.ignore(sizeof(unsigned long) * number_of_longs);
                 }
             }
         }
