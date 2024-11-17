@@ -690,7 +690,9 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     std::array<unsigned long, max_size> keys = {0, 0};
     std::array<unsigned long, max_size> values = {0, 0};
     size_t mapping_size = 0;
-    std::vector<std::pair<std::reference_wrapper<Aws::IOStream>, std::vector<char>>> s3spills;
+    unsigned long bitmap_size_sum = 0;
+    std::vector<size_t> bitmap_sizes;
+    std::vector<std::pair<int, std::vector<char>>> s3spillBitmaps;
 
     for (auto &it : *spills)
         comb_spill_size += it.second;
@@ -710,13 +712,46 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         }
         else
         {
-            std::reference_wrapper<Aws::IOStream> spill = outcome.GetResult().GetBody();
             auto spill_size = outcome.GetResult().GetContentLength();
             unsigned long numberOfEntries = spill_size / (sizeof(unsigned long) * (key_number + value_number));
-            std::vector<char> bitmap = std::vector<char>(std::ceil((float)(numberOfEntries) / 8), 255);
-            // std::cout << "successful creation of bitmap with size: " << bitmap.size() << std::endl;
-
-            s3spills.push_back({spill, bitmap});
+            bitmap_size_sum += std::ceil((float)(numberOfEntries) / 8);
+            bitmap_sizes.push_back(std::ceil((float)(numberOfEntries) / 8));
+        }
+    }
+    if (bitmap_size_sum > memLimit * 0.3)
+    {
+        int counter = 0;
+        for (auto &size : bitmap_sizes)
+        {
+            // Spilling bitmaps
+            int fd = open(((*s3spillNames)[counter] + "_bitmap").c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+            char *spill = (char *)(mmap(nullptr, size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0));
+            madvise(spill, size, MADV_SEQUENTIAL | MADV_WILLNEED);
+            if (spill == MAP_FAILED)
+            {
+                close(fd);
+                perror("Error mmapping the file");
+                exit(EXIT_FAILURE);
+            }
+            // Write int to Mapping
+            unsigned long counter = 0;
+            unsigned long writehead = 0;
+            for (int i = 0; i < size; i++)
+            {
+                spill[i] = 255;
+            }
+            munmap(spill, size);
+            s3spillBitmaps.push_back({fd, {}});
+        }
+        bitmap_size_sum = 0;
+    }
+    else
+    {
+        // not spilling bitmaps
+        for (auto &size : bitmap_sizes)
+        {
+            std::vector<char> bitmap = std::vector<char>(size, 255);
+            s3spillBitmaps.push_back({-1, bitmap});
         }
     }
 
@@ -742,7 +777,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         for (unsigned long i = input_head_base; i < comb_spill_size / sizeof(unsigned long); i++)
         {
             if (i >= sum / sizeof(unsigned long))
-
             {
                 // std::cout << "New mapping" << std::endl;
                 sum = 0;
@@ -899,13 +933,41 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 std::cout << "GetObject error " << spillname << " " << outcome.GetError().GetMessage() << std::endl;
                 continue;
             }
-            std::vector<char> bitmap = s3spills[counter].second;
+            char *bitmap_mapping;
+            std::vector<char> bitmap_vector;
+            bool spilled_bitmap = s3spillBitmaps[counter].first != -1;
+            if (!spilled_bitmap)
+            {
+                bitmap_vector = s3spillBitmaps[counter].second;
+            }
+            else
+            {
+
+                bitmap_mapping = static_cast<char *>(mmap(nullptr, bitmap_sizes[counter], PROT_WRITE | PROT_READ, MAP_SHARED, s3spillBitmaps[counter].first, 0));
+                if (bitmap_mapping == MAP_FAILED)
+                {
+                    perror("Error mmapping the file");
+                    exit(EXIT_FAILURE);
+                }
+                madvise(bitmap_mapping, bitmap_sizes[counter], MADV_SEQUENTIAL | MADV_WILLNEED);
+            }
             counter++;
             unsigned long head = 0;
+            unsigned long lower_head = 0;
             while (true)
             {
+                char *bit;
+                size_t index = std::floor(head / 8);
+                if (!spilled_bitmap)
+                {
+                    bit = &bitmap_vector[index];
+                }
+                else
+                {
+                    bit = &bitmap_mapping[index];
+                }
                 // std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << (bitmap[std::floor(head / 8)] & (1 << (head % 8))) << std::endl;
-                if (bitmap[std::floor(head / 8)] & (1 << (head % 8)))
+                if ((*bit) & (1 << (head % 8)))
                 {
                     unsigned long buf[number_of_longs];
                     char char_buf[sizeof(unsigned long) * number_of_longs];
@@ -940,7 +1002,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                         }
                         (*hmap)[keys] = temp;
 
-                        bitmap[std::floor(head / 8)] &= ~(0x01 << (head % 8));
+                        *bit &= ~(0x01 << (head % 8));
                     }
                     else if (!locked)
                     {
@@ -951,12 +1013,37 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                         {
                             comb_hash_size++;
                         }
-                        bitmap[std::floor(head / 8)] &= ~(0x01 << (head % 8));
+                        *bit &= ~(0x01 << (head % 8));
                         // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
                     }
-                    if (hmap->size() * (*avg) >= memLimit * 0.7)
+                    if (spilled_bitmap)
                     {
-                        locked = true;
+                        if (hmap->size() * (*avg) + (head - lower_head) + bitmap_size_sum >= memLimit * 0.7)
+                        {
+                            unsigned long freed_space_temp = (head - lower_head) - ((head - lower_head) % pagesize);
+                            if (head - lower_head >= pagesize)
+                            {
+                                if (munmap(&bitmap_mapping[lower_head], freed_space_temp) == -1)
+                                {
+                                    perror("Could not free memory in merge 1!");
+                                }
+                                // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(unsigned long) + input_head << std::endl;
+                                freed_mem += freed_space_temp;
+                                // Update Head to point at the new unfreed mapping space.
+                                lower_head += freed_space_temp;
+                            }
+                            if (freed_space_temp < pagesize * 2)
+                            {
+                                locked = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (hmap->size() * (*avg) + bitmap_size_sum >= memLimit * 0.7)
+                        {
+                            locked = true;
+                        }
                     }
                     head++;
                 }
@@ -964,6 +1051,10 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 {
                     spill.ignore(sizeof(unsigned long) * number_of_longs);
                 }
+            }
+            if (munmap(&bitmap_mapping[lower_head], head - lower_head) == -1)
+            {
+                perror("Could not free memory in merge 1!");
             }
         }
 
@@ -986,6 +1077,18 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     {
         remove(("spill_file_" + std::to_string(i)).c_str());
     }
+    for (auto &it : s3spillBitmaps)
+    {
+        if (it.first != -1)
+        {
+            close(it.first);
+        }
+    }
+    for (auto &it : *s3spillNames)
+    {
+        remove((it + "_bitmap").c_str());
+    }
+
     for (auto &it : *s3spillNames)
     {
         Aws::S3::Model::DeleteObjectRequest request;
