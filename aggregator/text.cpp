@@ -723,6 +723,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         int counter = 0;
         for (auto &size : bitmap_sizes)
         {
+            std::cout << "writing bitmap" << (*s3spillNames)[counter] << "_bitmap" << std::endl;
             // Spilling bitmaps
             int fd = open(((*s3spillNames)[counter] + "_bitmap").c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
             char *spill = (char *)(mmap(nullptr, size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0));
@@ -957,7 +958,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 char *bit;
                 size_t index = std::floor(head / 8);
-                std::cout << head << ", " << std::floor(head / 8) << std::endl;
                 if (!spilled_bitmap)
                 {
                     bit = &bitmap_vector[index];
