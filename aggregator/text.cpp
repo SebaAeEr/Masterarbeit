@@ -718,7 +718,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             bitmap_sizes.push_back(std::ceil((float)(numberOfEntries) / 8));
         }
     }
-    if (true)//(bitmap_size_sum > memLimit * 0.3)
+    if (true) //(bitmap_size_sum > memLimit * 0.3)
     {
         int counter = 0;
         for (auto &size : bitmap_sizes)
@@ -942,7 +942,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             }
             else
             {
-
                 bitmap_mapping = static_cast<char *>(mmap(nullptr, bitmap_sizes[counter], PROT_WRITE | PROT_READ, MAP_SHARED, s3spillBitmaps[counter].first, 0));
                 if (bitmap_mapping == MAP_FAILED)
                 {
@@ -958,6 +957,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 char *bit;
                 size_t index = std::floor(head / 8);
+                std::cout << head << ", " << std::floor(head / 8) << std::endl;
                 if (!spilled_bitmap)
                 {
                     bit = &bitmap_vector[index];
