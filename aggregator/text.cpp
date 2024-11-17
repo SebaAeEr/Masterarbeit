@@ -19,6 +19,7 @@
 #include <aws/s3/S3Client.h>
 #include <aws/s3/model/PutObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
+#include <aws/s3/model/DeleteObjectRequest.h>
 #include <bitset>
 #include <cmath>
 
@@ -917,7 +918,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     }
 
                     static_cast<unsigned long *>(static_cast<void *>(buf));
-                    std::cout << buf[0] << ", " << buf[1] << std::endl;
+                    // std::cout << buf[0] << ", " << buf[1] << std::endl;
                     for (int k = 0; k < key_number; k++)
                     {
                         keys[k] = buf[k];
@@ -984,6 +985,16 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     for (int i = 0; i < spills->size(); i++)
     {
         remove(("spill_file_" + std::to_string(i)).c_str());
+    }
+    for (auto &it : *s3spillNames)
+    {
+        Aws::S3::Model::DeleteObjectRequest request;
+        request.WithKey(it).WithBucket("trinobucket");
+        auto outcome = minio_client->DeleteObject(request);
+        if (!outcome.IsSuccess())
+        {
+            std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+        }
     }
 
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
@@ -1293,8 +1304,7 @@ int test(std::string file1name, std::string file2name)
     {
         std::cout << "Files are the Same!" << std::endl;
     }
-
-    return 0;
+    return 1;
 }
 
 int main(int argc, char **argv)
