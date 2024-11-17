@@ -1033,14 +1033,14 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     else if (!locked)
                     {
                         read_lines++;
-                        std::cout << "Setting " << bitmap[std::floor(head / 8)] << " xth: " << head % 8 << std::endl;
+                        std::cout << "Setting " << bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
                         hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
                         if (hmap->size() > maxHashsize)
                         {
                             comb_hash_size++;
                         }
                         bitmap[std::floor(head / 8)] &= ~(0x01 << (head % 8));
-                        std::cout << "After setting " << bitmap[std::floor(head / 8)] << std::endl;
+                        std::cout << "After setting " << bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
                     }
                     if (hmap->size() * (*avg) >= memLimit * 0.7)
                     {
