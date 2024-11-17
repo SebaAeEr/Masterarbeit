@@ -329,17 +329,15 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
 {
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket("trinobucket");
-    request.SetKey(("/" + uniqueName).c_str());
+    request.SetKey(uniqueName.c_str());
     const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
 
     // Calc spill size
-    size_t spill_mem_size = 0;
-    spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
+    size_t spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
 
     // Write int to Mapping
     for (auto &it : *hmap)
     {
-        std::cout << it.first[0] << ", " << it.second[0] << std::endl;
         char byteArray[sizeof(long int)];
         for (int i = 0; i < key_number; i++)
         {
@@ -357,7 +355,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         }
     }
     request.SetBody(in_stream);
-    request.SetContentLength(20 * sizeof(unsigned long));
+    request.SetContentLength(spill_mem_size);
     auto outcome = minio_client->PutObject(request);
 
     if (!outcome.IsSuccess())
@@ -715,7 +713,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             auto spill_size = outcome.GetResult().GetContentLength();
             unsigned long numberOfEntries = spill_size / (sizeof(unsigned long) * (key_number + value_number));
             std::vector<char> bitmap = std::vector<char>(std::ceil((float)(numberOfEntries) / 8), 255);
-            std::cout << "successful creation of bitmap with size: " << bitmap.size() << std::endl;
+            // std::cout << "successful creation of bitmap with size: " << bitmap.size() << std::endl;
 
             s3spills.push_back({spill, bitmap});
         }
@@ -905,7 +903,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             unsigned long head = 0;
             while (true)
             {
-                std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << (bitmap[std::floor(head / 8)] & (1 << (head % 8))) << std::endl;
+                // std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << (bitmap[std::floor(head / 8)] & (1 << (head % 8))) << std::endl;
                 if (bitmap[std::floor(head / 8)] & (1 << (head % 8)))
                 {
                     unsigned long buf[number_of_longs];
@@ -914,7 +912,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     std::memcpy(buf, &char_buf, sizeof(unsigned long) * number_of_longs);
                     if (!spill)
                     {
-                        std::cout << "breaking" << std::endl;
+                        // std::cout << "breaking" << std::endl;
                         break;
                     }
 
@@ -946,14 +944,14 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     else if (!locked)
                     {
                         read_lines++;
-                        std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
+                        // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
                         hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
                         if (hmap->size() > maxHashsize)
                         {
                             comb_hash_size++;
                         }
                         bitmap[std::floor(head / 8)] &= ~(0x01 << (head % 8));
-                        std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
+                        // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
                     }
                     if (hmap->size() * (*avg) >= memLimit * 0.7)
                     {
