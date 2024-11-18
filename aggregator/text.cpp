@@ -712,7 +712,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 // comb_hash_size -= hmap->size();
                 // spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
                 // std::cout << "Spilling" << std::endl;
-                std::string uName = std::to_string(id) + "_" + std::to_string(spill_number);
+                std::string uName = worker_id + std::to_string(id) + "_" + std::to_string(spill_number);
                 spillToMinio(hmap, &uName, pagesize, pagesize * 20, minio_client);
                 (*s3Spill_names).push_back(uName);
                 spill_number++;
@@ -820,6 +820,8 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     unsigned long bitmap_size_sum = 0;
     std::vector<size_t> bitmap_sizes;
     std::vector<std::pair<int, std::vector<char>>> s3spillBitmaps;
+    int s3spillFile_head = 0;
+    unsigned long s3spillStart_head = 0;
 
     for (auto &it : *spills)
         comb_spill_size += it.second;
@@ -1055,22 +1057,29 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         overall_size = 0;
         freed_mem = 0;
         // std::cout << "write: " << emHashmap[{221877}][0] << std::endl;
+        bool firsts3File = false;
+        std::cout << "s3spillFile: " << s3spillFile_head << std::endl;
+        std::cout << "s3spillStart: " << s3spillStart_head << std::endl;
 
         int number_of_longs = key_number + value_number;
-        int counter = 0;
-        for (auto &spillname : *s3spillNames)
+        for (int i = s3spillFile_head; i < s3spillNames->size(); i++)
         {
+            firsts3File = !firsts3File && i == s3spillFile_head;
+            if (firsts3File)
+            {
+                std::cout << "First File" << std::endl;
+            }
             // std::cout << "Start reading: " << spillname << std::endl;
             Aws::S3::Model::GetObjectRequest request;
             request.SetBucket("trinobucket");
-            request.SetKey(spillname);
+            request.SetKey((*s3spillNames)[i]);
             Aws::S3::Model::GetObjectOutcome outcome;
             while (true)
             {
                 outcome = minio_client->GetObject(request);
                 if (!outcome.IsSuccess())
                 {
-                    std::cout << "GetObject error " << spillname << " " << outcome.GetError().GetMessage() << std::endl;
+                    std::cout << "GetObject error " << (*s3spillNames)[i] << " " << outcome.GetError().GetMessage() << std::endl;
                 }
                 else
                 {
@@ -1078,26 +1087,26 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 }
             }
             auto &spill = outcome.GetResult().GetBody();
+            spill.ignore(s3spillStart_head);
             char *bitmap_mapping;
             std::vector<char> bitmap_vector;
-            bool spilled_bitmap = s3spillBitmaps[counter].first != -1;
+            bool spilled_bitmap = s3spillBitmaps[i].first != -1;
             if (!spilled_bitmap)
             {
-                bitmap_vector = s3spillBitmaps[counter].second;
+                bitmap_vector = s3spillBitmaps[i].second;
             }
             else
             {
-                bitmap_mapping = static_cast<char *>(mmap(nullptr, bitmap_sizes[counter], PROT_WRITE | PROT_READ, MAP_SHARED, s3spillBitmaps[counter].first, 0));
+                bitmap_mapping = static_cast<char *>(mmap(nullptr, bitmap_sizes[i], PROT_WRITE | PROT_READ, MAP_SHARED, s3spillBitmaps[i].first, 0));
                 if (bitmap_mapping == MAP_FAILED)
                 {
                     perror("Error mmapping the file");
                     exit(EXIT_FAILURE);
                 }
-                madvise(bitmap_mapping, bitmap_sizes[counter], MADV_SEQUENTIAL | MADV_WILLNEED);
-                std::cout << "Size: " << bitmap_sizes[counter] << " Addr: " << bitmap_mapping << std::endl;
+                madvise(bitmap_mapping, bitmap_sizes[i], MADV_SEQUENTIAL | MADV_WILLNEED);
+                std::cout << "Size: " << bitmap_sizes[i] << " Addr: " << bitmap_mapping << std::endl;
             }
-            counter++;
-            unsigned long head = 0;
+            unsigned long head = std::floor(s3spillStart_head / 8);
             unsigned long lower_head = 0;
             while (true)
             {
@@ -1186,6 +1195,12 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                             if (freed_space_temp < pagesize * 2)
                             {
                                 locked = true;
+                                s3spillFile_head = i;
+                                s3spillStart_head = head;
+                                if (firsts3File)
+                                {
+                                    break;
+                                }
                             }
                         }
                     }
@@ -1194,6 +1209,12 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                         if (hmap->size() * (*avg) + bitmap_size_sum >= memLimit * 0.7)
                         {
                             locked = true;
+                            s3spillFile_head = i;
+                            s3spillStart_head = head;
+                            if (firsts3File)
+                            {
+                                break;
+                            }
                         }
                     }
                 }
@@ -1210,9 +1231,9 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             }
             if (spilled_bitmap)
             {
-                if (munmap(&bitmap_mapping[lower_head], bitmap_sizes[counter - 1] - lower_head) == -1)
+                if (munmap(&bitmap_mapping[lower_head], bitmap_sizes[i] - lower_head) == -1)
                 {
-                    std::cout << bitmap_sizes[counter - 1] - lower_head << " lower_head: " << lower_head << std::endl;
+                    std::cout << bitmap_sizes[i] - lower_head << " lower_head: " << lower_head << std::endl;
                     perror("Could not free memory of bitmap 2!");
                 }
             }
@@ -1228,8 +1249,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         hmap->clear();
         comb_hash_size = maxHashsize;
 
-        locked = false;
-        // std::cout << "End writing" << std::endl;
     }
 
     for (auto &it : *spills)
