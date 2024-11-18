@@ -1286,7 +1286,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 head = s3spillStart_head;
                 std::cout << "First File" << std::endl;
-                spill.ignore(s3spillStart_head);
+                spill.ignore(s3spillStart_head * sizeof(unsigned long) * number_of_longs);
             }
             unsigned long lower_head = 0;
             while (spill.peek() != EOF)
@@ -1298,16 +1298,13 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     std::cout << "index too big: " << index << " head: " << head << " bitmap size: " << bitmap_vector->size() << std::endl;
                     break;
                 }
-                if (head % 8 == 0)
+                if (!spilled_bitmap)
                 {
-                    if (!spilled_bitmap)
-                    {
-                        bit = &(*bitmap_vector)[index];
-                    }
-                    else
-                    {
-                        bit = &bitmap_mapping[index];
-                    }
+                    bit = &(*bitmap_vector)[index];
+                }
+                else
+                {
+                    bit = &bitmap_mapping[index];
                 }
 
                 // std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(*bit) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << ((*bit) & (1 << (head % 8))) << std::endl;
