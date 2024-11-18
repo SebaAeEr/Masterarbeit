@@ -1243,10 +1243,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         for (int i = s3spillFile_head; i < s3spillNames->size(); i++)
         {
             firsts3File = !firsts3File && i == s3spillFile_head;
-            if (firsts3File)
-            {
-                std::cout << "First File" << std::endl;
-            }
             // std::cout << "Start reading: " << spillname << std::endl;
             Aws::S3::Model::GetObjectRequest request;
             request.SetBucket("trinobucket");
@@ -1264,8 +1260,8 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     break;
                 }
             }
+            std::cout << "Reading spill: " << (*s3spillNames)[i] << std::endl;
             auto &spill = outcome.GetResult().GetBody();
-            spill.ignore(s3spillStart_head);
             char *bitmap_mapping;
             std::vector<char> *bitmap_vector;
             bool spilled_bitmap = s3spillBitmaps[i].first != -1;
@@ -1289,6 +1285,8 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             if (firsts3File)
             {
                 head = s3spillStart_head;
+                std::cout << "First File" << std::endl;
+                spill.ignore(s3spillStart_head);
             }
             unsigned long lower_head = 0;
             while (spill.peek() != EOF)
