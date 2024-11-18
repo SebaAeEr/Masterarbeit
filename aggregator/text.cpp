@@ -1130,12 +1130,12 @@ void WriteNewManagFile(Aws::S3::S3Client *minio_client)
     size_t spill_mem_size = 2 * sizeof(int) + 1;
     for (int i = 0; i < sizeof(int); i++)
     {
-        *in_stream << 0;
+        *in_stream << 0x00;
     }
     *in_stream << worker_id;
     for (int i = 0; i < sizeof(int); i++)
     {
-        *in_stream << 0;
+        *in_stream << 0x00;
     }
     request.SetBody(in_stream);
     request.SetContentLength(spill_mem_size);
@@ -1184,7 +1184,7 @@ void initManagFile(Aws::S3::S3Client *minio_client)
         *in_stream << worker_id;
         for (int i = 0; i < sizeof(int); i++)
         {
-            *in_stream << 0;
+            *in_stream << 0x00;
         }
         in_mem_size += sizeof(int) + 1;
         std::cout << "New Managfile size: " << in_mem_size << std::endl;
