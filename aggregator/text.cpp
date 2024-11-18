@@ -714,7 +714,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         {
             auto spill_size = outcome.GetResult().GetContentLength();
             unsigned long numberOfEntries = spill_size / (sizeof(unsigned long) * (key_number + value_number));
-            std::cout << "bitmap entries: " << numberOfEntries << " length: " <<  std::ceil((float)(numberOfEntries) / 8) << std::endl;
+            std::cout << "bitmap entries: " << numberOfEntries << " length: " << std::ceil((float)(numberOfEntries) / 8) << std::endl;
             bitmap_size_sum += std::ceil((float)(numberOfEntries) / 8);
             bitmap_sizes.push_back(std::ceil((float)(numberOfEntries) / 8));
         }
@@ -959,6 +959,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     exit(EXIT_FAILURE);
                 }
                 madvise(bitmap_mapping, bitmap_sizes[counter], MADV_SEQUENTIAL | MADV_WILLNEED);
+                std::cout << "Test: " << std::bitset<8>(bitmap_mapping[bitmap_sizes[counter] - 1]) << std::endl;
             }
             counter++;
             unsigned long head = 0;
@@ -967,21 +968,25 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 char *bit;
                 size_t index = std::floor(head / 8);
+                std::cout << "Index: " << index << "bitmap size: " << bitmap_sizes[counter - 1] << " head: " << head << std::endl;
                 if (index >= bitmap_sizes[counter - 1])
                 {
                     std::cout << "Index: " << index << "bitmap size: " << bitmap_sizes[counter - 1] << std::endl;
                     return;
                 }
+                if (head % 8 == 0)
+                {
+                    if (!spilled_bitmap)
+                    {
+                        bit = &bitmap_vector[index];
+                    }
+                    else
+                    {
+                        bit = &bitmap_mapping[index];
+                    }
+                }
 
-                if (!spilled_bitmap)
-                {
-                    bit = &bitmap_vector[index];
-                }
-                else
-                {
-                    bit = &bitmap_mapping[index];
-                }
-                // std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << (bitmap[std::floor(head / 8)] & (1 << (head % 8))) << std::endl;
+                std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(*bit) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << ((*bit) & (1 << (head % 8))) << std::endl;
                 if ((*bit) & (1 << (head % 8)))
                 {
                     unsigned long buf[number_of_longs];
@@ -995,7 +1000,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     }
 
                     static_cast<unsigned long *>(static_cast<void *>(buf));
-                    // std::cout << buf[0] << ", " << buf[1] << std::endl;
+                    std::cout << buf[0] << ", " << buf[1] << std::endl;
                     for (int k = 0; k < key_number; k++)
                     {
                         keys[k] = buf[k];
@@ -1007,6 +1012,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     }
                     if (hmap->contains(keys))
                     {
+                        std::cout << "contains" << std::endl;
                         read_lines++;
 
                         std::array<unsigned long, max_size> temp = (*hmap)[keys];
@@ -1021,6 +1027,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     }
                     else if (!locked)
                     {
+                        std::cout << "adding" << std::endl;
                         read_lines++;
                         // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
                         hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
@@ -1057,6 +1064,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     }
                     else
                     {
+                        std::cout << "ignoring" << std::endl;
                         if (hmap->size() * (*avg) + bitmap_size_sum >= memLimit * 0.7)
                         {
                             locked = true;
