@@ -992,7 +992,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     }
 
                     static_cast<unsigned long *>(static_cast<void *>(buf));
-                    std::cout << buf[0] << ", " << buf[1] << std::endl;
+                    // std::cout << buf[0] << ", " << buf[1] << std::endl;
                     for (int k = 0; k < key_number; k++)
                     {
                         keys[k] = buf[k];
@@ -1032,7 +1032,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     {
                         if (hmap->size() * (*avg) + (head - lower_head) + bitmap_size_sum >= memLimit * 0.7)
                         {
-                            std::cout << "spilling: " << head - lower_head << std::endl;
+                            // std::cout << "spilling: " << head - lower_head << std::endl;
                             unsigned long freed_space_temp = (head - lower_head) - ((head - lower_head) % pagesize);
                             if (head - lower_head >= pagesize)
                             {
@@ -1131,7 +1131,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     long pagesize = sysconf(_SC_PAGE_SIZE);
 
     Aws::SDKOptions options;
-    options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
+    // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
     Aws::Client::ClientConfiguration c_config;
     c_config.verifySSL = false;
