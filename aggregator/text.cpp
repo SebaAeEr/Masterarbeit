@@ -742,15 +742,13 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 perror("Error mmapping the file");
                 exit(EXIT_FAILURE);
             }
-            // Write int to Mapping
-            unsigned long counter = 0;
-            unsigned long writehead = 0;
             for (int i = 0; i < size; i++)
             {
                 spill[i] = 255;
             }
             munmap(spill, size);
             s3spillBitmaps.push_back({fd, {}});
+            counter++;
         }
         bitmap_size_sum = 0;
     }
@@ -946,7 +944,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             char *bitmap_mapping;
             std::vector<char> bitmap_vector;
             bool spilled_bitmap = s3spillBitmaps[counter].first != -1;
-            std::cout << "Is spilled: " << spilled_bitmap << std::endl;
             if (!spilled_bitmap)
             {
                 bitmap_vector = s3spillBitmaps[counter].second;
@@ -969,12 +966,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 char *bit;
                 size_t index = std::floor(head / 8);
-                std::cout << "Index: " << index << "bitmap size: " << bitmap_sizes[counter - 1] << " head: " << head << std::endl;
-                if (index >= bitmap_sizes[counter - 1])
-                {
-                    std::cout << "Index: " << index << "bitmap size: " << bitmap_sizes[counter - 1] << std::endl;
-                    return;
-                }
                 if (head % 8 == 0)
                 {
                     if (!spilled_bitmap)
@@ -987,7 +978,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     }
                 }
 
-                std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(*bit) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << ((*bit) & (1 << (head % 8))) << std::endl;
+                // std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(*bit) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << ((*bit) & (1 << (head % 8))) << std::endl;
                 if ((*bit) & (1 << (head % 8)))
                 {
                     unsigned long buf[number_of_longs];
@@ -1013,7 +1004,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     }
                     if (hmap->contains(keys))
                     {
-                        std::cout << "contains" << std::endl;
                         read_lines++;
 
                         std::array<unsigned long, max_size> temp = (*hmap)[keys];
@@ -1028,7 +1018,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     }
                     else if (!locked)
                     {
-                        std::cout << "adding" << std::endl;
                         read_lines++;
                         // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
                         hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
@@ -1065,7 +1054,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     }
                     else
                     {
-                        std::cout << "ignoring" << std::endl;
                         if (hmap->size() * (*avg) + bitmap_size_sum >= memLimit * 0.7)
                         {
                             locked = true;
@@ -1282,7 +1270,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     unsigned long freed_mem = 0;
     unsigned long overall_size = 0;
 
-    for(auto & names: s3Spill_names) {
+    for (auto &names : s3Spill_names)
+    {
         std::cout << names << std::endl;
     }
 
