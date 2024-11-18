@@ -222,7 +222,7 @@ int getManagVersion(Aws::S3::S3Client *minio_client)
     }
 }
 
-void writeMana(Aws::S3::S3Client *minio_client, manaFile mana)
+void writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion)
 {
     while (true)
     {
@@ -265,9 +265,14 @@ void writeMana(Aws::S3::S3Client *minio_client, manaFile mana)
 
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
-        int newVersion = getManagVersion(minio_client);
-        std::cout << "Old Version: " << mana.version << ", new Version: " << newVersion << std::endl;
-        if (newVersion == mana.version - 1)
+        bool write = true;
+        if (checkVersion)
+        {
+            int newVersion = getManagVersion(minio_client);
+            std::cout << "Old Version: " << mana.version << ", new Version: " << newVersion << std::endl;
+            write = newVersion == mana.version - 1;
+        }
+        if (write)
         {
             while (true)
             {
@@ -1485,7 +1490,6 @@ void initManagFile(Aws::S3::S3Client *minio_client)
     manaFile mana;
     if (!outcome.IsSuccess())
     {
-
         mana.version = 0;
     }
     else
@@ -1497,7 +1501,7 @@ void initManagFile(Aws::S3::S3Client *minio_client)
     worker.length = 0;
     worker.files = {};
     mana.workers.push_back(worker);
-    writeMana(minio_client, mana);
+    writeMana(minio_client, mana, false);
 }
 
 // aggregate inputfilename and write results into outpufilename
