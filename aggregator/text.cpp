@@ -152,12 +152,11 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     std::memcpy(&version, &char_buf, sizeof(int));
     mana.version = version;
     mana.workers = {};
-    while (out_stream)
+    while (out_stream.peek() != EOF)
     {
         manaFileWorker worker;
         char workerid = out_stream.get();
         worker.id = workerid;
-        std::cout << "adding worker: " << worker.id << std::endl;
         std::vector<std::tuple<std::string, size_t, char>> files = {};
         int length;
         char length_buf[sizeof(int)];
@@ -165,7 +164,6 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         std::memcpy(&length, &length_buf, sizeof(int));
         worker.length = length;
         int head = 0;
-        std::cout << "length: " << length << std::endl;
         while (head < length)
         {
             char temp = out_stream.get();
@@ -1293,14 +1291,14 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 head = std::floor(s3spillStart_head / 8);
             }
             unsigned long lower_head = 0;
-            while (true)
+            while (spill.peek() != EOF)
             {
                 char *bit;
                 size_t index = std::floor(head / 8);
                 if (index >= bitmap_vector->size())
                 {
                     std::cout << "index too big: " << index << std::endl;
-                    return;
+                    continue;
                 }
                 if (head % 8 == 0)
                 {
