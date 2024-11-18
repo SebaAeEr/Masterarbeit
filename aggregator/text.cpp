@@ -970,7 +970,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 if (index >= bitmap_sizes[counter])
                 {
                     std::cout << "Index: " << index << "bitmap size: " << bitmap_sizes[counter] << std::endl;
-                    return -1;
+                    return;
                 }
 
                 if (!spilled_bitmap)
