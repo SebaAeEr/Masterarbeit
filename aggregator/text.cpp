@@ -726,6 +726,13 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             std::cout << "writing bitmap" << (*s3spillNames)[counter] << "_bitmap" << std::endl;
             // Spilling bitmaps
             int fd = open(((*s3spillNames)[counter] + "_bitmap").c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+            lseek(fd, size - 1, SEEK_SET);
+    if (write(fd, "", 1) == -1)
+    {
+        close(fd);
+        perror("Error writing last byte of the file");
+        exit(EXIT_FAILURE);
+    }
             char *spill = (char *)(mmap(nullptr, size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0));
             madvise(spill, size, MADV_SEQUENTIAL | MADV_WILLNEED);
             if (spill == MAP_FAILED)
