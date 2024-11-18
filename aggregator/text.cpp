@@ -36,6 +36,8 @@ enum Operation op;
 std::string opKeyName;
 int key_number;
 int value_number;
+char worker_id;
+std::string manag_file_name = "manag_file";
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -704,8 +706,8 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         int counter = 0;
         for (auto &size : bitmap_sizes)
         {
-            //std::cout << "writing bitmap" << (*s3spillNames)[counter] << "_bitmap" << " with size: " << size << std::endl;
-            // Spilling bitmaps
+            // std::cout << "writing bitmap" << (*s3spillNames)[counter] << "_bitmap" << " with size: " << size << std::endl;
+            //  Spilling bitmaps
             int fd = open(((*s3spillNames)[counter] + "_bitmap").c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
             lseek(fd, size - 1, SEEK_SET);
             if (write(fd, "", 1) == -1)
@@ -909,7 +911,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         int counter = 0;
         for (auto &spillname : *s3spillNames)
         {
-           // std::cout << "Start reading: " << spillname << std::endl;
+            // std::cout << "Start reading: " << spillname << std::endl;
             Aws::S3::Model::GetObjectRequest request;
             request.SetBucket("trinobucket");
             request.SetKey(spillname);
@@ -943,7 +945,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     exit(EXIT_FAILURE);
                 }
                 madvise(bitmap_mapping, bitmap_sizes[counter], MADV_SEQUENTIAL | MADV_WILLNEED);
-                std::cout << "Test: " << std::bitset<8>(bitmap_mapping[bitmap_sizes[counter] - 1]) << std::endl;
+                // std::cout << "Test: " << std::bitset<8>(bitmap_mapping[bitmap_sizes[counter] - 1]) << std::endl;
             }
             counter++;
             unsigned long head = 0;
@@ -1057,7 +1059,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 }
                 head++;
             }
-            if (munmap(&bitmap_mapping[lower_head], head - lower_head) == -1)
+            if (munmap(&bitmap_mapping[lower_head], bitmap_sizes[counter - 1] - lower_head) == -1)
             {
                 std::cout << head - lower_head << std::endl;
                 perror("Could not free memory of bitmap 2!");
@@ -1117,9 +1119,92 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
 }
 
+void WriteNewManagFile(Aws::S3::S3Client *minio_client)
+{
+    Aws::S3::Model::PutObjectRequest request;
+    request.SetBucket("trinobucket");
+    request.SetKey(manag_file_name);
+    const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+
+    // Calc spill size
+    size_t spill_mem_size = 2 *sizeof(int) + 1;
+    for (int i = 0; i < sizeof(int); i++)
+    {
+        *in_stream << 0;
+    }
+    *in_stream << worker_id;
+    for (int i = 0; i < sizeof(int); i++)
+    {
+        *in_stream << 0;
+    }
+    request.SetBody(in_stream);
+    request.SetContentLength(spill_mem_size);
+    while (true)
+    {
+        auto outcome = minio_client->PutObject(request);
+        if (!outcome.IsSuccess())
+        {
+            std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
+void initManagFile(Aws::S3::S3Client *minio_client)
+{
+
+    Aws::S3::Model::GetObjectRequest request;
+    request.SetBucket("trinobucket");
+    request.SetKey(manag_file_name);
+    Aws::S3::Model::GetObjectOutcome outcome;
+    outcome = minio_client->GetObject(request);
+    if (!outcome.IsSuccess())
+    {
+        WriteNewManagFile(minio_client);
+    }
+    else
+    {
+        Aws::S3::Model::PutObjectRequest in_request;
+        in_request.SetBucket("trinobucket");
+        in_request.SetKey(manag_file_name);
+        const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+        auto &out_stream = outcome.GetResult().GetBody();
+        size_t out_size = outcome.GetResult().GetContentLength();
+        size_t in_mem_size = out_size;
+        for (int i = 0; i < out_size; i++)
+        {
+            *in_stream << out_stream.get();
+        }
+        *in_stream << worker_id;
+        for (int i = 0; i < sizeof(int); i++)
+        {
+            *in_stream << 0;
+        }
+        in_mem_size += sizeof(int) + 1;
+        in_request.SetBody(in_stream);
+        in_request.SetContentLength(in_mem_size);
+        while (true)
+        {
+            auto in_outcome = minio_client->PutObject(in_request);
+            if (!in_outcome.IsSuccess())
+            {
+                std::cout << "Error: " << in_outcome.GetError().GetMessage() << std::endl;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+}
+
 // aggregate inputfilename and write results into outpufilename
 int aggregate(std::string inputfilename, std::string outputfilename, size_t memLimit, int threadNumber, bool measure_mem)
 {
+
     // Inits and decls
     long pagesize = sysconf(_SC_PAGE_SIZE);
 
@@ -1133,6 +1218,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     c_config.endpointOverride = "131.159.16.208:9000";
     Aws::Auth::AWSCredentials cred("erasmus", "tumThesis123");
     Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
+    initManagFile(&minio_client);
 
     // open inputfile and get size from stats
     int fd = open(inputfilename.c_str(), O_RDONLY);
@@ -1309,7 +1395,6 @@ int test(std::string file1name, std::string file2name)
     std::string coloumns[key_number + 1];
     for (int i = 0; i < key_number; i++)
     {
-        std::cout << key_names[i] << std::endl;
         coloumns[i] = key_names[i];
     }
     coloumns[key_number] = "_col1";
@@ -1428,6 +1513,7 @@ int main(int argc, char **argv)
     std::string memLimit_string = argv[3];
     std::string threadNumber_string = argv[4];
     std::string tpc_query_string = argv[5];
+    worker_id = *argv[6];
 
     int threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
