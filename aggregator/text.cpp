@@ -104,6 +104,151 @@ int writeString(char *mapping, const std::string &string)
     return counter;
 }
 
+int getManagVersion(Aws::S3::S3Client *minio_client)
+{
+    Aws::S3::Model::GetObjectRequest request;
+    request.SetBucket("trinobucket");
+    request.SetKey(manag_file_name);
+    Aws::S3::Model::GetObjectOutcome outcome;
+
+    while (true)
+    {
+        outcome = minio_client->GetObject(request);
+        if (!outcome.IsSuccess())
+        {
+            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
+        }
+        else
+        {
+            Aws::S3::Model::PutObjectRequest in_request;
+            in_request.SetBucket("trinobucket");
+            in_request.SetKey(manag_file_name);
+            const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+            auto &out_stream = outcome.GetResult().GetBody();
+            size_t out_size = outcome.GetResult().GetContentLength();
+            size_t in_mem_size = out_size;
+
+            int version;
+            char char_buf[sizeof(int)];
+            out_stream.read(char_buf, sizeof(int));
+            std::memcpy(&version, &char_buf, sizeof(int));
+            return version;
+        }
+    }
+}
+
+void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, size_t file_size)
+{
+    Aws::S3::Model::GetObjectRequest request;
+    request.SetBucket("trinobucket");
+    request.SetKey(manag_file_name);
+    Aws::S3::Model::GetObjectOutcome outcome;
+    while (true)
+    {
+        outcome = minio_client->GetObject(request);
+        if (!outcome.IsSuccess())
+        {
+            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
+        }
+        else
+        {
+            while (true)
+            {
+                Aws::S3::Model::PutObjectRequest in_request;
+                in_request.SetBucket("trinobucket");
+                in_request.SetKey(manag_file_name);
+                const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+                auto &out_stream = outcome.GetResult().GetBody();
+                size_t out_size = outcome.GetResult().GetContentLength();
+                size_t in_mem_size = out_size;
+
+                int version;
+                char char_buf[sizeof(int)];
+                out_stream.read(char_buf, sizeof(int));
+                std::memcpy(&version, &char_buf, sizeof(int));
+                version++;
+
+                char_buf[sizeof(int)];
+                std::memcpy(char_buf, &version, sizeof(int));
+                for (int i = 0; i < sizeof(int); i++)
+                {
+                    *in_stream << char_buf[i];
+                }
+
+                while (true)
+                {
+                    char cur_wid = out_stream.get();
+                    *in_stream << cur_wid;
+                    if (cur_wid == worker_id)
+                    {
+                        break;
+                    }
+                    int length;
+                    char length_buf[sizeof(int)];
+                    out_stream.read(length_buf, sizeof(int));
+                    std::memcpy(&length, &length_buf, sizeof(int));
+                    for (int i = 0; i < sizeof(int); i++)
+                    {
+                        *in_stream << length_buf[i];
+                    }
+                    for (int i = 0; i < length; i++)
+                    {
+
+                        char temp = out_stream.get();
+                        *in_stream << temp;
+                    }
+                }
+
+                int cur_length;
+                char cur_length_buf[sizeof(int)];
+                out_stream.read(cur_length_buf, sizeof(int));
+                std::memcpy(&cur_length, &cur_length_buf, sizeof(int));
+                cur_length += file_name->size() + sizeof(size_t) + 1;
+                std::memcpy(cur_length_buf, &cur_length, sizeof(int));
+                for (int i = 0; i < sizeof(int); i++)
+                {
+                    *in_stream << cur_length_buf[i];
+                }
+                *in_stream << *file_name;
+                char size_buf[sizeof(size_t)];
+                std::memcpy(size_buf, &file_size, sizeof(size_t));
+                for (int i = 0; i < sizeof(size_t); i++)
+                {
+                    *in_stream << size_buf[i];
+                }
+                *in_stream << 0x00;
+
+                while (out_stream)
+                {
+                    char temp = out_stream.get();
+                    *in_stream << temp;
+                }
+
+                in_mem_size += file_name->size() + sizeof(size_t) + 1;
+
+                in_request.SetBody(in_stream);
+                in_request.SetContentLength(in_mem_size);
+                int newVersion = getManagVersion(minio_client);
+                if (newVersion == version - 1)
+                {
+                    while (true)
+                    {
+                        auto in_outcome = minio_client->PutObject(in_request);
+                        if (!in_outcome.IsSuccess())
+                        {
+                            std::cout << "Error: " << in_outcome.GetError().GetMessage() << std::endl;
+                        }
+                        else
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Write hashmap hmap into file with head on start.
 int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, unsigned long start, unsigned long free_mem)
 {
@@ -328,11 +473,11 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
 
-void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uniqueName, long pagesize, size_t free_mem, Aws::S3::S3Client *minio_client)
+void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string *uniqueName, long pagesize, size_t free_mem, Aws::S3::S3Client *minio_client)
 {
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket("trinobucket");
-    request.SetKey(uniqueName.c_str());
+    request.SetKey(uniqueName->c_str());
     const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
 
     // Calc spill size
@@ -372,6 +517,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         }
     }
     hmap->clear();
+    addFileToManag(minio_client, uniqueName, spill_mem_size);
 }
 
 void execOperation(std::array<unsigned long, max_size> *hashValue, int value)
@@ -566,8 +712,9 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 // comb_hash_size -= hmap->size();
                 // spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
                 // std::cout << "Spilling" << std::endl;
-                spillToMinio(hmap, std::to_string(id) + "_" + std::to_string(spill_number), pagesize, pagesize * 20, minio_client);
-                (*s3Spill_names).push_back(std::to_string(id) + "_" + std::to_string(spill_number));
+                std::string uName = std::to_string(id) + "_" + std::to_string(spill_number);
+                spillToMinio(hmap, &uName, pagesize, pagesize * 20, minio_client);
+                (*s3Spill_names).push_back(uName);
                 spill_number++;
 
                 // std::cout << "Spilling ended" << std::endl;
@@ -1160,7 +1307,6 @@ void WriteNewManagFile(Aws::S3::S3Client *minio_client)
 
 void initManagFile(Aws::S3::S3Client *minio_client)
 {
-
     Aws::S3::Model::GetObjectRequest request;
     request.SetBucket("trinobucket");
     request.SetKey(manag_file_name);
