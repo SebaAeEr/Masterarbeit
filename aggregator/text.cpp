@@ -1174,11 +1174,12 @@ void initManagFile(Aws::S3::S3Client *minio_client)
         auto &out_stream = outcome.GetResult().GetBody();
         size_t out_size = outcome.GetResult().GetContentLength();
         std::cout << "Managfile size: " << out_size << std::endl;
-        size_t in_mem_size = out_size;
-        for (int i = 0; i < out_size; i++)
+        size_t in_mem_size = 0;
+        // out_size;
+        /* for (int i = 0; i < out_size; i++)
         {
             *in_stream << out_stream.get();
-        }
+        } */
         *in_stream << worker_id;
         for (int i = 0; i < sizeof(int); i++)
         {
