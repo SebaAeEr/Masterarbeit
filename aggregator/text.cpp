@@ -517,7 +517,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         }
     }
     hmap->clear();
-    addFileToManag(minio_client, uniqueName, spill_mem_size);
+    // addFileToManag(minio_client, uniqueName, spill_mem_size);
 }
 
 void execOperation(std::array<unsigned long, max_size> *hashValue, int value)
