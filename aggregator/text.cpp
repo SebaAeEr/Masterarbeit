@@ -30,6 +30,19 @@ enum Operation
     exists,
     average
 };
+
+struct manaFileWorker
+{
+    char id;
+    std::vector<std::tuple<std::string, size_t, char>> files;
+};
+
+struct manaFile
+{
+    int version;
+    std::vector<manaFileWorker> workers;
+};
+
 static const int max_size = 2;
 std::string key_names[max_size];
 enum Operation op;
@@ -102,6 +115,88 @@ int writeString(char *mapping, const std::string &string)
         counter++;
     }
     return counter;
+}
+
+manaFile getMana(Aws::S3::S3Client *minio_client)
+{
+    manaFile mana;
+    Aws::S3::Model::GetObjectRequest request;
+    request.SetBucket("trinobucket");
+    request.SetKey(manag_file_name);
+    Aws::S3::Model::GetObjectOutcome outcome;
+
+    while (true)
+    {
+        outcome = minio_client->GetObject(request);
+        if (!outcome.IsSuccess())
+        {
+            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
+        }
+        else
+        {
+            break;
+        }
+    }
+    Aws::S3::Model::PutObjectRequest in_request;
+    in_request.SetBucket("trinobucket");
+    in_request.SetKey(manag_file_name);
+    const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+    auto &out_stream = outcome.GetResult().GetBody();
+    size_t out_size = outcome.GetResult().GetContentLength();
+    size_t in_mem_size = out_size;
+
+    int version;
+    char char_buf[sizeof(int)];
+    out_stream.read(char_buf, sizeof(int));
+    std::memcpy(&version, &char_buf, sizeof(int));
+    mana.version = version;
+    mana.workers = {};
+    while (out_stream)
+    {
+        manaFileWorker worker;
+        char workerid = out_stream.get();
+        worker.id = workerid;
+        std::vector<std::tuple<std::string, size_t, char>> files = {};
+        int length;
+        char length_buf[sizeof(int)];
+        out_stream.read(length_buf, sizeof(int));
+        std::memcpy(&length, &length_buf, sizeof(int));
+        int head = 0;
+        while (head < length)
+        {
+            char temp = out_stream.get();
+            std::string filename = "";
+            while (temp != ',')
+            {
+                filename += temp;
+                temp = out_stream.get();
+            }
+            size_t length;
+            char length_buf[sizeof(size_t)];
+            out_stream.read(length_buf, sizeof(size_t));
+            std::memcpy(&length, &length_buf, sizeof(size_t));
+            char m_worker = out_stream.get();
+            files.push_back({filename, length, m_worker});
+            head += filename.size() + 2 + sizeof(size_t);
+        }
+        worker.files = files;
+        mana.workers.push_back(worker);
+    }
+    return mana;
+}
+
+void printMana(Aws::S3::S3Client *minio_client)
+{
+    manaFile mana = getMana(minio_client);
+    std::cout << "version: " << mana.version << std::endl;
+    for (auto &worker : mana.workers)
+    {
+        std::cout << "Worker id: " << worker.id << std::endl;
+        for (auto &file : worker.files)
+        {
+            std::cout << "  " << std::get<0>(file) << " size: " << std::get<1>(file) << " worked on by: " << std::get<2>(file) << std::endl;
+        }
+    }
 }
 
 int getManagVersion(Aws::S3::S3Client *minio_client)
@@ -217,7 +312,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, siz
                     mem_counter++;
                 }
                 *in_stream << *file_name;
-                mem_counter+= file_name->size();
+                mem_counter += file_name->size();
                 char size_buf[sizeof(size_t)];
                 std::memcpy(size_buf, &file_size, sizeof(size_t));
                 for (int i = 0; i < sizeof(size_t); i++)
@@ -237,7 +332,6 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, siz
 
                 in_mem_size += file_name->size() + sizeof(size_t) + 1;
                 std::cout << "Size of new manga: " << in_mem_size << " mem_counter: " << mem_counter << std::endl;
-
 
                 in_request.SetBody(in_stream);
                 in_request.SetContentLength(in_mem_size);
@@ -1121,7 +1215,11 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 std::cout << "Size: " << bitmap_sizes[i] << " Addr: " << bitmap_mapping << std::endl;
             }
             std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector->size() << std::endl;
-            unsigned long head = std::floor(s3spillStart_head / 8);
+            unsigned long head = 0;
+            if (firsts3File)
+            {
+                head = std::floor(s3spillStart_head / 8);
+            }
             unsigned long lower_head = 0;
             while (true)
             {
@@ -1412,6 +1510,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     Aws::Auth::AWSCredentials cred("erasmus", "tumThesis123");
     Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
     initManagFile(&minio_client);
+    printMana(&minio_client);
 
     // open inputfile and get size from stats
     int fd = open(inputfilename.c_str(), O_RDONLY);
