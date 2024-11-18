@@ -1059,16 +1059,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 }
                 head++;
             }
-            if (lower_head == 0)
-            {
-                if (munmap(bitmap_mapping, bitmap_sizes[counter - 1]) == -1)
-                {
-                    std::cout << "Size: " << bitmap_sizes[counter - 1] << " Addr: " << bitmap_mapping << std::endl;
-                    std::cout << bitmap_sizes[counter - 1] - lower_head << " lower_head: " << lower_head << std::endl;
-                    perror("Could not free memory of bitmap 2!");
-                }
-            }
-            else
+            if (spilled_bitmap)
             {
                 if (munmap(&bitmap_mapping[lower_head], bitmap_sizes[counter - 1] - lower_head) == -1)
                 {
