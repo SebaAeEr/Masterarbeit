@@ -727,12 +727,12 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             // Spilling bitmaps
             int fd = open(((*s3spillNames)[counter] + "_bitmap").c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
             lseek(fd, size - 1, SEEK_SET);
-    if (write(fd, "", 1) == -1)
-    {
-        close(fd);
-        perror("Error writing last byte of the file");
-        exit(EXIT_FAILURE);
-    }
+            if (write(fd, "", 1) == -1)
+            {
+                close(fd);
+                perror("Error writing last byte of the file");
+                exit(EXIT_FAILURE);
+            }
             char *spill = (char *)(mmap(nullptr, size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0));
             madvise(spill, size, MADV_SEQUENTIAL | MADV_WILLNEED);
             if (spill == MAP_FAILED)
@@ -930,6 +930,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         int counter = 0;
         for (auto &spillname : *s3spillNames)
         {
+            std::cout << "Start reading: " << spillname << std::endl;
             Aws::S3::Model::GetObjectRequest request;
             request.SetBucket("trinobucket");
             request.SetKey(spillname);
@@ -965,6 +966,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 char *bit;
                 size_t index = std::floor(head / 8);
+                std::cout << "Index: " << index << std::endl;
                 if (!spilled_bitmap)
                 {
                     bit = &bitmap_vector[index];
@@ -1027,6 +1029,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     {
                         if (hmap->size() * (*avg) + (head - lower_head) + bitmap_size_sum >= memLimit * 0.7)
                         {
+                            std::cout << "spilling: " << head - lower_head << std::endl;
                             unsigned long freed_space_temp = (head - lower_head) - ((head - lower_head) % pagesize);
                             if (head - lower_head >= pagesize)
                             {
