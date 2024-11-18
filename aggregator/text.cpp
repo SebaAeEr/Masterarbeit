@@ -1282,7 +1282,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     unsigned long freed_mem = 0;
     unsigned long overall_size = 0;
 
-    // merge_test(&emHashmap, pagesize, &avg, output_fd, spills[0], &diff[0], &comb_hash_size, memLimit);
+    for(auto & names: s3Spill_names) {
+        std::cout << names << std::endl;
+    }
 
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || !s3Spill_names.empty())
