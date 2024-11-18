@@ -1173,6 +1173,7 @@ void initManagFile(Aws::S3::S3Client *minio_client)
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         auto &out_stream = outcome.GetResult().GetBody();
         size_t out_size = outcome.GetResult().GetContentLength();
+        std::cout << "Managfile size: " << out_size << std::endl;
         size_t in_mem_size = out_size;
         for (int i = 0; i < out_size; i++)
         {
@@ -1184,6 +1185,7 @@ void initManagFile(Aws::S3::S3Client *minio_client)
             *in_stream << 0;
         }
         in_mem_size += sizeof(int) + 1;
+        std::cout << "New Managfile size: " << in_mem_size << std::endl;
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
         while (true)
