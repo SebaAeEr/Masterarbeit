@@ -1284,7 +1284,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 madvise(bitmap_mapping, bitmap_sizes[i], MADV_SEQUENTIAL | MADV_WILLNEED);
                 std::cout << "Size: " << bitmap_sizes[i] << " Addr: " << bitmap_mapping << std::endl;
             }
-            std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector->size() << std::endl;
+            // std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector->size() << std::endl;
             unsigned long head = 0;
             if (firsts3File)
             {
@@ -1382,9 +1382,12 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                             }
                             if (freed_space_temp < pagesize * 2)
                             {
-                                locked = true;
-                                s3spillFile_head = i;
-                                s3spillStart_head = head;
+                                if (!locked)
+                                {
+                                    locked = true;
+                                    s3spillFile_head = i;
+                                    s3spillStart_head = head;
+                                }
                                 if (firsts3File)
                                 {
                                     break;
@@ -1396,9 +1399,12 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     {
                         if (hmap->size() * (*avg) + bitmap_size_sum >= memLimit * 0.7)
                         {
-                            locked = true;
-                            s3spillFile_head = i;
-                            s3spillStart_head = head;
+                            if (!locked)
+                            {
+                                locked = true;
+                                s3spillFile_head = i;
+                                s3spillStart_head = head;
+                            }
                             if (firsts3File)
                             {
                                 break;
