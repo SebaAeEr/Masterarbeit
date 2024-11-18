@@ -946,6 +946,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             char *bitmap_mapping;
             std::vector<char> bitmap_vector;
             bool spilled_bitmap = s3spillBitmaps[counter].first != -1;
+            std::cout << "Is spilled: " << spilled_bitmap << std::endl;
             if (!spilled_bitmap)
             {
                 bitmap_vector = s3spillBitmaps[counter].second;
