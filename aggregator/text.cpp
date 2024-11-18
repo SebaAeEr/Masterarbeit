@@ -1089,11 +1089,11 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             auto &spill = outcome.GetResult().GetBody();
             spill.ignore(s3spillStart_head);
             char *bitmap_mapping;
-            std::vector<char> bitmap_vector;
+            std::vector<char> *bitmap_vector;
             bool spilled_bitmap = s3spillBitmaps[i].first != -1;
             if (!spilled_bitmap)
             {
-                bitmap_vector = s3spillBitmaps[i].second;
+                bitmap_vector = &s3spillBitmaps[i].second;
             }
             else
             {
@@ -1106,17 +1106,23 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 madvise(bitmap_mapping, bitmap_sizes[i], MADV_SEQUENTIAL | MADV_WILLNEED);
                 std::cout << "Size: " << bitmap_sizes[i] << " Addr: " << bitmap_mapping << std::endl;
             }
+            std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector.size() << std::endl;
             unsigned long head = std::floor(s3spillStart_head / 8);
             unsigned long lower_head = 0;
             while (true)
             {
                 char *bit;
                 size_t index = std::floor(head / 8);
+                if (index >= bitmap_vector.size())
+                {
+                    std::cout << "index too big: " << index << std::endl;
+                    return;
+                }
                 if (head % 8 == 0)
                 {
                     if (!spilled_bitmap)
                     {
-                        bit = &bitmap_vector[index];
+                        bit = &(*bitmap_vector)[index];
                     }
                     else
                     {
@@ -1248,7 +1254,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         }
         hmap->clear();
         comb_hash_size = maxHashsize;
-
     }
 
     for (auto &it : *spills)
