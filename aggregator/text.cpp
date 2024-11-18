@@ -1106,14 +1106,14 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                 madvise(bitmap_mapping, bitmap_sizes[i], MADV_SEQUENTIAL | MADV_WILLNEED);
                 std::cout << "Size: " << bitmap_sizes[i] << " Addr: " << bitmap_mapping << std::endl;
             }
-            std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector.size() << std::endl;
+            std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector->size() << std::endl;
             unsigned long head = std::floor(s3spillStart_head / 8);
             unsigned long lower_head = 0;
             while (true)
             {
                 char *bit;
                 size_t index = std::floor(head / 8);
-                if (index >= bitmap_vector.size())
+                if (index >= bitmap_vector->size())
                 {
                     std::cout << "index too big: " << index << std::endl;
                     return;
