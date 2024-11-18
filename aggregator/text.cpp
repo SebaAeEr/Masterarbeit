@@ -694,7 +694,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 auto spill_size = outcome.GetResult().GetContentLength();
                 unsigned long numberOfEntries = spill_size / (sizeof(unsigned long) * (key_number + value_number));
-                std::cout << "bitmap entries: " << numberOfEntries << " length: " << std::ceil((float)(numberOfEntries) / 8) << std::endl;
+                // std::cout << "bitmap entries: " << numberOfEntries << " length: " << std::ceil((float)(numberOfEntries) / 8) << std::endl;
                 bitmap_size_sum += std::ceil((float)(numberOfEntries) / 8);
                 bitmap_sizes.push_back(std::ceil((float)(numberOfEntries) / 8));
                 break;
@@ -703,6 +703,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     }
     if (bitmap_size_sum > memLimit * 0.3)
     {
+        std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
         int counter = 0;
         for (auto &size : bitmap_sizes)
         {
@@ -736,6 +737,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     }
     else
     {
+        std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << std::endl;
         // not spilling bitmaps
         for (auto &size : bitmap_sizes)
         {
