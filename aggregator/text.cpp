@@ -34,6 +34,7 @@ enum Operation
 struct manaFileWorker
 {
     char id;
+    int length;
     std::vector<std::tuple<std::string, size_t, char>> files;
 };
 
@@ -162,6 +163,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         char length_buf[sizeof(int)];
         out_stream.read(length_buf, sizeof(int));
         std::memcpy(&length, &length_buf, sizeof(int));
+        worker.length = length;
         int head = 0;
         std::cout << "length: " << length << std::endl;
         while (head < length)
@@ -173,32 +175,18 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
                 filename += temp;
                 temp = out_stream.get();
             }
-            size_t length;
+            size_t file_length;
             char length_buf[sizeof(size_t)];
             out_stream.read(length_buf, sizeof(size_t));
-            std::memcpy(&length, &length_buf, sizeof(size_t));
+            std::memcpy(&file_length, &length_buf, sizeof(size_t));
             char m_worker = out_stream.get();
-            files.push_back({filename, length, m_worker});
+            files.push_back({filename, file_length, m_worker});
             head += filename.size() + 2 + sizeof(size_t);
         }
         worker.files = files;
         mana.workers.push_back(worker);
     }
     return mana;
-}
-
-void printMana(Aws::S3::S3Client *minio_client)
-{
-    manaFile mana = getMana(minio_client);
-    std::cout << "version: " << mana.version << std::endl;
-    for (auto &worker : mana.workers)
-    {
-        std::cout << "Worker id: " << worker.id << std::endl;
-        for (auto &file : worker.files)
-        {
-            std::cout << "  " << std::get<0>(file) << " size: " << std::get<1>(file) << " worked on by: " << std::get<2>(file) << std::endl;
-        }
-    }
 }
 
 int getManagVersion(Aws::S3::S3Client *minio_client)
@@ -230,6 +218,83 @@ int getManagVersion(Aws::S3::S3Client *minio_client)
             out_stream.read(char_buf, sizeof(int));
             std::memcpy(&version, &char_buf, sizeof(int));
             return version;
+        }
+    }
+}
+
+void writeMana(Aws::S3::S3Client *minio_client, manaFile mana)
+{
+    while (true)
+    {
+        Aws::S3::Model::PutObjectRequest in_request;
+        in_request.SetBucket("trinobucket");
+        in_request.SetKey(manag_file_name);
+        const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+        size_t in_mem_size = sizeof(int);
+
+        char version_buf[sizeof(int)];
+        std::memcpy(version_buf, &mana.version, sizeof(int));
+        for (int i = 0; i < sizeof(int); i++)
+        {
+            *in_stream << version_buf[i];
+        }
+
+        for (auto &worker : mana.workers)
+        {
+            in_mem_size += worker.length + sizeof(int) + 1;
+            *in_stream << worker.id;
+            char length_buf[sizeof(int)];
+            std::memcpy(length_buf, &worker.length, sizeof(int));
+            for (int i = 0; i < sizeof(int); i++)
+            {
+                *in_stream << length_buf[i];
+            }
+            for (auto &file : worker.files)
+            {
+                *in_stream << get<0>(file);
+                *in_stream << ',';
+                char file_length_buf[sizeof(size_t)];
+                std::memcpy(file_length_buf, &get<1>(file), sizeof(size_t));
+                for (int i = 0; i < sizeof(size_t); i++)
+                {
+                    *in_stream << file_length_buf[i];
+                }
+                *in_stream << get<2>(file);
+            }
+        }
+
+        in_request.SetBody(in_stream);
+        in_request.SetContentLength(in_mem_size);
+        int newVersion = getManagVersion(minio_client);
+        std::cout << "Old Version: " << mana.version << ", new Version: " << newVersion << std::endl;
+        if (newVersion == mana.version - 1)
+        {
+            while (true)
+            {
+                auto in_outcome = minio_client->PutObject(in_request);
+                if (!in_outcome.IsSuccess())
+                {
+                    std::cout << "Error: " << in_outcome.GetError().GetMessage() << std::endl;
+                }
+                else
+                {
+                    return;
+                }
+            }
+        }
+    }
+}
+
+void printMana(Aws::S3::S3Client *minio_client)
+{
+    manaFile mana = getMana(minio_client);
+    std::cout << "version: " << mana.version << std::endl;
+    for (auto &worker : mana.workers)
+    {
+        std::cout << "Worker id: " << worker.id << std::endl;
+        for (auto &file : worker.files)
+        {
+            std::cout << "  " << std::get<0>(file) << " size: " << std::get<1>(file) << " worked on by: " << std::get<2>(file) << std::endl;
         }
     }
 }
@@ -1410,40 +1475,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
 }
 
-void WriteNewManagFile(Aws::S3::S3Client *minio_client)
-{
-    Aws::S3::Model::PutObjectRequest request;
-    request.SetBucket("trinobucket");
-    request.SetKey(manag_file_name);
-    const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-
-    // Calc spill size
-    size_t spill_mem_size = 2 * sizeof(int) + 1;
-    for (int i = 0; i < sizeof(int); i++)
-    {
-        *in_stream << 0x00;
-    }
-    *in_stream << worker_id;
-    for (int i = 0; i < sizeof(int); i++)
-    {
-        *in_stream << 0x00;
-    }
-    request.SetBody(in_stream);
-    request.SetContentLength(spill_mem_size);
-    while (true)
-    {
-        auto outcome = minio_client->PutObject(request);
-        if (!outcome.IsSuccess())
-        {
-            std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
-        }
-        else
-        {
-            break;
-        }
-    }
-}
-
 void initManagFile(Aws::S3::S3Client *minio_client)
 {
     Aws::S3::Model::GetObjectRequest request;
@@ -1451,47 +1482,22 @@ void initManagFile(Aws::S3::S3Client *minio_client)
     request.SetKey(manag_file_name);
     Aws::S3::Model::GetObjectOutcome outcome;
     outcome = minio_client->GetObject(request);
+    manaFile mana;
     if (!outcome.IsSuccess())
     {
-        WriteNewManagFile(minio_client);
+
+        mana.version = 0;
     }
     else
     {
-        Aws::S3::Model::PutObjectRequest in_request;
-        in_request.SetBucket("trinobucket");
-        in_request.SetKey(manag_file_name);
-        const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-        auto &out_stream = outcome.GetResult().GetBody();
-        size_t out_size = outcome.GetResult().GetContentLength();
-        std::cout << "Managfile size: " << out_size << std::endl;
-        size_t in_mem_size = out_size;
-        for (int i = 0; i < out_size; i++)
-        {
-            char temp = out_stream.get();
-            *in_stream << temp;
-        }
-        *in_stream << worker_id;
-        for (int i = 0; i < sizeof(int); i++)
-        {
-            *in_stream << 0x00;
-        }
-        in_mem_size += sizeof(int) + 1;
-        std::cout << "New Managfile size: " << in_mem_size << std::endl;
-        in_request.SetBody(in_stream);
-        in_request.SetContentLength(in_mem_size);
-        while (true)
-        {
-            auto in_outcome = minio_client->PutObject(in_request);
-            if (!in_outcome.IsSuccess())
-            {
-                std::cout << "Error: " << in_outcome.GetError().GetMessage() << std::endl;
-            }
-            else
-            {
-                break;
-            }
-        }
+        mana = getMana(minio_client);
     }
+    manaFileWorker worker;
+    worker.id = worker_id;
+    worker.length = 0;
+    worker.files = {};
+    mana.workers.push_back(worker);
+    writeMana(minio_client, mana);
 }
 
 // aggregate inputfilename and write results into outpufilename
