@@ -1061,7 +1061,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             }
             if (munmap(&bitmap_mapping[lower_head], bitmap_sizes[counter - 1] - lower_head) == -1)
             {
-                std::cout << head - lower_head << std::endl;
+                std::cout << bitmap_sizes[counter - 1] - lower_head << " lower_head: " << lower_head << std::endl;
                 perror("Could not free memory of bitmap 2!");
             }
         }
@@ -1127,7 +1127,7 @@ void WriteNewManagFile(Aws::S3::S3Client *minio_client)
     const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
 
     // Calc spill size
-    size_t spill_mem_size = 2 *sizeof(int) + 1;
+    size_t spill_mem_size = 2 * sizeof(int) + 1;
     for (int i = 0; i < sizeof(int); i++)
     {
         *in_stream << 0;
