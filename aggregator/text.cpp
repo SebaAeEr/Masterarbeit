@@ -357,11 +357,17 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     }
     request.SetBody(in_stream);
     request.SetContentLength(spill_mem_size);
-    auto outcome = minio_client->PutObject(request);
-
-    if (!outcome.IsSuccess())
+    while (true)
     {
-        std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
+        auto outcome = minio_client->PutObject(request);
+        if (!outcome.IsSuccess())
+        {
+            std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
+        }
+        else
+        {
+            break;
+        }
     }
     hmap->clear();
 }
@@ -638,34 +644,6 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     std::cout << "Max Size: " << maxSize << "B." << std::endl;
 }
 
-std::basic_iostream<char> *readS3(std::string &name, Aws::S3::S3Client *minio_client)
-{
-    std::cout << "Start reading" << std::endl;
-    Aws::S3::Model::GetObjectRequest request;
-    request.SetBucket("trinobucket");
-    request.SetKey(name);
-
-    auto outcome = minio_client->GetObject(request);
-    auto &result = outcome.GetResult().GetBody();
-    auto length = outcome.GetResult().GetContentLength();
-
-    if (outcome.IsSuccess())
-    {
-        int number_of_longs = key_number + value_number;
-        std::cout << "Success in reading" << std::endl;
-        char *buf = new char[sizeof(unsigned long) * number_of_longs];
-        std::cout << "Trying to read bytes" << std::endl;
-        result.read(buf, sizeof(unsigned long) * number_of_longs);
-        std::cout << "Read bytes" << std::endl;
-        return &result;
-    }
-    else
-    {
-        std::cout << "GetObject error " << name << " " << outcome.GetError().GetMessage() << std::endl;
-        return &result;
-    }
-}
-
 void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
            float *avg, int pagesize, float memLimit, std::vector<unsigned long> *diff, std::string &outputfilename, std::vector<std::string> *s3spillNames, Aws::S3::S3Client *minio_client)
 {
@@ -703,28 +681,30 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         Aws::S3::Model::GetObjectRequest request;
         request.SetBucket("trinobucket");
         request.SetKey(name);
-        auto outcome = minio_client->GetObject(request);
-
-        if (!outcome.IsSuccess())
+        while (true)
         {
-            std::cout << "GetObject error " << name << " " << outcome.GetError().GetMessage() << std::endl;
-            continue;
-        }
-        else
-        {
-            auto spill_size = outcome.GetResult().GetContentLength();
-            unsigned long numberOfEntries = spill_size / (sizeof(unsigned long) * (key_number + value_number));
-            std::cout << "bitmap entries: " << numberOfEntries << " length: " << std::ceil((float)(numberOfEntries) / 8) << std::endl;
-            bitmap_size_sum += std::ceil((float)(numberOfEntries) / 8);
-            bitmap_sizes.push_back(std::ceil((float)(numberOfEntries) / 8));
+            auto outcome = minio_client->GetObject(request);
+            if (!outcome.IsSuccess())
+            {
+                std::cout << "GetObject error " << name << " " << outcome.GetError().GetMessage() << std::endl;
+            }
+            else
+            {
+                auto spill_size = outcome.GetResult().GetContentLength();
+                unsigned long numberOfEntries = spill_size / (sizeof(unsigned long) * (key_number + value_number));
+                std::cout << "bitmap entries: " << numberOfEntries << " length: " << std::ceil((float)(numberOfEntries) / 8) << std::endl;
+                bitmap_size_sum += std::ceil((float)(numberOfEntries) / 8);
+                bitmap_sizes.push_back(std::ceil((float)(numberOfEntries) / 8));
+                break;
+            }
         }
     }
-    if (true) //(bitmap_size_sum > memLimit * 0.3)
+    if (bitmap_size_sum > memLimit * 0.3)
     {
         int counter = 0;
         for (auto &size : bitmap_sizes)
         {
-            std::cout << "writing bitmap" << (*s3spillNames)[counter] << "_bitmap" << " with size: " << size << std::endl;
+            //std::cout << "writing bitmap" << (*s3spillNames)[counter] << "_bitmap" << " with size: " << size << std::endl;
             // Spilling bitmaps
             int fd = open(((*s3spillNames)[counter] + "_bitmap").c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
             lseek(fd, size - 1, SEEK_SET);
@@ -929,18 +909,24 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         int counter = 0;
         for (auto &spillname : *s3spillNames)
         {
-            std::cout << "Start reading: " << spillname << std::endl;
+           // std::cout << "Start reading: " << spillname << std::endl;
             Aws::S3::Model::GetObjectRequest request;
             request.SetBucket("trinobucket");
             request.SetKey(spillname);
-            auto outcome = minio_client->GetObject(request);
-            auto &spill = outcome.GetResult().GetBody();
-
-            if (!outcome.IsSuccess())
+            Aws::S3::Model::GetObjectOutcome outcome;
+            while (true)
             {
-                std::cout << "GetObject error " << spillname << " " << outcome.GetError().GetMessage() << std::endl;
-                continue;
+                outcome = minio_client->GetObject(request);
+                if (!outcome.IsSuccess())
+                {
+                    std::cout << "GetObject error " << spillname << " " << outcome.GetError().GetMessage() << std::endl;
+                }
+                else
+                {
+                    break;
+                }
             }
+            auto &spill = outcome.GetResult().GetBody();
             char *bitmap_mapping;
             std::vector<char> bitmap_vector;
             bool spilled_bitmap = s3spillBitmaps[counter].first != -1;
@@ -1113,10 +1099,17 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     {
         Aws::S3::Model::DeleteObjectRequest request;
         request.WithKey(it).WithBucket("trinobucket");
-        auto outcome = minio_client->DeleteObject(request);
-        if (!outcome.IsSuccess())
+        while (true)
         {
-            std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+            auto outcome = minio_client->DeleteObject(request);
+            if (!outcome.IsSuccess())
+            {
+                std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+            }
+            else
+            {
+                break;
+            }
         }
     }
 
@@ -1269,11 +1262,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     unsigned long maxHashsize = comb_hash_size;
     unsigned long freed_mem = 0;
     unsigned long overall_size = 0;
-
-    for (auto &names : s3Spill_names)
-    {
-        std::cout << names << std::endl;
-    }
 
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || !s3Spill_names.empty())
