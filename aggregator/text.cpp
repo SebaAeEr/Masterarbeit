@@ -967,9 +967,9 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             {
                 char *bit;
                 size_t index = std::floor(head / 8);
-                if (index >= bitmap_sizes[counter])
+                if (index >= bitmap_sizes[counter - 1])
                 {
-                    std::cout << "Index: " << index << "bitmap size: " << bitmap_sizes[counter] << std::endl;
+                    std::cout << "Index: " << index << "bitmap size: " << bitmap_sizes[counter - 1] << std::endl;
                     return;
                 }
 
