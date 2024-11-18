@@ -156,12 +156,14 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         manaFileWorker worker;
         char workerid = out_stream.get();
         worker.id = workerid;
+        std::cout << "adding worker: " << worder.id << std::endl;
         std::vector<std::tuple<std::string, size_t, char>> files = {};
         int length;
         char length_buf[sizeof(int)];
         out_stream.read(length_buf, sizeof(int));
         std::memcpy(&length, &length_buf, sizeof(int));
         int head = 0;
+        std::cout << "length: " << length << std::endl;
         while (head < length)
         {
             char temp = out_stream.get();
