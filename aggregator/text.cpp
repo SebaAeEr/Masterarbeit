@@ -160,7 +160,9 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, siz
                 const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
                 auto &out_stream = outcome.GetResult().GetBody();
                 size_t out_size = outcome.GetResult().GetContentLength();
+                std::cout << "Size of manga: " << out_size << std::endl;
                 size_t in_mem_size = out_size;
+                size_t mem_counter = 0;
 
                 int version;
                 char char_buf[sizeof(int)];
@@ -173,12 +175,14 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, siz
                 for (int i = 0; i < sizeof(int); i++)
                 {
                     *in_stream << char_buf[i];
+                    mem_counter++;
                 }
 
                 while (true)
                 {
                     char cur_wid = out_stream.get();
                     *in_stream << cur_wid;
+                    mem_counter++;
                     if (cur_wid == worker_id)
                     {
                         break;
@@ -190,12 +194,14 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, siz
                     for (int i = 0; i < sizeof(int); i++)
                     {
                         *in_stream << length_buf[i];
+                        mem_counter++;
                     }
                     for (int i = 0; i < length; i++)
                     {
 
                         char temp = out_stream.get();
                         *in_stream << temp;
+                        mem_counter++;
                     }
                 }
 
@@ -208,27 +214,35 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, siz
                 for (int i = 0; i < sizeof(int); i++)
                 {
                     *in_stream << cur_length_buf[i];
+                    mem_counter++;
                 }
                 *in_stream << *file_name;
+                mem_counter+= file_name->size();
                 char size_buf[sizeof(size_t)];
                 std::memcpy(size_buf, &file_size, sizeof(size_t));
                 for (int i = 0; i < sizeof(size_t); i++)
                 {
                     *in_stream << size_buf[i];
+                    mem_counter++;
                 }
                 *in_stream << 0x00;
+                mem_counter++;
 
                 while (out_stream)
                 {
                     char temp = out_stream.get();
                     *in_stream << temp;
+                    mem_counter++;
                 }
 
                 in_mem_size += file_name->size() + sizeof(size_t) + 1;
+                std::cout << "Size of new manga: " << in_mem_size << " mem_counter: " << mem_counter << std::endl;
+
 
                 in_request.SetBody(in_stream);
                 in_request.SetContentLength(in_mem_size);
                 int newVersion = getManagVersion(minio_client);
+                std::cout << "Old Version: " << version << ", new Version: " << newVersion << std::endl;
                 if (newVersion == version - 1)
                 {
                     while (true)
