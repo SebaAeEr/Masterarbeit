@@ -364,7 +364,8 @@ int addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, size
                     return 0;
                 }
                 worker.files.push_back({*file_name, file_size, fileStatus});
-                worker.length += file_name->size() + 2 + sizeof(size_t);
+                worker.length += file_name->size() + 3 + sizeof(size_t);
+                break;
             }
         }
         mana.version++;
@@ -400,6 +401,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                                                                   char beggarWorker, size_t memLimit, float *avg)
 {
     std::pair<std::pair<std::string, size_t>, char> *res;
+    char given_beggarWorker = beggarWorker;
     while (true)
     {
         std::pair<std::string, size_t> m_file = {};
@@ -444,6 +446,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                         m_file = {get<0>(file), size_temp};
                     }
                 }
+                break;
             }
         }
         for (auto &worker : mana.workers)
@@ -455,6 +458,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                     if (get<0>(file) == m_file.first)
                     {
                         get<0>(file) = worker_id;
+                        break;
                     }
                 }
             }
@@ -463,6 +467,10 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
         {
             *res = {m_file, beggarWorker};
             return res;
+        }
+        else
+        {
+            beggarWorker = given_beggarWorker;
         }
     }
     return res;
