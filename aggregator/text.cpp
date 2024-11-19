@@ -272,6 +272,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion
                 *in_stream << get<2>(file);
                 std::cout << get<2>(file);
             }
+            std::cout << std::endl;
         }
 
         in_request.SetBody(in_stream);
@@ -324,7 +325,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, siz
             if (worker.id == worker_id)
             {
                 worker.files.push_back({*file_name, file_size, 0});
-                worker.length += file_name->size() + 1 + sizeof(size_t);
+                worker.length += file_name->size() + 2 + sizeof(size_t);
             }
         }
         mana.version++;
