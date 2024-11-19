@@ -285,7 +285,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion
             auto in_outcome = minio_client->PutObject(in_request);
             if (!in_outcome.IsSuccess())
             {
-                std::cout << "Error: " << in_outcome.GetError().GetMessage() << std::endl;
+                std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
             }
             else
             {
