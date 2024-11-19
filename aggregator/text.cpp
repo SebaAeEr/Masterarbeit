@@ -338,14 +338,14 @@ std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(
     {
         if (worker.id == worker_id)
         {
-            std::cout << worker.id << std::endl;
             for (auto &file : worker.files)
             {
-                std::cout << get<0>(file) << std::endl;
+                std::cout << get<0>(file) << " " << get<1>(file) << " " << get<2>(file) << std::endl;
                 if (get<2>(file) != 255)
                 {
                     files->insert({get<0>(file), get<1>(file)});
                 }
+                std::cout << "Success" << std::endl;
             }
         }
     }
@@ -1462,6 +1462,20 @@ void initManagFile(Aws::S3::S3Client *minio_client)
     manaFile mana;
     if (worker_id == 1)
     {
+        Aws::S3::Model::DeleteObjectRequest request;
+        request.WithKey(manag_file_name).WithBucket("trinobucket");
+        while (true)
+        {
+            auto outcome = minio_client->DeleteObject(request);
+            if (!outcome.IsSuccess())
+            {
+                std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+            }
+            else
+            {
+                break;
+            }
+        }
         mana.version = 0;
     }
     else
