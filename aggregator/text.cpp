@@ -1466,7 +1466,7 @@ void initManagFile(Aws::S3::S3Client *minio_client)
     {
         mana = getMana(minio_client);
     }
-    -manaFileWorker worker;
+    manaFileWorker worker;
     worker.id = worker_id;
     worker.length = 0;
     worker.files = {};
