@@ -1460,11 +1460,10 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
 void initManagFile(Aws::S3::S3Client *minio_client)
 {
     manaFile mana;
-    if (worker_id == 1)
+    std::cout << worker_id << std::endl;
+    if (worker_id == (char)(1))
     {
-        Aws::S3::Model::DeleteObjectRequest request;
-        request.WithKey(manag_file_name).WithBucket("trinobucket");
-        auto outcome = minio_client->DeleteObject(request);
+        std::cout << "New mana" << std::endl;
 
         mana.version = 0;
     }
