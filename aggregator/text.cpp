@@ -342,10 +342,8 @@ std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(
             {
                 if (get<2>(file) != 255)
                 {
-                    std::cout << get<0>(file) << " " << get<1>(file) << " " << get<2>(file) << std::endl;
                     files->insert({get<0>(file), get<1>(file)});
                 }
-                std::cout << "Success" << std::endl;
             }
         }
     }
@@ -978,7 +976,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     int counter = 0;
     for (auto &name : *s3spillNames2)
     {
-        std::cout << "Name: " << name.first << " size: " << name.second << std::endl;
         bitmap_size_sum += std::ceil((float)(name.second) / 8);
     }
     /* for (auto &name : *s3spillNames)
@@ -1434,7 +1431,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     {
         remove((it.first + "_bitmap").c_str());
     }
-    delete s3spillNames2;
 
     for (auto &it : *s3spillNames2)
     {
@@ -1453,6 +1449,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
             }
         }
     }
+    delete s3spillNames2;
 
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
