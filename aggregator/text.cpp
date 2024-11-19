@@ -220,7 +220,7 @@ int getManagVersion(Aws::S3::S3Client *minio_client)
     }
 }
 
-void writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion)
+bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion)
 {
     while (true)
     {
@@ -263,26 +263,25 @@ void writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion
 
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
-        bool write = true;
         if (checkVersion)
         {
             int newVersion = getManagVersion(minio_client);
             std::cout << "Old Version: " << mana.version << ", new Version: " << newVersion << std::endl;
-            write = newVersion == mana.version - 1;
-        }
-        if (write)
-        {
-            while (true)
+            if (newVersion != mana.version - 1)
             {
-                auto in_outcome = minio_client->PutObject(in_request);
-                if (!in_outcome.IsSuccess())
-                {
-                    std::cout << "Error: " << in_outcome.GetError().GetMessage() << std::endl;
-                }
-                else
-                {
-                    return;
-                }
+                return 0;
+            }
+        }
+        while (true)
+        {
+            auto in_outcome = minio_client->PutObject(in_request);
+            if (!in_outcome.IsSuccess())
+            {
+                std::cout << "Error: " << in_outcome.GetError().GetMessage() << std::endl;
+            }
+            else
+            {
+                return 1;
             }
         }
     }
@@ -304,125 +303,21 @@ void printMana(Aws::S3::S3Client *minio_client)
 
 void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, size_t file_size)
 {
-    Aws::S3::Model::GetObjectRequest request;
-    request.SetBucket("trinobucket");
-    request.SetKey(manag_file_name);
-    Aws::S3::Model::GetObjectOutcome outcome;
     while (true)
     {
-        outcome = minio_client->GetObject(request);
-        if (!outcome.IsSuccess())
+        manaFile mana = getMana(minio_client);
+        for (auto &worker : mana.workers)
         {
-            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
-        }
-        else
-        {
-            while (true)
+            if (worker.id == worker_id)
             {
-                Aws::S3::Model::PutObjectRequest in_request;
-                in_request.SetBucket("trinobucket");
-                in_request.SetKey(manag_file_name);
-                const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-                auto &out_stream = outcome.GetResult().GetBody();
-                size_t out_size = outcome.GetResult().GetContentLength();
-                std::cout << "Size of manga: " << out_size << std::endl;
-                size_t in_mem_size = out_size;
-                size_t mem_counter = 0;
-
-                int version;
-                char char_buf[sizeof(int)];
-                out_stream.read(char_buf, sizeof(int));
-                std::memcpy(&version, &char_buf, sizeof(int));
-                version++;
-
-                char_buf[sizeof(int)];
-                std::memcpy(char_buf, &version, sizeof(int));
-                for (int i = 0; i < sizeof(int); i++)
-                {
-                    *in_stream << char_buf[i];
-                    mem_counter++;
-                }
-
-                while (true)
-                {
-                    char cur_wid = out_stream.get();
-                    *in_stream << cur_wid;
-                    mem_counter++;
-                    if (cur_wid == worker_id)
-                    {
-                        break;
-                    }
-                    int length;
-                    char length_buf[sizeof(int)];
-                    out_stream.read(length_buf, sizeof(int));
-                    std::memcpy(&length, &length_buf, sizeof(int));
-                    for (int i = 0; i < sizeof(int); i++)
-                    {
-                        *in_stream << length_buf[i];
-                        mem_counter++;
-                    }
-                    for (int i = 0; i < length; i++)
-                    {
-
-                        char temp = out_stream.get();
-                        *in_stream << temp;
-                        mem_counter++;
-                    }
-                }
-
-                int cur_length;
-                char cur_length_buf[sizeof(int)];
-                out_stream.read(cur_length_buf, sizeof(int));
-                std::memcpy(&cur_length, &cur_length_buf, sizeof(int));
-                cur_length += file_name->size() + sizeof(size_t) + 1;
-                std::memcpy(cur_length_buf, &cur_length, sizeof(int));
-                for (int i = 0; i < sizeof(int); i++)
-                {
-                    *in_stream << cur_length_buf[i];
-                    mem_counter++;
-                }
-                *in_stream << *file_name;
-                mem_counter += file_name->size();
-                char size_buf[sizeof(size_t)];
-                std::memcpy(size_buf, &file_size, sizeof(size_t));
-                for (int i = 0; i < sizeof(size_t); i++)
-                {
-                    *in_stream << size_buf[i];
-                    mem_counter++;
-                }
-                *in_stream << 0x00;
-                mem_counter++;
-
-                while (out_stream)
-                {
-                    char temp = out_stream.get();
-                    *in_stream << temp;
-                    mem_counter++;
-                }
-
-                in_mem_size += file_name->size() + sizeof(size_t) + 1;
-                std::cout << "Size of new manga: " << in_mem_size << " mem_counter: " << mem_counter << std::endl;
-
-                in_request.SetBody(in_stream);
-                in_request.SetContentLength(in_mem_size);
-                int newVersion = getManagVersion(minio_client);
-                std::cout << "Old Version: " << version << ", new Version: " << newVersion << std::endl;
-                if (newVersion == version - 1)
-                {
-                    while (true)
-                    {
-                        auto in_outcome = minio_client->PutObject(in_request);
-                        if (!in_outcome.IsSuccess())
-                        {
-                            std::cout << "Error: " << in_outcome.GetError().GetMessage() << std::endl;
-                        }
-                        else
-                        {
-                            return;
-                        }
-                    }
-                }
+                worker.files.push_back({*file_name, file_size, 0});
+                worker.length += file_name->size() + 1 + sizeof(size_t);
             }
+        }
+        mana.version++;
+        if (writeMana(minio_client, mana, true))
+        {
+            break;
         }
     }
 }
@@ -695,7 +590,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         }
     }
     hmap->clear();
-    // addFileToManag(minio_client, uniqueName, spill_mem_size);
+    addFileToManag(minio_client, uniqueName, spill_mem_size);
 }
 
 void execOperation(std::array<unsigned long, max_size> *hashValue, int value)
