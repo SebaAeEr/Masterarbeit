@@ -972,10 +972,11 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
 
     for (auto &it : *spills)
         comb_spill_size += it.second;
-
+    std::cout << "Test" << std::endl;
     int counter = 0;
     for (auto &name : *s3spillNames2)
     {
+        std::cout << "Name: " << name.first << " size: " << name.second << std::endl;
         bitmap_size_sum += std::ceil((float)(name.second) / 8);
     }
     /* for (auto &name : *s3spillNames)
