@@ -333,15 +333,15 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, siz
 std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(Aws::S3::S3Client *minio_client)
 {
     std::set<std::pair<std::string, size_t>, CompareBySecond> *files = {};
-    std::cout << "trying to get mana" << std::endl;
     manaFile mana = getMana(minio_client);
-    std::cout << "mana got" << std::endl;
     for (auto &worker : mana.workers)
     {
         if (worker.id == worker_id)
         {
+            std::cout << worker.id << std::endl;
             for (auto &file : worker.files)
             {
+                std::cout << get<0>(file) << std::endl;
                 if (get<2>(file) != 255)
                 {
                     files->insert({get<0>(file), get<1>(file)});
@@ -949,7 +949,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     auto start_time = std::chrono::high_resolution_clock::now();
     diff->clear();
     diff->push_back(0);
-    std::cout << "Test" << std::endl;
     std::set<std::pair<std::string, size_t>, CompareBySecond> *s3spillNames2 = getAllMergeFileNames(minio_client);
     std::cout << "Test" << std::endl;
     // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
@@ -1460,13 +1459,8 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
 
 void initManagFile(Aws::S3::S3Client *minio_client)
 {
-    Aws::S3::Model::GetObjectRequest request;
-    request.SetBucket("trinobucket");
-    request.SetKey(manag_file_name);
-    Aws::S3::Model::GetObjectOutcome outcome;
-    outcome = minio_client->GetObject(request);
     manaFile mana;
-    if (!outcome.IsSuccess())
+    if (worker_id == 1)
     {
         mana.version = 0;
     }
