@@ -249,7 +249,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion
         {
             in_mem_size += worker.length + sizeof(int) + 1;
             *in_stream << worker.id;
-            std::cout << worker.id << " " << worker.length << std::endl;
             char length_buf[sizeof(int)];
             std::memcpy(length_buf, &worker.length, sizeof(int));
             for (int i = 0; i < sizeof(int); i++)
@@ -259,20 +258,15 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion
             for (auto &file : worker.files)
             {
                 *in_stream << get<0>(file);
-                std::cout << get<0>(file);
                 *in_stream << ',';
-                std::cout << ',';
                 char file_length_buf[sizeof(size_t)];
                 std::memcpy(file_length_buf, &get<1>(file), sizeof(size_t));
-                std::cout << get<1>(file);
                 for (int i = 0; i < sizeof(size_t); i++)
                 {
                     *in_stream << file_length_buf[i];
                 }
                 *in_stream << get<2>(file);
-                std::cout << get<2>(file);
             }
-            std::cout << std::endl;
         }
 
         in_request.SetBody(in_stream);
