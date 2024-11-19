@@ -1460,8 +1460,8 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
 void initManagFile(Aws::S3::S3Client *minio_client)
 {
     manaFile mana;
-    std::cout << worker_id << " " << std::bitset<8>(worker_id) << " " << std::bitset<8>(1) << " " << std::bitset<8>((char)(1)) << " " << std::bitset<8>((unsigned char)(1)) << std::endl;
-    if (worker_id == (unsigned char)(1))
+    std::cout << worker_id << " " << std::bitset<8>(worker_id) << " " << std::bitset<8>(1) << " " << std::bitset<8>((char)(1)) << " " << std::bitset<8>((unsigned char)(1)) << " " << std::bitset<8>('1') << std::endl;
+    if (worker_id == '1')
     {
         std::cout << "New mana" << std::endl;
 
