@@ -332,7 +332,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, siz
 
 std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(Aws::S3::S3Client *minio_client)
 {
-    std::set<std::pair<std::string, size_t>, CompareBySecond> *files = {};
+    std::set<std::pair<std::string, size_t>, CompareBySecond> *files;
     manaFile mana = getMana(minio_client);
     for (auto &worker : mana.workers)
     {
@@ -340,9 +340,9 @@ std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(
         {
             for (auto &file : worker.files)
             {
-                std::cout << get<0>(file) << " " << get<1>(file) << " " << get<2>(file) << std::endl;
                 if (get<2>(file) != 255)
                 {
+                    std::cout << get<0>(file) << " " << get<1>(file) << " " << get<2>(file) << std::endl;
                     files->insert({get<0>(file), get<1>(file)});
                 }
                 std::cout << "Success" << std::endl;
