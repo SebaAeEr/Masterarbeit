@@ -948,7 +948,6 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     diff->clear();
     diff->push_back(0);
     std::set<std::pair<std::string, size_t>, CompareBySecond> *s3spillNames2 = getAllMergeFileNames(minio_client);
-    std::cout << "Test" << std::endl;
     // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
     unsigned long input_head_base = 0;
     unsigned long output_head = 0;
@@ -1210,8 +1209,8 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
         freed_mem = 0;
         // std::cout << "write: " << emHashmap[{221877}][0] << std::endl;
         bool firsts3File = false;
-        std::cout << "s3spillFile: " << s3spillFile_head << std::endl;
-        std::cout << "s3spillStart: " << s3spillStart_head << std::endl;
+        // std::cout << "s3spillFile: " << s3spillFile_head << std::endl;
+        // std::cout << "s3spillStart: " << s3spillStart_head << std::endl;
 
         int number_of_longs = key_number + value_number;
         int i = s3spillFile_head;
@@ -1235,7 +1234,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     break;
                 }
             }
-            std::cout << "Reading spill: " << (*set_it).first << std::endl;
+            // std::cout << "Reading spill: " << (*set_it).first << std::endl;
             auto &spill = outcome.GetResult().GetBody();
             char *bitmap_mapping;
             std::vector<char> *bitmap_vector;
@@ -1253,14 +1252,14 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     exit(EXIT_FAILURE);
                 }
                 madvise(bitmap_mapping, std::ceil((float)((*set_it).second) / 8), MADV_SEQUENTIAL | MADV_WILLNEED);
-                std::cout << "Size: " << std::ceil((float)((*set_it).second) / 8) << " Addr: " << bitmap_mapping << std::endl;
+                // std::cout << "Size: " << std::ceil((float)((*set_it).second) / 8) << " Addr: " << bitmap_mapping << std::endl;
             }
             // std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector->size() << std::endl;
             unsigned long head = 0;
             if (firsts3File)
             {
                 head = s3spillStart_head;
-                std::cout << "First File" << std::endl;
+                // std::cout << "First File" << std::endl;
                 spill.ignore(s3spillStart_head * sizeof(unsigned long) * number_of_longs);
             }
             unsigned long lower_head = 0;
@@ -1401,10 +1400,11 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
                     perror("Could not free memory of bitmap 2!");
                 }
             }
+            i++;
         }
 
-        std::cout << "Writing hmap with size: " << hmap->size() << std::endl;
-        // write merged hashmap to the result and update head to point at the end of the file
+        // std::cout << "Writing hmap with size: " << hmap->size() << std::endl;
+        //  write merged hashmap to the result and update head to point at the end of the file
         output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
         if (hmap->size() > maxHashsize)
         {
@@ -1458,18 +1458,15 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
 void initManagFile(Aws::S3::S3Client *minio_client)
 {
     manaFile mana;
-    std::cout << worker_id << " " << std::bitset<8>(worker_id) << " " << std::bitset<8>(1) << " " << std::bitset<8>((char)(1)) << " " << std::bitset<8>((unsigned char)(1)) << " " << std::bitset<8>('1') << std::endl;
     if (worker_id == '1')
     {
-        std::cout << "New mana" << std::endl;
-
         mana.version = 0;
     }
     else
     {
         mana = getMana(minio_client);
     }
-    manaFileWorker worker;
+    -manaFileWorker worker;
     worker.id = worker_id;
     worker.length = 0;
     worker.files = {};
@@ -1495,7 +1492,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     Aws::Auth::AWSCredentials cred("erasmus", "tumThesis123");
     Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
     initManagFile(&minio_client);
-    printMana(&minio_client);
 
     // open inputfile and get size from stats
     int fd = open(inputfilename.c_str(), O_RDONLY);
