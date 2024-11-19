@@ -1464,18 +1464,8 @@ void initManagFile(Aws::S3::S3Client *minio_client)
     {
         Aws::S3::Model::DeleteObjectRequest request;
         request.WithKey(manag_file_name).WithBucket("trinobucket");
-        while (true)
-        {
-            auto outcome = minio_client->DeleteObject(request);
-            if (!outcome.IsSuccess())
-            {
-                std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
-            }
-            else
-            {
-                break;
-            }
-        }
+        auto outcome = minio_client->DeleteObject(request);
+
         mana.version = 0;
     }
     else
