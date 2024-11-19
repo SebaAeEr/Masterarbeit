@@ -332,8 +332,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, siz
 
 std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(Aws::S3::S3Client *minio_client)
 {
-    std::set<std::pair<std::string, size_t>, CompareBySecond> *files;
-    files->insert({"asdf", 123});
+    std::set<std::pair<std::string, size_t>, CompareBySecond> *files = new std::set<std::pair<std::string, size_t>, CompareBySecond>();
     manaFile mana = getMana(minio_client);
     for (auto &worker : mana.workers)
     {
@@ -1435,6 +1434,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     {
         remove((it.first + "_bitmap").c_str());
     }
+    delete s3spillNames2;
 
     for (auto &it : *s3spillNames2)
     {
