@@ -333,7 +333,9 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, siz
 std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(Aws::S3::S3Client *minio_client)
 {
     std::set<std::pair<std::string, size_t>, CompareBySecond> *files = {};
+    std::cout << "trying to get mana" << std::endl;
     manaFile mana = getMana(minio_client);
+    std::cout << "mana got" << std::endl;
     for (auto &worker : mana.workers)
     {
         if (worker.id == worker_id)
@@ -947,8 +949,9 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
     auto start_time = std::chrono::high_resolution_clock::now();
     diff->clear();
     diff->push_back(0);
+    std::cout << "Test" << std::endl;
     std::set<std::pair<std::string, size_t>, CompareBySecond> *s3spillNames2 = getAllMergeFileNames(minio_client);
-
+    std::cout << "Test" << std::endl;
     // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
     unsigned long input_head_base = 0;
     unsigned long output_head = 0;
@@ -972,7 +975,7 @@ void merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
 
     for (auto &it : *spills)
         comb_spill_size += it.second;
-    std::cout << "Test" << std::endl;
+
     int counter = 0;
     for (auto &name : *s3spillNames2)
     {
