@@ -279,9 +279,10 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion
         if (checkVersion)
         {
             int newVersion = getManagVersion(minio_client);
-            std::cout << "Old Version: " << mana.version << ", new Version: " << newVersion << std::endl;
+
             if (newVersion != mana.version - 1)
             {
+                std::cout << "Old Version: " << mana.version << ", new Version: " << newVersion << std::endl;
                 return 0;
             }
         }
@@ -426,6 +427,10 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                     }
                 }
             }
+        }
+        if (beggarWorker == 0)
+        {
+            return 0;
         }
         for (auto &worker : mana.workers)
         {
@@ -1865,6 +1870,7 @@ void helpMerge(size_t memLimit)
     std::string uName = "merge";
     while (true)
     {
+        printMana(&minio_client);
         std::pair<std::pair<std::string, size_t>, char> *file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg);
         if (file->second == 0)
         {
