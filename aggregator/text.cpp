@@ -1871,10 +1871,11 @@ void helpMerge(size_t memLimit)
     char beggarWorker = 0;
     unsigned long phyMemBase = getPhyValue() * 1024;
     std::string uName = "merge";
+    std::pair<std::pair<std::string, size_t>, char> *file;
     while (true)
     {
         printMana(&minio_client);
-        std::pair<std::pair<std::string, size_t>, char> *file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg);
+        file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg);
         std::cout << "Got beggarWorker: " << file->second << std::endl;
         if (file->second == 0)
         {
