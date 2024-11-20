@@ -413,6 +413,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
             size_t max = 0;
             for (auto &worker : mana.workers)
             {
+                std::cout << "woker locked: " << worker.locked << std::endl;
                 if (!worker.locked)
                 {
                     size_t size_temp = 0;
@@ -430,6 +431,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
         }
         if (beggarWorker == 0)
         {
+            std::cout << "No beggar found" << std::endl;
             return 0;
         }
         for (auto &worker : mana.workers)
@@ -1872,6 +1874,7 @@ void helpMerge(size_t memLimit)
     {
         printMana(&minio_client);
         std::pair<std::pair<std::string, size_t>, char> *file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg);
+        std::cout << "Got beggarWorker: " << file->second << std::cout;
         if (file->second == 0)
         {
             if (beggarWorker != 0)
