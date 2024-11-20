@@ -1715,7 +1715,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         finished++;
         sizePrinter.join();
     }
-    Aws::ShutdownAPI(options);
     return 0;
 }
 
@@ -2031,7 +2030,6 @@ int main(int argc, char **argv)
     }
     helpMerge(memLimit);
     std::cout << "Finished" << std::endl;
-    Aws::SDKOptions options;
     Aws::ShutdownAPI(options);
     return 1;
     // return aggregate("test.txt", "output_test.json");
