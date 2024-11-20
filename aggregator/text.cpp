@@ -463,7 +463,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                 {
                     if (get<0>(file) == m_file.first)
                     {
-                        get<0>(file) = worker_id;
+                        get<2>(file) = worker_id;
                         break;
                     }
                 }
