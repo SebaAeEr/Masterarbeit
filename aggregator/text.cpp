@@ -762,6 +762,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     while (true)
     {
         auto outcome = minio_client->PutObject(request);
+        std::cout << "Trying spilling" << std::endl;
         if (!outcome.IsSuccess())
         {
             std::cout << "Error: " << outcome.GetError().GetMessage() << " Spill size: " << spill_mem_size << std::endl;
