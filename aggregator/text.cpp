@@ -402,6 +402,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                                                                   char beggarWorker, size_t memLimit, float *avg)
 {
     std::pair<std::pair<std::string, size_t>, char> *res;
+    *res = {{"", 0}, 0};
     char given_beggarWorker = beggarWorker;
     while (true)
     {
@@ -432,7 +433,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
         if (beggarWorker == 0)
         {
             std::cout << "No beggar found" << std::endl;
-            return 0;
+            return res;
         }
         for (auto &worker : mana.workers)
         {
