@@ -379,6 +379,7 @@ std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(
 {
     std::set<std::pair<std::string, size_t>, CompareBySecond> *files = new std::set<std::pair<std::string, size_t>, CompareBySecond>();
     manaFile mana = getMana(minio_client);
+    printMana(minio_client);
     for (auto &worker : mana.workers)
     {
         if (worker.id == worker_id)
@@ -387,6 +388,7 @@ std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(
             {
                 if (get<2>(file) != 255)
                 {
+                    std::cout << std::bitset<8>(get<2>(file)) << std::endl;
                     files->insert({get<0>(file), get<1>(file)});
                 }
             }
