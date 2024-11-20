@@ -1876,23 +1876,22 @@ void helpMerge(size_t memLimit)
     {
         printMana(&minio_client);
         file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg);
-        std::cout << "Got beggarWorker: " << file->second << std::endl;
         if (file->second == 0)
         {
-            std::cout << "Got beggarWorker: " << file->second << std::endl;
             if (beggarWorker != 0)
             {
                 beggarWorker = 0;
                 file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg);
-                std::cout << "Got beggarWorker: " << file->second << std::endl;
                 if (file->second == 0)
                 {
-                    std::cout << "breaking" << std::endl;
+                    delete file;
                     break;
                 }
             }
             else
             {
+                delete file;
+                std::cout << "breaking" << std::endl;
                 break;
             }
         }
@@ -1945,7 +1944,6 @@ void helpMerge(size_t memLimit)
             }
         }
     }
-    delete file;
 }
 
 int main(int argc, char **argv)
@@ -2030,6 +2028,7 @@ int main(int argc, char **argv)
         }
     }
     helpMerge(memLimit);
+    std::cout << "Finished" << std::endl;
     return 1;
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
