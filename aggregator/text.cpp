@@ -303,6 +303,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion
 void initManagFile(Aws::S3::S3Client *minio_client)
 {
     manaFile mana;
+    std::cout << std::bitset<8>(worker_id) << " " << std::bitset<8>('1') << std::endl;
     if (worker_id == '1')
     {
         mana.version = 0;
