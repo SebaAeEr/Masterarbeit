@@ -401,7 +401,7 @@ std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(
 std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
                                                                   char beggarWorker, size_t memLimit, float *avg)
 {
-    std::pair<std::pair<std::string, size_t>, char> *res;
+    std::pair<std::pair<std::string, size_t>, char> *res = new std::pair<std::pair<std::string, size_t>, char>();
     *res = {{"", 0}, 0};
     char given_beggarWorker = beggarWorker;
     while (true)
@@ -1904,6 +1904,7 @@ void helpMerge(size_t memLimit)
         avg *= 1.2;
         std::string old_uName = uName;
         uName += "_" + file->first.first;
+        delete file;
         if (!spillToMinio(&hmap, &uName, memLimit - phy, &minio_client, beggarWorker, 255))
         {
             continue;
