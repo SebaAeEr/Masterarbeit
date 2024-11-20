@@ -1890,6 +1890,7 @@ void helpMerge(size_t memLimit)
         size_t phy = getPhyValue() * 1024;
         avg = (phy - phyMemBase) / (float)(hmap.size());
         avg *= 1.2;
+        std::string old_uName = uName;
         uName += "_" + file->first.first;
         if (!spillToMinio(&hmap, &uName, memLimit - phy, &minio_client, beggarWorker, 255))
         {
@@ -1911,6 +1912,10 @@ void helpMerge(size_t memLimit)
                         if (std::get<0>(w_file) == uName)
                         {
                             std::get<2>(w_file) = 0;
+                        }
+                        if (std::get<0>(w_file) == old_uName)
+                        {
+                            std::get<2>(w_file) = 255;
                         }
                     }
                     break;
