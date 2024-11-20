@@ -434,7 +434,6 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
             }
             if (beggarWorker == 0)
             {
-                std::cout << "No beggar found" << std::endl;
                 return res;
             }
             for (auto &worker : mana.workers)
@@ -462,10 +461,17 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                     break;
                 }
             }
-            if (given_beggarWorker == 0 && m_file.second == 0)
+            if (m_file.second == 0)
             {
-                worker_blacklist.push_back(beggarWorker);
-                beggarWorker = 0;
+                if (given_beggarWorker == 0)
+                {
+                    worker_blacklist.push_back(beggarWorker);
+                    beggarWorker = 0;
+                }
+                else
+                {
+                    return res;
+                }
             }
             else
             {
@@ -717,7 +723,6 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     }
 
     // Cleanup: clear hashmap and free rest of mapping space
-    hmap->clear();
     munmap(&spill[writehead], (spill_mem_size + start_diff) - writehead * sizeof(unsigned long));
     freed_mem += (spill_mem_size + start_diff) - writehead * sizeof(unsigned long);
     spill_file->second += spill_mem_size;
@@ -768,7 +773,6 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             break;
         }
     }
-    hmap->clear();
     return addFileToManag(minio_client, uniqueName, spill_mem_size, write_to_id, fileStatus);
 }
 
@@ -973,7 +977,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 spill_number++;
 
                 // std::cout << "Spilling ended" << std::endl;
-                //  hmap->clear();
+                hmap->clear();
             }
         }
         // After line is read clear it and set reading to false till the next {
