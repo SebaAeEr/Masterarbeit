@@ -463,6 +463,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                 }
             }
         }
+        mana.version++;
         if (writeMana(minio_client, mana, true))
         {
             *res = {m_file, beggarWorker};
@@ -1684,6 +1685,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     break;
                 }
             }
+            mana.version++;
             if (writeMana(&minio_client, mana, true))
             {
                 break;
@@ -1921,6 +1923,7 @@ void helpMerge(size_t memLimit)
                     break;
                 }
             }
+            mana.version++;
             if (writeMana(&minio_client, mana, true))
             {
                 break;
