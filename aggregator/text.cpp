@@ -396,68 +396,82 @@ std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(
 }
 
 std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
-                                                                  char beggarWorker, size_t memLimit, float *avg)
+                                                                  char beggarWorker, size_t memLimit, float *avg, std::vector<std::string> *blacklist)
 {
     std::pair<std::pair<std::string, size_t>, char> *res = new std::pair<std::pair<std::string, size_t>, char>();
     *res = {{"", 0}, 0};
     char given_beggarWorker = beggarWorker;
+    std::vector<char> worker_blacklist = {};
     while (true)
     {
-        std::pair<std::string, size_t> m_file = {};
+        std::pair<std::string, size_t> m_file = {"", 0};
         manaFile mana = getMana(minio_client);
-        // If no beggarWorker is yet selected choose the worker with the largest spill
-        if (beggarWorker == 0)
+        while (true)
         {
-            size_t max = 0;
-            for (auto &worker : mana.workers)
+            // If no beggarWorker is yet selected choose the worker with the largest spill
+            if (beggarWorker == 0)
             {
-                if (!worker.locked)
+                size_t max = 0;
+                for (auto &worker : mana.workers)
                 {
-                    size_t size_temp = 0;
-                    for (auto &file : worker.files)
+                    if (!worker.locked && !std::count(worker_blacklist.begin(), worker_blacklist.end(), worker.id))
                     {
-                        if (get<2>(file) == 0)
+                        size_t size_temp = 0;
+                        for (auto &file : worker.files)
                         {
-                            size_temp += get<1>(file);
+                            if (get<2>(file) == 0 && !std::count(blacklist->begin(), blacklist->end(), get<0>(file)))
+                            {
+                                size_temp += get<1>(file);
+                            }
                         }
-                    }
-                    if (max < size_temp)
-                    {
-                        max = size_temp;
-                        beggarWorker = worker.id;
+                        if (max < size_temp)
+                        {
+                            max = size_temp;
+                            beggarWorker = worker.id;
+                        }
                     }
                 }
             }
-        }
-        if (beggarWorker == 0)
-        {
-            return res;
-        }
-        for (auto &worker : mana.workers)
-        {
-            if (worker.id == beggarWorker)
+            if (beggarWorker == 0)
             {
-                if (worker.locked)
+                return res;
+            }
+            for (auto &worker : mana.workers)
+            {
+                if (worker.id == beggarWorker)
                 {
-                    beggarWorker = 0;
-                    break;
-                }
-                size_t max = 0;
-                for (auto &file : worker.files)
-                {
-                    if (get<2>(file) == 0)
+                    if (worker.locked)
                     {
-                        size_t size_temp = get<1>(file);
-                        if (size_temp > max && (size_temp / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) < memLimit)
+                        beggarWorker = 0;
+                        break;
+                    }
+                    size_t max = 0;
+                    for (auto &file : worker.files)
+                    {
+                        if (get<2>(file) == 0 && !std::count(blacklist->begin(), blacklist->end(), get<0>(file)))
                         {
-                            max = size_temp;
-                            m_file = {get<0>(file), size_temp};
+                            size_t size_temp = get<1>(file);
+                            if (size_temp > max && (size_temp / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) < memLimit)
+                            {
+                                max = size_temp;
+                                m_file = {get<0>(file), size_temp};
+                            }
                         }
                     }
+                    break;
                 }
+            }
+            if (given_beggarWorker == 0 && m_file.second == 0)
+            {
+                worker_blacklist.push_back(beggarWorker);
+                beggarWorker = 0;
+            }
+            else
+            {
                 break;
             }
         }
+
         for (auto &worker : mana.workers)
         {
             if (worker.id == beggarWorker)
@@ -1859,6 +1873,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     std::vector<std::pair<int, size_t>> spills = std::vector<std::pair<int, size_t>>();
     std::atomic<unsigned long> comb_hash_size = 0;
     std::vector<unsigned long> diff;
+    std::vector<std::string> blacklist;
 
     float avg = 1;
     int finished = 0;
@@ -1873,13 +1888,16 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     while (true)
     {
         printMana(&minio_client);
-        file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg);
+        file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist);
         if (file->second == 0)
         {
             if (beggarWorker != 0)
             {
+                // Try to change beggar worker
+                hmap.clear();
+                blacklist.clear();
                 beggarWorker = 0;
-                file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg);
+                file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist);
                 if (file->second == 0)
                 {
                     delete file;
@@ -1906,11 +1924,11 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         avg *= 1.2;
         std::string old_uName = uName;
         uName += "_" + file->first.first;
-        delete file;
         if (!spillToMinio(&hmap, &uName, memLimit - phy, &minio_client, beggarWorker, 255))
         {
             continue;
         }
+        blacklist.push_back(uName);
         std::cout << "spilled" << std::endl;
         while (true)
         {
@@ -1943,6 +1961,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
                 break;
             }
         }
+        delete file;
     }
     finished = 2;
     sizePrinter.join();
