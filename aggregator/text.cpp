@@ -1892,7 +1892,9 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         std::set<std::pair<std::string, size_t>, CompareBySecond> spills;
         spills.insert(file->first);
         // merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true);
+        std::cout << "found beggar: " << beggarWorker << std::endl;
         merge(&hmap, &empty, comb_hash_size, &avg, memLimit, &diff, empty_string, &spills, &minio_client, &extra_mem, false);
+        std::cout << "merged hmap size: " << hmap.size() << std::endl;
         size_t phy = getPhyValue() * 1024;
         avg = (phy - phyMemBase) / (float)(hmap.size());
         avg *= 1.2;
@@ -1903,6 +1905,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         {
             continue;
         }
+        std::cout << "spilled" << std::endl;
         while (true)
         {
             manaFile mana = getMana(&minio_client);
