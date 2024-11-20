@@ -1535,23 +1535,23 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
     if (writeRes)
     {
-        // for (auto &it : *s3spillNames2)
-        // {
-        //     Aws::S3::Model::DeleteObjectRequest request;
-        //     request.WithKey(it.first).WithBucket("trinobucket");
-        //     while (true)
-        //     {
-        //         auto outcome = minio_client->DeleteObject(request);
-        //         if (!outcome.IsSuccess())
-        //         {
-        //             std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
-        //         }
-        //         else
-        //         {
-        //             break;
-        //         }
-        //     }
-        // }
+        for (auto &it : *s3spillNames2)
+        {
+            Aws::S3::Model::DeleteObjectRequest request;
+            request.WithKey(it.first).WithBucket("trinobucket");
+            while (true)
+            {
+                auto outcome = minio_client->DeleteObject(request);
+                if (!outcome.IsSuccess())
+                {
+                    std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
     }
 
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
@@ -1704,7 +1704,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             {
                 if (worker.id == worker_id)
                 {
-                    // worker.locked = true;
+                    worker.locked = true;
                     break;
                 }
             }
