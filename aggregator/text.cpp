@@ -343,7 +343,7 @@ void printMana(Aws::S3::S3Client *minio_client)
         std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
         for (auto &file : worker.files)
         {
-            std::cout << "  " << std::get<0>(file) << " size: " << std::get<1>(file) << " worked on by: " << std::get<2>(file) << std::endl;
+            std::cout << "  " << std::get<0>(file) << " size: " << std::get<1>(file) << " worked on by: " << std::bitset<8>(std::get<2>(file)) << std::endl;
         }
     }
 }
@@ -416,7 +416,10 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                     size_t size_temp = 0;
                     for (auto &file : worker.files)
                     {
-                        size_temp += get<1>(file);
+                        if (get<2>(file) == 0)
+                        {
+                            size_temp += get<1>(file);
+                        }
                     }
                     if (max < size_temp)
                     {
@@ -442,11 +445,14 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                 size_t max = 0;
                 for (auto &file : worker.files)
                 {
-                    size_t size_temp = get<1>(file);
-                    if (size_temp > max && (size_temp / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) < memLimit)
+                    if (get<2>(file) == 0)
                     {
-                        max = size_temp;
-                        m_file = {get<0>(file), size_temp};
+                        size_t size_temp = get<1>(file);
+                        if (size_temp > max && (size_temp / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) < memLimit)
+                        {
+                            max = size_temp;
+                            m_file = {get<0>(file), size_temp};
+                        }
                     }
                 }
                 break;
