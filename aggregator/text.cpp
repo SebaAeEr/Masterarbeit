@@ -364,7 +364,7 @@ int addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, size
                     return 0;
                 }
                 worker.files.push_back({*file_name, file_size, fileStatus});
-                worker.length += file_name->size() + 3 + sizeof(size_t);
+                worker.length += file_name->size() + 2 + sizeof(size_t);
                 break;
             }
         }
