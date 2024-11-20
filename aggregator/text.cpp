@@ -323,9 +323,6 @@ void initManagFile(Aws::S3::S3Client *minio_client)
 
 Aws::S3::S3Client init()
 {
-    Aws::SDKOptions options;
-    // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
-    Aws::InitAPI(options);
     Aws::Client::ClientConfiguration c_config;
     c_config.verifySSL = false;
     c_config.region = "us-west-1";
@@ -1718,7 +1715,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         finished++;
         sizePrinter.join();
     }
-    // Aws::ShutdownAPI(options);
+    Aws::ShutdownAPI(options);
     return 0;
 }
 
@@ -1944,10 +1941,15 @@ void helpMerge(size_t memLimit)
             }
         }
     }
+    finished = 2;
+    sizePrinter.join();
 }
 
 int main(int argc, char **argv)
 {
+    Aws::SDKOptions options;
+    // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
+    Aws::InitAPI(options);
     std::string co_output = argv[1];
     std::string tpc_sup = argv[2];
     std::string memLimit_string = argv[3];
@@ -2029,6 +2031,7 @@ int main(int argc, char **argv)
     }
     helpMerge(memLimit);
     std::cout << "Finished" << std::endl;
+    Aws::ShutdownAPI(options);
     return 1;
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
