@@ -1953,6 +1953,7 @@ int main(int argc, char **argv)
     std::string threadNumber_string = argv[4];
     std::string tpc_query_string = argv[5];
     worker_id = *argv[6];
+    std::cout << worker_id << std::endl;
 
     int threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
