@@ -418,7 +418,6 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                     {
                         size_temp += get<1>(file);
                     }
-                    std::cout << "Size: " << size_temp << std::endl;
                     if (max < size_temp)
                     {
                         max = size_temp;
@@ -431,7 +430,6 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
         {
             return res;
         }
-        std::cout << "Beggar found: " << beggarWorker << std::endl;
         for (auto &worker : mana.workers)
         {
             if (worker.id == beggarWorker)
@@ -454,7 +452,6 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                 break;
             }
         }
-        std::cout << "File found: " << m_file.first << std::endl;
         for (auto &worker : mana.workers)
         {
             if (worker.id == beggarWorker)
@@ -472,7 +469,6 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
         mana.version++;
         if (writeMana(minio_client, mana, true))
         {
-            printMana(minio_client);
             *res = {m_file, beggarWorker};
             return res;
         }
@@ -1534,7 +1530,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         //     }
         // }
     }
-    delete s3spillNames2;
 
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
@@ -1699,6 +1694,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         }
         auto files = getAllMergeFileNames(&minio_client);
         merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, &extra_mem, true);
+        delete files;
     }
     else
     {
