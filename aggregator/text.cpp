@@ -1941,6 +1941,7 @@ void helpMerge(size_t memLimit)
             }
         }
     }
+    delete file;
 }
 
 int main(int argc, char **argv)
@@ -2025,6 +2026,7 @@ int main(int argc, char **argv)
         }
     }
     helpMerge(memLimit);
+    return 1;
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
     return test("tpc_13_output_sup_tiny_c.json", "tpc_13_sup_tiny.json");S */
