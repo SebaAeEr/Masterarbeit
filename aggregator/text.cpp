@@ -418,6 +418,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                     {
                         size_temp += get<1>(file);
                     }
+                    std::cout << "Size: " << size_temp << std::endl;
                     if (max < size_temp)
                     {
                         max = size_temp;
@@ -430,6 +431,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
         {
             return res;
         }
+        std::cout << "Beggar found: " << beggarWorker << std::endl;
         for (auto &worker : mana.workers)
         {
             if (worker.id == beggarWorker)
@@ -452,6 +454,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                 break;
             }
         }
+        std::cout << "File found: " << m_file.first << std::endl;
         for (auto &worker : mana.workers)
         {
             if (worker.id == beggarWorker)
@@ -469,6 +472,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
         mana.version++;
         if (writeMana(minio_client, mana, true))
         {
+            printMana(minio_client);
             *res = {m_file, beggarWorker};
             return res;
         }
