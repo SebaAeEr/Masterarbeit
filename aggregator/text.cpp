@@ -411,7 +411,6 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
             size_t max = 0;
             for (auto &worker : mana.workers)
             {
-                std::cout << "woker locked: " << worker.locked << std::endl;
                 if (!worker.locked)
                 {
                     size_t size_temp = 0;
@@ -429,7 +428,6 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
         }
         if (beggarWorker == 0)
         {
-            std::cout << "No beggar found" << std::endl;
             return res;
         }
         for (auto &worker : mana.workers)
@@ -1513,23 +1511,23 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
     if (writeRes)
     {
-        for (auto &it : *s3spillNames2)
-        {
-            Aws::S3::Model::DeleteObjectRequest request;
-            request.WithKey(it.first).WithBucket("trinobucket");
-            while (true)
-            {
-                auto outcome = minio_client->DeleteObject(request);
-                if (!outcome.IsSuccess())
-                {
-                    std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
+        // for (auto &it : *s3spillNames2)
+        // {
+        //     Aws::S3::Model::DeleteObjectRequest request;
+        //     request.WithKey(it.first).WithBucket("trinobucket");
+        //     while (true)
+        //     {
+        //         auto outcome = minio_client->DeleteObject(request);
+        //         if (!outcome.IsSuccess())
+        //         {
+        //             std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+        //         }
+        //         else
+        //         {
+        //             break;
+        //         }
+        //     }
+        // }
     }
     delete s3spillNames2;
 
@@ -1887,7 +1885,6 @@ void helpMerge(size_t memLimit)
             else
             {
                 delete file;
-                std::cout << "breaking" << std::endl;
                 break;
             }
         }
@@ -2029,7 +2026,6 @@ int main(int argc, char **argv)
         }
     }
     helpMerge(memLimit);
-    std::cout << "Finished" << std::endl;
     Aws::ShutdownAPI(options);
     return 1;
     // return aggregate("test.txt", "output_test.json");
