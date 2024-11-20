@@ -1999,11 +1999,18 @@ int main(int argc, char **argv)
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    aggregate(co_output, agg_output, memLimit, threadNumber, true);
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()) / 1000000;
-    std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
-    return test(agg_output, tpc_sup);
+    if (co_output != "-")
+    {
+        aggregate(co_output, agg_output, memLimit, threadNumber, true);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()) / 1000000;
+        std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
+        if (tpc_sup != "-")
+        {
+            test(agg_output, tpc_sup);
+        }
+    }
+    helpMerge(memLimit);
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
     return test("tpc_13_output_sup_tiny_c.json", "tpc_13_sup_tiny.json");S */
