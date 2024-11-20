@@ -947,6 +947,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 {
                     std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
                 }
+                printMana(&minio_client);
                 (*s3Spill_names).push_back(uName);
                 spill_number++;
 
@@ -1537,12 +1538,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 }
 
 // aggregate inputfilename and write results into outpufilename
-int aggregate(std::string inputfilename, std::string outputfilename, size_t memLimit, int threadNumber, bool measure_mem)
+int aggregate(std::string inputfilename, std::string outputfilename, size_t memLimit, int threadNumber, bool measure_mem, Aws::S3::S3Client minio_client)
 {
 
     // Inits and decls
-
-    Aws::S3::S3Client minio_client = init();
 
     // open inputfile and get size from stats
     int fd = open(inputfilename.c_str(), O_RDONLY);
@@ -1848,9 +1847,8 @@ int test(std::string file1name, std::string file2name)
     return 1;
 }
 
-void helpMerge(size_t memLimit)
+void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
 {
-    Aws::S3::S3Client minio_client = init();
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
     std::vector<std::pair<int, size_t>> spills = std::vector<std::pair<int, size_t>>();
     std::atomic<unsigned long> comb_hash_size = 0;
@@ -1946,6 +1944,8 @@ int main(int argc, char **argv)
     Aws::SDKOptions options;
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
+    Aws::S3::S3Client minio_client = init();
+
     std::string co_output = argv[1];
     std::string tpc_sup = argv[2];
     std::string memLimit_string = argv[3];
@@ -2016,7 +2016,7 @@ int main(int argc, char **argv)
 
     if (co_output != "-")
     {
-        aggregate(co_output, agg_output, memLimit, threadNumber, true);
+        aggregate(co_output, agg_output, memLimit, threadNumber, true, minio_client);
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()) / 1000000;
         std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
@@ -2025,7 +2025,7 @@ int main(int argc, char **argv)
             test(agg_output, tpc_sup);
         }
     }
-    helpMerge(memLimit);
+    helpMerge(memLimit, minio_client);
     Aws::ShutdownAPI(options);
     return 1;
     // return aggregate("test.txt", "output_test.json");
