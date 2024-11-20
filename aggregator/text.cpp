@@ -36,7 +36,7 @@ struct manaFileWorker
     char id;
     int length;
     bool locked;
-    std::vector<std::tuple<std::string, size_t, char>> files;
+    std::vector<std::tuple<std::string, size_t, unsigned char>> files;
 };
 
 struct manaFile
@@ -154,7 +154,6 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
     auto &out_stream = outcome.GetResult().GetBody();
     size_t out_size = outcome.GetResult().GetContentLength();
-    size_t in_mem_size = out_size;
 
     int version;
     char char_buf[sizeof(int)];
@@ -168,7 +167,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         char workerid = out_stream.get();
         worker.id = workerid;
         worker.locked = out_stream.get() == 1;
-        std::vector<std::tuple<std::string, size_t, char>> files = {};
+        std::vector<std::tuple<std::string, size_t, unsigned char>> files = {};
         int length;
         char length_buf[sizeof(int)];
         out_stream.read(length_buf, sizeof(int));
@@ -220,7 +219,6 @@ int getManagVersion(Aws::S3::S3Client *minio_client)
             const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
             auto &out_stream = outcome.GetResult().GetBody();
             size_t out_size = outcome.GetResult().GetContentLength();
-            size_t in_mem_size = out_size;
 
             int version;
             char char_buf[sizeof(int)];
@@ -348,7 +346,7 @@ void printMana(Aws::S3::S3Client *minio_client)
     }
 }
 
-int addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, size_t file_size, char write_to_id, char fileStatus)
+int addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, size_t file_size, char write_to_id, unsigned char fileStatus)
 {
     while (true)
     {
@@ -732,7 +730,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 }
 
 int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string *uniqueName,
-                 size_t free_mem, Aws::S3::S3Client *minio_client, char write_to_id, char fileStatus)
+                 size_t free_mem, Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus)
 {
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket("trinobucket");
@@ -1045,11 +1043,11 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
                 *avg = (size - phyMemBase - reservedMem - (*extra_mem)) / (float)(comb_hash_size.load());
                 *avg *= 1.2;
                 // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
-                sleep(0.5);
+                usleep(500);
             }
         }
         old_size = size;
-        sleep(0.1);
+        sleep(100);
     }
     std::cout << "Max Size: " << maxSize << "B." << std::endl;
 }
@@ -1695,7 +1693,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     diff.clear();
     diff.push_back(0);
     comb_hash_size = emHashmap.size();
-    unsigned long maxHashsize = comb_hash_size;
     unsigned long freed_mem = 0;
     unsigned long overall_size = 0;
 
