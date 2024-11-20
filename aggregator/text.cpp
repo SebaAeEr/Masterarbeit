@@ -434,6 +434,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
             }
             if (beggarWorker == 0)
             {
+                std::cout << "No beggar found" << std::endl;
                 return res;
             }
             for (auto &worker : mana.workers)
@@ -1893,11 +1894,11 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         {
             if (beggarWorker != 0)
             {
-                // Try to change beggar worker
+                // Try to change beggar worker or load in new files
                 hmap.clear();
-                blacklist.clear();
                 beggarWorker = 0;
                 file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist);
+                std::cout << "beggar: " << file->second << std::endl;
                 if (file->second == 0)
                 {
                     delete file;
