@@ -972,7 +972,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 {
                     std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
                 }
-                printMana(minio_client);
+                // printMana(minio_client);
                 (*s3Spill_names).push_back(uName);
                 spill_number++;
 
@@ -1891,7 +1891,6 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     std::pair<std::pair<std::string, size_t>, char> *file;
     while (true)
     {
-        printMana(&minio_client);
         file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist);
         if (file->second == 0)
         {
@@ -2057,12 +2056,6 @@ int main(int argc, char **argv)
         }
     }
     helpMerge(memLimit, minio_client);
-
-    auto all = getAllMergeFileNames(&minio_client);
-    for (auto &it : *all)
-    {
-        std::cout << it.first << std::endl;
-    }
     Aws::ShutdownAPI(options);
     return 1;
     // return aggregate("test.txt", "output_test.json");
