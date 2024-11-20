@@ -1043,11 +1043,11 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
                 *avg = (size - phyMemBase - reservedMem - (*extra_mem)) / (float)(comb_hash_size.load());
                 *avg *= 1.2;
                 // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
-                usleep(500);
+                usleep(0);
             }
         }
         old_size = size;
-        sleep(100);
+        usleep(0);
     }
     std::cout << "Max Size: " << maxSize << "B." << std::endl;
 }
