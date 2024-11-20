@@ -1874,7 +1874,7 @@ void helpMerge(size_t memLimit)
     {
         printMana(&minio_client);
         std::pair<std::pair<std::string, size_t>, char> *file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg);
-        std::cout << "Got beggarWorker: " << file->second << std::cout;
+        std::cout << "Got beggarWorker: " << file->second << std::endl;
         if (file->second == 0)
         {
             if (beggarWorker != 0)
