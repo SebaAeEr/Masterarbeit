@@ -947,7 +947,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 {
                     std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
                 }
-                printMana(&minio_client);
+                printMana(minio_client);
                 (*s3Spill_names).push_back(uName);
                 spill_number++;
 
