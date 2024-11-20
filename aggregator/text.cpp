@@ -304,7 +304,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion
 void initManagFile(Aws::S3::S3Client *minio_client)
 {
     manaFile mana;
-    std::cout << std::bitset<8>(worker_id) << " " << std::bitset<8>('1') << std::endl;
     if (worker_id == '1')
     {
         mana.version = 0;
@@ -1945,7 +1944,6 @@ int main(int argc, char **argv)
     Aws::SDKOptions options;
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
-    Aws::S3::S3Client minio_client = init();
 
     std::string co_output = argv[1];
     std::string tpc_sup = argv[2];
@@ -1953,7 +1951,6 @@ int main(int argc, char **argv)
     std::string threadNumber_string = argv[4];
     std::string tpc_query_string = argv[5];
     worker_id = *argv[6];
-    std::cout << worker_id << std::endl;
 
     int threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
@@ -2013,7 +2010,7 @@ int main(int argc, char **argv)
     }
     }
     std::string agg_output = "output_" + tpc_sup;
-
+    Aws::S3::S3Client minio_client = init();
     auto start = std::chrono::high_resolution_clock::now();
 
     if (co_output != "-")
