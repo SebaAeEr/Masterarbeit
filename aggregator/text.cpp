@@ -1879,12 +1879,15 @@ void helpMerge(size_t memLimit)
         std::cout << "Got beggarWorker: " << file->second << std::endl;
         if (file->second == 0)
         {
+            std::cout << "Got beggarWorker: " << file->second << std::endl;
             if (beggarWorker != 0)
             {
                 beggarWorker = 0;
                 file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg);
+                std::cout << "Got beggarWorker: " << file->second << std::endl;
                 if (file->second == 0)
                 {
+                    std::cout << "breaking" << std::endl;
                     break;
                 }
             }
