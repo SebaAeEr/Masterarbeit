@@ -966,7 +966,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 // comb_hash_size -= hmap->size();
                 // spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
                 // std::cout << "Spilling" << std::endl;
-                std::string uName = worker_id + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
+                std::string uName = std::to_string(worker_id) + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
                 std::cout << "spilling to: " << uName << std::endl;
                 if (!spillToMinio(hmap, &uName, pagesize * 20, minio_client, worker_id, 0))
                 {
