@@ -768,6 +768,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         }
         else
         {
+            std::cout << "Spilled to: " << uniqueName << std::endl;
             break;
         }
     }
@@ -966,6 +967,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 // spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
                 // std::cout << "Spilling" << std::endl;
                 std::string uName = worker_id + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
+                std::cout << "spilling to: " << uName << std::endl;
                 if (!spillToMinio(hmap, &uName, pagesize * 20, minio_client, worker_id, 0))
                 {
                     std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
