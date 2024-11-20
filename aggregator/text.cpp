@@ -1683,7 +1683,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             {
                 if (worker.id == worker_id)
                 {
-                    worker.locked = true;
+                    // worker.locked = true;
                     break;
                 }
             }
