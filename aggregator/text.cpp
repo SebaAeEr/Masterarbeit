@@ -760,8 +760,9 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     request.SetContentLength(spill_mem_size);
     while (true)
     {
-        auto outcome = minio_client->PutObject(request);
         std::cout << "Trying spilling" << std::endl;
+        auto outcome = minio_client->PutObject(request);
+
         if (!outcome.IsSuccess())
         {
             std::cout << "Error: " << outcome.GetError().GetMessage() << " Spill size: " << spill_mem_size << std::endl;
@@ -967,7 +968,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 // comb_hash_size -= hmap->size();
                 // spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
                 // std::cout << "Spilling" << std::endl;
-                std::string uName = std::to_string(worker_id) + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
+                std::string uName = worker_id + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
                 std::cout << "spilling to: " << uName << std::endl;
                 if (!spillToMinio(hmap, &uName, pagesize * 20, &minio_client, worker_id, 0))
                 {
