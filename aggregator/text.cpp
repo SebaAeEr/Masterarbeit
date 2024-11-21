@@ -327,7 +327,8 @@ Aws::S3::S3Client init()
     c_config.region = "us-west-1";
     c_config.scheme = Aws::Http::Scheme::HTTP;
     c_config.endpointOverride = "131.159.16.208:9000";
-    c_config.requestTimeoutMs = 1000;
+    c_config.requestTimeoutMs = 10000;
+    c_config.connectTimeoutMs = 1000;
     Aws::Auth::AWSCredentials cred("erasmus", "tumThesis123");
     Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
     return minio_client;
@@ -739,6 +740,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     if (file == "")
     {
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+        std::cout << "start" << std::endl;
         // Write int to Mapping
         for (auto &it : *hmap)
         {
@@ -760,7 +762,9 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                     *in_stream << byteArray[k];
             }
         }
+        std::cout << "finsihed stream" << std::endl;
         request.SetBody(in_stream);
+        std::cout << "finished setting body" << std::endl;
     }
     else
     {
