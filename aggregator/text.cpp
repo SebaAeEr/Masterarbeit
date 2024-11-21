@@ -740,7 +740,6 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     if (file == "")
     {
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-        std::cout << "start" << std::endl;
         // Write int to Mapping
         for (auto &it : *hmap)
         {
@@ -762,17 +761,13 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                     *in_stream << byteArray[k];
             }
         }
-        std::cout << "finsihed stream" << std::endl;
         request.SetBody(in_stream);
-        std::cout << "finished setting body" << std::endl;
     }
     else
     {
         struct stat stats;
         stat(file.c_str(), &stats);
-        std::cout << "Calc size: " << spill_mem_size << " file size: " << stats.st_size << std::endl;
         spill_mem_size = stats.st_size;
-        std::cout << "Input file size: " << stats.st_size << std::endl;
         const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::FStream>("", file.c_str(), std::ios_base::in | std::ios_base::binary);
         // const std::shared_ptr<Aws::IOStream> inputData = temp;
         request.SetBody(inputData);
@@ -781,7 +776,6 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     while (true)
     {
-        std::cout << "Trying spilling" << std::endl;
         auto outcome = minio_client->PutObject(request);
 
         if (!outcome.IsSuccess())
@@ -790,7 +784,6 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         }
         else
         {
-            std::cout << "Spilled to: " << uniqueName << std::endl;
             break;
         }
     }
@@ -1003,8 +996,8 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                     std::string uName = worker_id + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
                     std::cout << "spilling to: " << uName << std::endl;
                     std::string empty = "";
-                    spillToMinio(hmap, std::ref(empty), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0);
-                    // minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0);
+                    // spillToMinio(hmap, std::ref(empty), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0);
+                    minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0);
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
                         std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
