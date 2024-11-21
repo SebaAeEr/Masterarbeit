@@ -726,37 +726,46 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
 
-int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string *uniqueName,
+int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string *file, std::string *uniqueName,
                  size_t free_mem, Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus)
 {
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket("trinobucket");
     request.SetKey(uniqueName->c_str());
-    const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-
     // Calc spill size
     size_t spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
-
-    // Write int to Mapping
-    for (auto &it : *hmap)
+    if (*file == "")
     {
-        char byteArray[sizeof(long int)];
-        for (int i = 0; i < key_number; i++)
+        const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+        // Write int to Mapping
+        for (auto &it : *hmap)
         {
-            std::memcpy(byteArray, &it.first[i], sizeof(long int));
-            for (int k = 0; k < sizeof(unsigned long); k++)
+
+            char byteArray[sizeof(long int)];
+            for (int i = 0; i < key_number; i++)
             {
-                *in_stream << byteArray[k];
+                std::cout << it.first[i];
+                std::memcpy(byteArray, &it.first[i], sizeof(long int));
+                for (int k = 0; k < sizeof(unsigned long); k++)
+                {
+                    *in_stream << byteArray[k];
+                }
+            }
+            for (int i = 0; i < value_number; i++)
+            {
+                std::memcpy(byteArray, &it.second[i], sizeof(long int));
+                for (int k = 0; k < sizeof(unsigned long); k++)
+                    *in_stream << byteArray[k];
             }
         }
-        for (int i = 0; i < value_number; i++)
-        {
-            std::memcpy(byteArray, &it.second[i], sizeof(long int));
-            for (int k = 0; k < sizeof(unsigned long); k++)
-                *in_stream << byteArray[k];
-        }
+        request.SetBody(in_stream);
     }
-    request.SetBody(in_stream);
+    else
+    {
+        const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::FStream>("", file->c_str(), std::ios_base::in | std::ios_base::binary);
+        request.SetBody(inputData);
+    }
+
     request.SetContentLength(spill_mem_size);
     while (true)
     {
@@ -842,7 +851,7 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
 }
 
 void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit, int phyMembase,
-                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff, std::vector<std::string> *s3Spill_names)
+                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff)
 {
     Aws::S3::S3Client minio_client = init();
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
@@ -875,6 +884,10 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
     int spill_number = 0;
     std::string okey, lineObjectValue;
     std::pair<int, size_t> spill_file(-1, 0);
+    std::pair<int, size_t> temp_spill_file(-1, 0);
+    std::string temp_spill_file_name = std::to_string(id) + "temp_spill";
+    temp_spill_file.first = open(temp_spill_file_name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+    std::thread minioSpiller;
 
     // loop through entire mapping
     for (unsigned long i = 0; i < size + offset; i++)
@@ -965,17 +978,28 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                     // std::cout << "new MaxSize: " << maxHmapSize << std::endl;
                 }
                 spill_size += hmap->size() * (key_number + value_number) * sizeof(unsigned long);
-                // comb_hash_size -= hmap->size();
-                // spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
-                // std::cout << "Spilling" << std::endl;
-                std::string uName = worker_id + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
-                std::cout << "spilling to: " << uName << std::endl;
-                if (!spillToMinio(hmap, &uName, pagesize * 20, &minio_client, worker_id, 0))
+                if (true)
                 {
-                    std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
+                    // comb_hash_size -= hmap->size();
+                    temp_spill_file.second = 0;
+                    spillToFile(hmap, &temp_spill_file, id, pagesize, pagesize * 20);
+                    if (spill_number > 0)
+                    {
+                        minioSpiller.join();
+                    }
+                    // std::cout << "Spilling" << std::endl;
+                    std::string uName = worker_id + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
+                    std::cout << "spilling to: " << uName << std::endl;
+                    minioSpiller = std::thread(spillToMinio, hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0);
+                    /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
+                    {
+                        std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
+                    } */
                 }
-                // printMana(minio_client);
-                (*s3Spill_names).push_back(uName);
+                else
+                {
+                    spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
+                }
                 spill_number++;
 
                 // std::cout << "Spilling ended" << std::endl;
@@ -1930,7 +1954,8 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         avg *= 1.2;
         std::string old_uName = uName;
         uName += "_" + file->first.first;
-        if (!spillToMinio(&hmap, &uName, memLimit - phy, &minio_client, beggarWorker, 255))
+        std::string file = "";
+        if (!spillToMinio(&hmap, &file, &uName, memLimit - phy, &minio_client, beggarWorker, 255))
         {
             continue;
         }
