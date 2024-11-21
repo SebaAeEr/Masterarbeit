@@ -760,8 +760,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             }
         }
         request.SetBody(in_stream);
-        request.SetContentLength(spill_mem_size);
-    }
+        }
     else
     {
         struct stat stats;
@@ -773,6 +772,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         // const std::shared_ptr<Aws::IOStream> inputData = temp;
         request.SetBody(inputData);
     }
+    request.SetContentLength(spill_mem_size);
 
     while (true)
     {
