@@ -760,6 +760,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             }
         }
         request.SetBody(in_stream);
+        request.SetContentLength(spill_mem_size);
     }
     else
     {
@@ -773,7 +774,6 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         request.SetBody(inputData);
     }
 
-    request.SetContentLength(spill_mem_size);
     while (true)
     {
         std::cout << "Trying spilling" << std::endl;
