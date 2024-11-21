@@ -1649,11 +1649,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, i, &emHashmaps[i], fd, t1_size * i, t1_size, true, (memLimit - phyMemBase) / threadNumber, phyMemBase / threadNumber,
-                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i], &s3Spill_names));
+                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i]));
     }
     emHashmaps[threadNumber - 1] = {};
     threads.push_back(std::thread(fillHashmap, threadNumber - 1, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, (memLimit - phyMemBase) / threadNumber, phyMemBase / threadNumber,
-                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1], &s3Spill_names));
+                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1]));
 
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
     /* avg = (getPhyValue() - phyMemBase) / (float)(comb_hash_size.load());
