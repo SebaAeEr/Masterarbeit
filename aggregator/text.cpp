@@ -760,7 +760,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             }
         }
         request.SetBody(in_stream);
-        }
+    }
     else
     {
         struct stat stats;
@@ -2008,7 +2008,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
 int main(int argc, char **argv)
 {
     Aws::SDKOptions options;
-    // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
+    options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
     std::string co_output = argv[1];
