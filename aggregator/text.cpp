@@ -328,7 +328,6 @@ Aws::S3::S3Client init()
     c_config.endpointOverride = "131.159.16.208:9000";
     Aws::Auth::AWSCredentials cred("erasmus", "tumThesis123");
     Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
-    initManagFile(&minio_client);
     return minio_client;
 }
 
@@ -842,8 +841,9 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
 }
 
 void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit, int phyMembase,
-                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff, Aws::S3::S3Client *minio_client, std::vector<std::string> *s3Spill_names)
+                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff, std::vector<std::string> *s3Spill_names)
 {
+    Aws::S3::S3Client minio_client = init();
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
     auto start_time = std::chrono::high_resolution_clock::now();
     int offset = 0;
@@ -969,7 +969,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 // std::cout << "Spilling" << std::endl;
                 std::string uName = std::to_string(worker_id) + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
                 std::cout << "spilling to: " << uName << std::endl;
-                if (!spillToMinio(hmap, &uName, pagesize * 20, minio_client, worker_id, 0))
+                if (!spillToMinio(hmap, &uName, pagesize * 20, &minio_client, worker_id, 0))
                 {
                     std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
                 }
@@ -1622,11 +1622,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, i, &emHashmaps[i], fd, t1_size * i, t1_size, true, (memLimit - phyMemBase) / threadNumber, phyMemBase / threadNumber,
-                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i], &minio_client, &s3Spill_names));
+                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i], &s3Spill_names));
     }
     emHashmaps[threadNumber - 1] = {};
     threads.push_back(std::thread(fillHashmap, threadNumber - 1, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, (memLimit - phyMemBase) / threadNumber, phyMemBase / threadNumber,
-                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1], &minio_client, &s3Spill_names));
+                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1], &s3Spill_names));
 
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
     /* avg = (getPhyValue() - phyMemBase) / (float)(comb_hash_size.load());
@@ -1717,6 +1717,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 break;
             }
         }
+        printMana(&minio_client);
         auto files = getAllMergeFileNames(&minio_client);
         merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, &extra_mem, true);
         delete files;
@@ -2043,6 +2044,7 @@ int main(int argc, char **argv)
     }
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
+    initManagFile(&minio_client);
     auto start = std::chrono::high_resolution_clock::now();
 
     if (co_output != "-")
