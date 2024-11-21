@@ -763,6 +763,11 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     }
     else
     {
+        struct stat stats;
+        stat(file.c_str(), &stats);
+        std::cout << "Calc size: " << spill_mem_size << " file size: " << stats.st_size << std::endl;
+        spill_mem_size = stats.st_size;
+        std::cout << "Input file size: " << stats.st_size << std::endl;
         const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::FStream>("", file.c_str(), std::ios_base::in | std::ios_base::binary);
         // const std::shared_ptr<Aws::IOStream> inputData = temp;
         request.SetBody(inputData);
