@@ -1957,7 +1957,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         std::string old_uName = uName;
         uName += "_" + file->first.first;
         std::string empty_file = "";
-        if (!spillToMinio(&hmap, &empty_file, &uName, memLimit - phy, &minio_client, beggarWorker, 255))
+        if (!spillToMinio(&hmap, empty_file, uName, memLimit - phy, minio_client, beggarWorker, 255))
         {
             continue;
         }
