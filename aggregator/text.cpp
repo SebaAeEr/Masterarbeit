@@ -1038,6 +1038,10 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
     {
         std::cout << "Not able to print time: " << err.what() << std::endl;
     }
+    if (spill_number > 0)
+    {
+        minioSpiller.join();
+    }
 }
 
 void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::vector<unsigned long> diff, float *avg, unsigned long *extra_mem)
