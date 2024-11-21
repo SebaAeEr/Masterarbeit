@@ -992,7 +992,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                     // std::cout << "Spilling" << std::endl;
                     std::string uName = worker_id + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
                     std::cout << "spilling to: " << uName << std::endl;
-                    minioSpiller = std::thread(spillToMinio, hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0s);
+                    minioSpiller = std::thread(spillToMinio, hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0);
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
                         std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
@@ -1956,8 +1956,8 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         avg *= 1.2;
         std::string old_uName = uName;
         uName += "_" + file->first.first;
-        std::string file = "";
-        if (!spillToMinio(&hmap, &file, &uName, memLimit - phy, &minio_client, beggarWorker, 255))
+        std::string empty_file = "";
+        if (!spillToMinio(&hmap, &empty_file, &uName, memLimit - phy, &minio_client, beggarWorker, 255))
         {
             continue;
         }
