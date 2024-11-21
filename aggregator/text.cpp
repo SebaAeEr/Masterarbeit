@@ -763,7 +763,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     else
     {
         const std::shared_ptr<Aws::FStream> temp = Aws::MakeShared<Aws::FStream>("", file->c_str(), std::ios_base::in | std::ios_base::binary);
-        const std::shared_ptr<Aws::IOStream> inputData = (std::shared_ptr < Aws::IOStream >>)(temp);
+        const std::shared_ptr<Aws::IOStream> inputData = (std::shared_ptr<Aws::IOStream>)(temp);
         request.SetBody(inputData);
     }
 
