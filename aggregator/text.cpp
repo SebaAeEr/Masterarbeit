@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -762,8 +763,8 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     }
     else
     {
-        const std::shared_ptr<Aws::FStream> temp = Aws::MakeShared<Aws::FStream>("", file->c_str(), std::ios_base::in | std::ios_base::binary);
-        const std::shared_ptr<Aws::IOStream> inputData = temp;
+        const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::FStream>("", file->c_str(), std::ios_base::in | std::ios_base::binary);
+        // const std::shared_ptr<Aws::IOStream> inputData = temp;
         request.SetBody(inputData);
     }
 
@@ -983,7 +984,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 {
                     // comb_hash_size -= hmap->size();
                     temp_spill_file.second = 0;
-                    spillToFile(hmap, &temp_spill_file, id, pagesize, pagesize * 20);
+                    spillToFile(hmap, &temp_spill_file, id, pagesize * 20);
                     if (spill_number > 0)
                     {
                         minioSpiller.join();
@@ -991,7 +992,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                     // std::cout << "Spilling" << std::endl;
                     std::string uName = worker_id + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
                     std::cout << "spilling to: " << uName << std::endl;
-                    minioSpiller = std::thread(spillToMinio, hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0);
+                    minioSpiller = std::thread(spillToMinio, hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0s);
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
                         std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
@@ -999,7 +1000,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                 }
                 else
                 {
-                    spillToFile(hmap, &spill_file, id, pagesize, pagesize * 20);
+                    spillToFile(hmap, &spill_file, id, pagesize * 20);
                 }
                 spill_number++;
 
