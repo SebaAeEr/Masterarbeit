@@ -350,7 +350,7 @@ int addFileToManag(Aws::S3::S3Client &minio_client, std::string &file_name, size
 {
     while (true)
     {
-        manaFile mana = getMana(minio_client);
+        manaFile mana = getMana(&minio_client);
         for (auto &worker : mana.workers)
         {
             if (worker.id == write_to_id)
@@ -359,13 +359,13 @@ int addFileToManag(Aws::S3::S3Client &minio_client, std::string &file_name, size
                 {
                     return 0;
                 }
-                worker.files.push_back({*file_name, file_size, fileStatus});
-                worker.length += file_name->size() + 2 + sizeof(size_t);
+                worker.files.push_back({file_name, file_size, fileStatus});
+                worker.length += file_name.size() + 2 + sizeof(size_t);
                 break;
             }
         }
         mana.version++;
-        if (writeMana(minio_client, mana, true))
+        if (writeMana(&minio_client, mana, true))
         {
             break;
         }
