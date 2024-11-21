@@ -346,7 +346,7 @@ void printMana(Aws::S3::S3Client *minio_client)
     }
 }
 
-int addFileToManag(Aws::S3::S3Client *minio_client, std::string *file_name, size_t file_size, char write_to_id, unsigned char fileStatus)
+int addFileToManag(Aws::S3::S3Client &minio_client, std::string &file_name, size_t file_size, char write_to_id, unsigned char fileStatus)
 {
     while (true)
     {
@@ -727,12 +727,12 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
 
-int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string *file, std::string *uniqueName,
-                 size_t free_mem, Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus)
+int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string &file, std::string &uniqueName,
+                 size_t free_mem, Aws::S3::S3Client &minio_client, char write_to_id, unsigned char fileStatus)
 {
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket("trinobucket");
-    request.SetKey(uniqueName->c_str());
+    request.SetKey(uniqueName.c_str());
     // Calc spill size
     size_t spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
     if (*file == "")
@@ -763,7 +763,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     }
     else
     {
-        const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::FStream>("", file->c_str(), std::ios_base::in | std::ios_base::binary);
+        const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::FStream>("", file.c_str(), std::ios_base::in | std::ios_base::binary);
         // const std::shared_ptr<Aws::IOStream> inputData = temp;
         request.SetBody(inputData);
     }
@@ -772,7 +772,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     while (true)
     {
         std::cout << "Trying spilling" << std::endl;
-        auto outcome = minio_client->PutObject(request);
+        auto outcome = minio_client.PutObject(request);
 
         if (!outcome.IsSuccess())
         {
@@ -992,7 +992,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                     // std::cout << "Spilling" << std::endl;
                     std::string uName = worker_id + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
                     std::cout << "spilling to: " << uName << std::endl;
-                    minioSpiller = std::thread(spillToMinio, hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0);
+                    minioSpiller = std::thread(spillToMinio, hmap, temp_spill_file_name, uName, pagesize * 20, minio_client, worker_id, 0);
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
                         std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
