@@ -346,11 +346,11 @@ void printMana(Aws::S3::S3Client *minio_client)
     }
 }
 
-int addFileToManag(Aws::S3::S3Client &minio_client, std::string &file_name, size_t file_size, char write_to_id, unsigned char fileStatus)
+int addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, size_t file_size, char write_to_id, unsigned char fileStatus)
 {
     while (true)
     {
-        manaFile mana = getMana(&minio_client);
+        manaFile mana = getMana(minio_client);
         for (auto &worker : mana.workers)
         {
             if (worker.id == write_to_id)
@@ -365,7 +365,7 @@ int addFileToManag(Aws::S3::S3Client &minio_client, std::string &file_name, size
             }
         }
         mana.version++;
-        if (writeMana(&minio_client, mana, true))
+        if (writeMana(minio_client, mana, true))
         {
             break;
         }
@@ -728,7 +728,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 }
 
 int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string &file, std::string &uniqueName,
-                 size_t free_mem, Aws::S3::S3Client &minio_client, char write_to_id, unsigned char fileStatus)
+                 size_t free_mem, Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus)
 {
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket("trinobucket");
@@ -772,7 +772,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     while (true)
     {
         std::cout << "Trying spilling" << std::endl;
-        auto outcome = minio_client.PutObject(request);
+        auto outcome = minio_client->PutObject(request);
 
         if (!outcome.IsSuccess())
         {
@@ -992,7 +992,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                     // std::cout << "Spilling" << std::endl;
                     std::string uName = worker_id + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
                     std::cout << "spilling to: " << uName << std::endl;
-                    minioSpiller = std::thread(spillToMinio, std::ref(hmap), std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, std::ref(minio_client), worker_id, 0);
+                    minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0);
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
                         std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
@@ -1957,7 +1957,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         std::string old_uName = uName;
         uName += "_" + file->first.first;
         std::string empty_file = "";
-        if (!spillToMinio(&hmap, empty_file, uName, memLimit - phy, minio_client, beggarWorker, 255))
+        if (!spillToMinio(&hmap, empty_file, uName, memLimit - phy, &minio_client, beggarWorker, 255))
         {
             continue;
         }
