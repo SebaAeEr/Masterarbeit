@@ -746,7 +746,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             char byteArray[sizeof(long int)];
             for (int i = 0; i < key_number; i++)
             {
-                std::cout << it.first[i];
+                // std::cout << it.first[i];
                 std::memcpy(byteArray, &it.first[i], sizeof(long int));
                 for (int k = 0; k < sizeof(unsigned long); k++)
                 {
