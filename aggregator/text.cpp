@@ -147,6 +147,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     while (true)
     {
         outcome = minio_client->GetObject(request);
+        //outcome.GetResult().SetObjectLockMode();
         if (!outcome.IsSuccess())
         {
             std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
@@ -317,7 +318,9 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             mana = getMana(minio_client);
             if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
             {
-                std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << std::endl;
+                std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock));
+                mana = getMana(minio_client);
+                std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
                 return mana;
             }
         }
