@@ -313,7 +313,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             mana.worker_lock = worker_id;
             mana.thread_lock = thread_id;
             writeMana(minio_client, mana, false);
-            usleep(10);
+            usleep(100);
             mana = getMana(minio_client);
             if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
             {
