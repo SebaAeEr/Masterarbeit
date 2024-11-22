@@ -293,8 +293,11 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
         while (true)
         {
             auto in_outcome = minio_client->PutObject(in_request);
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
-            std::cout << "Write duration2: " << duration << std::endl;
+            if (timeLimit != -1)
+            {
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+                std::cout << "Write duration2: " << duration << std::endl;
+            }
             if (!in_outcome.IsSuccess())
             {
                 std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
@@ -321,7 +324,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             mana.worker_lock = worker_id;
             mana.thread_lock = thread_id;
             writeMana(minio_client, mana, false, 0);
-            usleep(1000);
+            usleep(100000);
             mana = getMana(minio_client);
             if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
             {
