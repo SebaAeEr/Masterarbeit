@@ -1776,10 +1776,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         writeMana(&minio_client, mana, true);
         printMana(&minio_client);
         auto files = getAllMergeFileNames(&minio_client);
-        /* for (auto &name : *files)
+        for (auto &name : *files)
         {
-            std::cout << std::get<0>(name) << std::endl;
-        } */
+            std::cout << std::get<0>(name) << ", ";
+        }
+        std::cout << std::endl;
         merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, &extra_mem, true);
         delete files;
     }
