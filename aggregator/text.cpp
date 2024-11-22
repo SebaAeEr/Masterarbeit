@@ -81,7 +81,13 @@ struct CompareBySecond
 {
     bool operator()(const std::pair<std::string, size_t> &a, const std::pair<std::string, size_t> &b) const
     {
-        return a.second > b.second;
+        // First compare by second value (descending order)
+        if (a.second != b.second)
+        {
+            return a.second > b.second;
+        }
+        // If second values are equal, compare by first value (lexicographically ascending)
+        return a.first < b.first;
     }
 };
 
@@ -387,7 +393,6 @@ std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(
             {
                 if (get<2>(file) != 255)
                 {
-                    std::cout << get<0>(file) << std::endl;
                     files->insert({get<0>(file), get<1>(file)});
                 }
             }
