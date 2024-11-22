@@ -285,11 +285,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
 
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
-        if (timeLimit != -1)
-        {
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
-            std::cout << "Write duration1: " << duration << std::endl;
-        }
         while (true)
         {
             auto in_outcome = minio_client->PutObject(in_request);
