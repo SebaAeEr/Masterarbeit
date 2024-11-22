@@ -235,16 +235,16 @@ int getManagVersion(Aws::S3::S3Client *minio_client)
     }
 }
 
-bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
+bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, int timeLimit = -1)
 {
     while (true)
     {
+        auto start_time = std::chrono::high_resolution_clock::now();
         Aws::S3::Model::PutObjectRequest in_request;
         in_request.SetBucket("trinobucket");
         in_request.SetKey(manag_file_name);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         size_t in_mem_size = 2;
-
         if (freeLock)
         {
             char free = 0;
@@ -285,6 +285,11 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
 
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
+        if (timeLimit != -1)
+        {
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+            std::cout << "Write duration: " << duration << std::endl;
+        }
         while (true)
         {
             auto in_outcome = minio_client->PutObject(in_request);
