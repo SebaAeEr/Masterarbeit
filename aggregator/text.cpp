@@ -316,22 +316,6 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
     }
 }
 
-void initManagFile(Aws::S3::S3Client *minio_client)
-{
-    manaFile mana;
-    if (worker_id != '1')
-    {
-        mana = getLockedMana(minio_client, 0);
-    }
-    manaFileWorker worker;
-    worker.id = worker_id;
-    worker.length = 0;
-    worker.files = {};
-    worker.locked = false;
-    mana.workers.push_back(worker);
-    writeMana(minio_client, mana, true);
-}
-
 Aws::S3::S3Client init()
 {
     Aws::Client::ClientConfiguration c_config;
@@ -349,7 +333,8 @@ Aws::S3::S3Client init()
 void printMana(Aws::S3::S3Client *minio_client)
 {
     manaFile mana = getMana(minio_client);
-    std::cout << "worker lock: " << mana.worker_lock << ", thread lock: " << std::bitset<8>(mana.thread_lock) << std::endl;
+    std::string status = mana.worker_lock == 0 ? status = "free" : std::to_string(mana.worker_lock);
+    std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(mana.thread_lock) << std::endl;
     for (auto &worker : mana.workers)
     {
         std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
@@ -360,8 +345,26 @@ void printMana(Aws::S3::S3Client *minio_client)
     }
 }
 
+void initManagFile(Aws::S3::S3Client *minio_client)
+{
+    manaFile mana;
+    if (worker_id != '1')
+    {
+        mana = getLockedMana(minio_client, 0);
+    }
+    manaFileWorker worker;
+    worker.id = worker_id;
+    worker.length = 0;
+    worker.files = {};
+    worker.locked = false;
+    mana.workers.push_back(worker);
+    writeMana(minio_client, mana, true);
+    printMana(minio_client);
+}
+
 int addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, size_t file_size, char write_to_id, unsigned char fileStatus, char thread_id)
 {
+    std::cout << "Trying to get locked Mana thread: " << std::to_string((int)(thread_id)) << std::endl;
     manaFile mana = getLockedMana(minio_client, thread_id);
     for (auto &worker : mana.workers)
     {
@@ -987,9 +990,9 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                         minioSpiller.join();
                     }
                     // std::cout << "Spilling" << std::endl;
-                    std::string uName = std::to_string(worker_id);
+                    std::string uName = std::to_string((int)(worker_id));
                     uName += "_";
-                    uName += id;
+                    uName += std::to_string((int)(id));
                     uName += "_" + std::to_string(spill_number);
                     std::cout << "spilling to: " << uName << std::endl;
                     std::string empty = "";
