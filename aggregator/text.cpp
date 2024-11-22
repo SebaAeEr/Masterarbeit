@@ -1742,6 +1742,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             break;
         }
     }
+    std::cout << s3spilled << std::endl;
 
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
