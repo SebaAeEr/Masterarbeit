@@ -243,10 +243,12 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
         in_request.SetKey(manag_file_name);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         size_t in_mem_size = 2;
+
         if (freeLock)
         {
-            *in_stream << 0;
-            *in_stream << 0;
+            char free = 0;
+            *in_stream << free;
+            *in_stream << free;
         }
         else
         {
