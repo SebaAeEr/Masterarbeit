@@ -293,6 +293,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
             }
             else
             {
+                std::cout << "Lock released by: " << std::to_string((int)(mana.thread_lock)) << std::endl;
                 return 1;
             }
         }
@@ -312,6 +313,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             mana = getMana(minio_client);
             if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
             {
+                std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << std::endl;
                 return mana;
             }
         }
@@ -366,7 +368,6 @@ void initManagFile(Aws::S3::S3Client *minio_client)
 
 int addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, size_t file_size, char write_to_id, unsigned char fileStatus, char thread_id)
 {
-    std::cout << "Trying to get locked Mana thread: " << std::to_string((int)(thread_id)) << std::endl;
     manaFile mana = getLockedMana(minio_client, thread_id);
     for (auto &worker : mana.workers)
     {
@@ -992,7 +993,8 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                         minioSpiller.join();
                     }
                     // std::cout << "Spilling" << std::endl;
-                    std::string uName = std::to_string((int)(worker_id));
+                    std::string uName;
+                    uName += worker_id;
                     uName += "_";
                     uName += std::to_string((int)(id));
                     uName += "_" + std::to_string(spill_number);
