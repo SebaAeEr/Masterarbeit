@@ -387,6 +387,7 @@ std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(
             {
                 if (get<2>(file) != 255)
                 {
+                    std::cout << get<0>(file) << std::endl;
                     files->insert({get<0>(file), get<1>(file)});
                 }
             }
