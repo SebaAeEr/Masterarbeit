@@ -42,7 +42,8 @@ struct manaFileWorker
 
 struct manaFile
 {
-    int version;
+    char worker_lock;
+    char thread_lock;
     std::vector<manaFileWorker> workers;
 };
 
@@ -162,11 +163,8 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     auto &out_stream = outcome.GetResult().GetBody();
     size_t out_size = outcome.GetResult().GetContentLength();
 
-    int version;
-    char char_buf[sizeof(int)];
-    out_stream.read(char_buf, sizeof(int));
-    std::memcpy(&version, &char_buf, sizeof(int));
-    mana.version = version;
+    mana.worker_lock = out_stream.get();
+    mana.thread_lock = out_stream.get();
     mana.workers = {};
     while (out_stream.peek() != EOF)
     {
@@ -236,7 +234,7 @@ int getManagVersion(Aws::S3::S3Client *minio_client)
     }
 }
 
-bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion)
+bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
 {
     while (true)
     {
@@ -244,13 +242,16 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion
         in_request.SetBucket("trinobucket");
         in_request.SetKey(manag_file_name);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-        size_t in_mem_size = sizeof(int);
-
-        char version_buf[sizeof(int)];
-        std::memcpy(version_buf, &mana.version, sizeof(int));
-        for (int i = 0; i < sizeof(int); i++)
+        size_t in_mem_size = 2;
+        if (freeLock)
         {
-            *in_stream << version_buf[i];
+            *in_stream << 0;
+            *in_stream << 0;
+        }
+        else
+        {
+            *in_stream << mana.worker_lock;
+            *in_stream << mana.thread_lock;
         }
 
         for (auto &worker : mana.workers)
@@ -281,16 +282,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion
 
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
-        if (checkVersion)
-        {
-            int newVersion = getManagVersion(minio_client);
-
-            if (newVersion != mana.version - 1)
-            {
-                std::cout << "Old Version: " << mana.version << ", new Version: " << newVersion << std::endl;
-                return 0;
-            }
-        }
         while (true)
         {
             auto in_outcome = minio_client->PutObject(in_request);
@@ -306,16 +297,31 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool checkVersion
     }
 }
 
+manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
+{
+    while (true)
+    {
+        manaFile mana = getMana(minio_client);
+        if (mana.worker_lock == 0)
+        {
+            mana.worker_lock = worker_id;
+            mana.thread_lock = thread_id;
+            writeMana(minio_client, mana, false);
+            mana = getMana(minio_client);
+            if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
+            {
+                return mana;
+            }
+        }
+    }
+}
+
 void initManagFile(Aws::S3::S3Client *minio_client)
 {
     manaFile mana;
-    if (worker_id == '1')
+    if (worker_id != '1')
     {
-        mana.version = 0;
-    }
-    else
-    {
-        mana = getMana(minio_client);
+        mana = getLockedMana(minio_client, 0);
     }
     manaFileWorker worker;
     worker.id = worker_id;
@@ -323,7 +329,7 @@ void initManagFile(Aws::S3::S3Client *minio_client)
     worker.files = {};
     worker.locked = false;
     mana.workers.push_back(worker);
-    writeMana(minio_client, mana, false);
+    writeMana(minio_client, mana, true);
 }
 
 Aws::S3::S3Client init()
@@ -333,7 +339,7 @@ Aws::S3::S3Client init()
     c_config.region = "us-west-1";
     c_config.scheme = Aws::Http::Scheme::HTTP;
     c_config.endpointOverride = "131.159.16.208:9000";
-    c_config.requestTimeoutMs = 10000;
+    c_config.requestTimeoutMs = 500000;
     c_config.connectTimeoutMs = 1000;
     Aws::Auth::AWSCredentials cred("erasmus", "tumThesis123");
     Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
@@ -343,7 +349,7 @@ Aws::S3::S3Client init()
 void printMana(Aws::S3::S3Client *minio_client)
 {
     manaFile mana = getMana(minio_client);
-    std::cout << "version: " << mana.version << std::endl;
+    std::cout << "worker lock: " << mana.worker_lock << ", thread lock: " << std::bitset<8>(mana.thread_lock) << std::endl;
     for (auto &worker : mana.workers)
     {
         std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
@@ -354,30 +360,23 @@ void printMana(Aws::S3::S3Client *minio_client)
     }
 }
 
-int addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, size_t file_size, char write_to_id, unsigned char fileStatus)
+int addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, size_t file_size, char write_to_id, unsigned char fileStatus, char thread_id)
 {
-    while (true)
+    manaFile mana = getLockedMana(minio_client, thread_id);
+    for (auto &worker : mana.workers)
     {
-        manaFile mana = getMana(minio_client);
-        for (auto &worker : mana.workers)
+        if (worker.id == write_to_id)
         {
-            if (worker.id == write_to_id)
+            if (worker.locked)
             {
-                if (worker.locked)
-                {
-                    return 0;
-                }
-                worker.files.push_back({file_name, file_size, fileStatus});
-                worker.length += file_name.size() + 2 + sizeof(size_t);
-                break;
+                return 0;
             }
-        }
-        mana.version++;
-        if (writeMana(minio_client, mana, true))
-        {
+            worker.files.push_back({file_name, file_size, fileStatus});
+            worker.length += file_name.size() + 2 + sizeof(size_t);
             break;
         }
     }
+    writeMana(minio_client, mana, true);
     return 1;
 }
 
@@ -402,114 +401,103 @@ std::set<std::pair<std::string, size_t>, CompareBySecond> *getAllMergeFileNames(
 }
 
 std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
-                                                                  char beggarWorker, size_t memLimit, float *avg, std::vector<std::string> *blacklist)
+                                                                  char beggarWorker, size_t memLimit, float *avg, std::vector<std::string> *blacklist, char thread_id)
 {
     std::pair<std::pair<std::string, size_t>, char> *res = new std::pair<std::pair<std::string, size_t>, char>();
     *res = {{"", 0}, 0};
     char given_beggarWorker = beggarWorker;
     std::vector<char> worker_blacklist = {};
+    std::pair<std::string, size_t> m_file = {"", 0};
+    manaFile mana = getLockedMana(minio_client, thread_id);
     while (true)
     {
-        std::pair<std::string, size_t> m_file = {"", 0};
-        manaFile mana = getMana(minio_client);
-        while (true)
+        // If no beggarWorker is yet selected choose the worker with the largest spill
+        if (beggarWorker == 0)
         {
-            // If no beggarWorker is yet selected choose the worker with the largest spill
-            if (beggarWorker == 0)
-            {
-                size_t max = 0;
-                for (auto &worker : mana.workers)
-                {
-                    if (!worker.locked && !std::count(worker_blacklist.begin(), worker_blacklist.end(), worker.id))
-                    {
-                        size_t size_temp = 0;
-                        for (auto &file : worker.files)
-                        {
-                            if (get<2>(file) == 0 && !std::count(blacklist->begin(), blacklist->end(), get<0>(file)))
-                            {
-                                size_temp += get<1>(file);
-                            }
-                        }
-                        if (max < size_temp)
-                        {
-                            max = size_temp;
-                            beggarWorker = worker.id;
-                        }
-                    }
-                }
-            }
-            if (beggarWorker == 0)
-            {
-                return res;
-            }
+            size_t max = 0;
             for (auto &worker : mana.workers)
             {
-                if (worker.id == beggarWorker)
+                if (!worker.locked && !std::count(worker_blacklist.begin(), worker_blacklist.end(), worker.id))
                 {
-                    if (worker.locked)
-                    {
-                        beggarWorker = 0;
-                        break;
-                    }
-                    size_t max = 0;
+                    size_t size_temp = 0;
                     for (auto &file : worker.files)
                     {
                         if (get<2>(file) == 0 && !std::count(blacklist->begin(), blacklist->end(), get<0>(file)))
                         {
-                            size_t size_temp = get<1>(file);
-                            if (size_temp > max && (size_temp / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) < memLimit)
-                            {
-                                max = size_temp;
-                                m_file = {get<0>(file), size_temp};
-                            }
+                            size_temp += get<1>(file);
                         }
                     }
-                    break;
+                    if (max < size_temp)
+                    {
+                        max = size_temp;
+                        beggarWorker = worker.id;
+                    }
                 }
-            }
-            if (m_file.second == 0)
-            {
-                if (given_beggarWorker == 0)
-                {
-                    worker_blacklist.push_back(beggarWorker);
-                    beggarWorker = 0;
-                }
-                else
-                {
-                    return res;
-                }
-            }
-            else
-            {
-                break;
             }
         }
-
+        if (beggarWorker == 0)
+        {
+            return res;
+        }
         for (auto &worker : mana.workers)
         {
             if (worker.id == beggarWorker)
             {
+                if (worker.locked)
+                {
+                    beggarWorker = 0;
+                    break;
+                }
+                size_t max = 0;
                 for (auto &file : worker.files)
                 {
-                    if (get<0>(file) == m_file.first)
+                    if (get<2>(file) == 0 && !std::count(blacklist->begin(), blacklist->end(), get<0>(file)))
                     {
-                        get<2>(file) = worker_id;
-                        break;
+                        size_t size_temp = get<1>(file);
+                        if (size_temp > max && (size_temp / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) < memLimit)
+                        {
+                            max = size_temp;
+                            m_file = {get<0>(file), size_temp};
+                        }
                     }
                 }
+                break;
             }
         }
-        mana.version++;
-        if (writeMana(minio_client, mana, true))
+        if (m_file.second == 0)
         {
-            *res = {m_file, beggarWorker};
-            return res;
+            if (given_beggarWorker == 0)
+            {
+                worker_blacklist.push_back(beggarWorker);
+                beggarWorker = 0;
+            }
+            else
+            {
+                return res;
+            }
         }
         else
         {
-            beggarWorker = given_beggarWorker;
+            break;
         }
     }
+
+    for (auto &worker : mana.workers)
+    {
+        if (worker.id == beggarWorker)
+        {
+            for (auto &file : worker.files)
+            {
+                if (get<0>(file) == m_file.first)
+                {
+                    get<2>(file) = worker_id;
+                    break;
+                }
+            }
+        }
+    }
+    writeMana(minio_client, mana, true);
+    *res = {m_file, beggarWorker};
     return res;
 }
 
@@ -667,7 +655,7 @@ unsigned long parseJson(char *mapping, unsigned long start, std::string keys[], 
     }
 }
 
-void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::pair<int, size_t> *spill_file, int id, size_t free_mem)
+void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::pair<int, size_t> *spill_file, char id, size_t free_mem)
 {
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
     // Calc spill size
@@ -675,7 +663,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     if (spill_file->first == -1)
     {
-        std::string name = "spill_file_" + std::to_string(id);
+        std::string name = "spill_file_" + id;
         spill_file->first = open(name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     }
 
@@ -736,7 +724,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 }
 
 int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string &file, std::string &uniqueName,
-                 size_t free_mem, Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus)
+                 size_t free_mem, Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus, char thread_id)
 {
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket("trinobucket");
@@ -793,7 +781,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             break;
         }
     }
-    return addFileToManag(minio_client, uniqueName, spill_mem_size, write_to_id, fileStatus);
+    return addFileToManag(minio_client, uniqueName, spill_mem_size, write_to_id, fileStatus, thread_id);
 }
 
 void execOperation(std::array<unsigned long, max_size> *hashValue, int value)
@@ -861,7 +849,7 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
     }
 }
 
-void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit, int phyMembase,
+void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit, int phyMembase,
                  float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff)
 {
     Aws::S3::S3Client minio_client = init();
@@ -896,7 +884,7 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
     std::string okey, lineObjectValue;
     std::pair<int, size_t> spill_file(-1, 0);
     std::pair<int, size_t> temp_spill_file(-1, 0);
-    std::string temp_spill_file_name = std::to_string(id) + "temp_spill";
+    std::string temp_spill_file_name = id + "temp_spill";
     temp_spill_file.first = open(temp_spill_file_name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     std::thread minioSpiller;
 
@@ -999,11 +987,14 @@ void fillHashmap(int id, emhash8::HashMap<std::array<unsigned long, max_size>, s
                         minioSpiller.join();
                     }
                     // std::cout << "Spilling" << std::endl;
-                    std::string uName = worker_id + "_" + std::to_string(id) + "_" + std::to_string(spill_number);
+                    std::string uName = std::to_string(worker_id);
+                    uName += "_";
+                    uName += id;
+                    uName += "_" + std::to_string(spill_number);
                     std::cout << "spilling to: " << uName << std::endl;
                     std::string empty = "";
                     // spillToMinio(hmap, std::ref(empty), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0);
-                    minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0);
+                    minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
                         std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
@@ -1659,15 +1650,17 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     auto start_time = std::chrono::high_resolution_clock::now();
 
     int phyMemBase = getPhyValue();
+    char id = 0;
 
     for (int i = 0; i < threadNumber - 1; i++)
     {
         emHashmaps[i] = {};
-        threads.push_back(std::thread(fillHashmap, i, &emHashmaps[i], fd, t1_size * i, t1_size, true, (memLimit - phyMemBase) / threadNumber, phyMemBase / threadNumber,
+        threads.push_back(std::thread(fillHashmap, id, &emHashmaps[i], fd, t1_size * i, t1_size, true, (memLimit - phyMemBase) / threadNumber, phyMemBase / threadNumber,
                                       std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i]));
+        id++;
     }
     emHashmaps[threadNumber - 1] = {};
-    threads.push_back(std::thread(fillHashmap, threadNumber - 1, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, (memLimit - phyMemBase) / threadNumber, phyMemBase / threadNumber,
+    threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, (memLimit - phyMemBase) / threadNumber, phyMemBase / threadNumber,
                                   std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1]));
 
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
@@ -1748,34 +1741,26 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             break;
         }
     }
-    std::cout << s3spilled << std::endl;
 
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
     {
-        while (true)
+        mana = getLockedMana(&minio_client, 0);
+        for (auto &worker : mana.workers)
         {
-            for (auto &worker : mana.workers)
+            if (worker.id == worker_id)
             {
-                if (worker.id == worker_id)
-                {
-                    worker.locked = true;
-                    break;
-                }
-            }
-            mana.version++;
-            if (writeMana(&minio_client, mana, true))
-            {
+                worker.locked = true;
                 break;
             }
-            mana = getMana(&minio_client);
         }
+        writeMana(&minio_client, mana, true);
         printMana(&minio_client);
         auto files = getAllMergeFileNames(&minio_client);
-        for (auto &name : *files)
+        /* for (auto &name : *files)
         {
             std::cout << std::get<0>(name) << std::endl;
-        }
+        } */
         merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, &extra_mem, true);
         delete files;
     }
@@ -1951,7 +1936,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     std::pair<std::pair<std::string, size_t>, char> *file;
     while (true)
     {
-        file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist);
+        file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, 0);
         if (file->second == 0)
         {
             if (beggarWorker != 0)
@@ -1959,7 +1944,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
                 // Try to change beggar worker or load in new files
                 hmap.clear();
                 beggarWorker = 0;
-                file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist);
+                file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, 0);
                 std::cout << "beggar: " << file->second << std::endl;
                 if (file->second == 0)
                 {
@@ -1988,43 +1973,36 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         std::string old_uName = uName;
         uName += "_" + file->first.first;
         std::string empty_file = "";
-        if (!spillToMinio(&hmap, empty_file, uName, memLimit - phy, &minio_client, beggarWorker, 255))
+        if (!spillToMinio(&hmap, empty_file, uName, memLimit - phy, &minio_client, beggarWorker, 255, 0))
         {
             continue;
         }
         blacklist.push_back(uName);
         std::cout << "spilled" << std::endl;
-        while (true)
+        manaFile mana = getLockedMana(&minio_client, 0);
+        for (auto &worker : mana.workers)
         {
-            manaFile mana = getMana(&minio_client);
-            for (auto &worker : mana.workers)
+            if (worker.id == beggarWorker && !worker.locked)
             {
-                if (worker.id == beggarWorker && !worker.locked)
+                for (auto &w_file : worker.files)
                 {
-                    for (auto &w_file : worker.files)
+                    if (std::get<0>(w_file) == file->first.first)
                     {
-                        if (std::get<0>(w_file) == file->first.first)
-                        {
-                            std::get<2>(w_file) = 255;
-                        }
-                        if (std::get<0>(w_file) == uName)
-                        {
-                            std::get<2>(w_file) = 0;
-                        }
-                        if (std::get<0>(w_file) == old_uName)
-                        {
-                            std::get<2>(w_file) = 255;
-                        }
+                        std::get<2>(w_file) = 255;
                     }
-                    break;
+                    if (std::get<0>(w_file) == uName)
+                    {
+                        std::get<2>(w_file) = 0;
+                    }
+                    if (std::get<0>(w_file) == old_uName)
+                    {
+                        std::get<2>(w_file) = 255;
+                    }
                 }
-            }
-            mana.version++;
-            if (writeMana(&minio_client, mana, true))
-            {
                 break;
             }
         }
+        writeMana(&minio_client, mana, true);
         delete file;
     }
     finished = 2;
