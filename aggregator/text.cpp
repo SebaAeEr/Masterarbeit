@@ -1732,13 +1732,22 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     comb_hash_size = emHashmap.size();
     unsigned long freed_mem = 0;
     unsigned long overall_size = 0;
+    manaFile mana = getMana(&minio_client);
+    bool s3spilled;
+    for (auto &worker : mana.workers)
+    {
+        if (worker.id == worker_id)
+        {
+            s3spilled = !worker.files.empty();
+            break;
+        }
+    }
 
     // In case a spill occured, merge spills, otherwise just write hashmap
-    if (!spills.empty() || !s3Spill_names.empty())
+    if (!spills.empty() || s3spilled)
     {
         while (true)
         {
-            manaFile mana = getMana(&minio_client);
             for (auto &worker : mana.workers)
             {
                 if (worker.id == worker_id)
@@ -1752,6 +1761,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             {
                 break;
             }
+            mana = getMana(&minio_client);
         }
         printMana(&minio_client);
         auto files = getAllMergeFileNames(&minio_client);
@@ -1765,9 +1775,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
         // write hashmap to output file
         writeHashmap(&emHashmap, output_fd, 0, pagesize * 10);
-        duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
-        std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
     }
+    duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
+    std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
+
     close(output_fd);
     if (measure_mem)
     {
