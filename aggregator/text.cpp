@@ -293,7 +293,10 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
             }
             else
             {
-                std::cout << "Lock released by: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+                if (freeLock)
+                {
+                    std::cout << "Lock released by: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+                }
                 return 1;
             }
         }
@@ -310,6 +313,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             mana.worker_lock = worker_id;
             mana.thread_lock = thread_id;
             writeMana(minio_client, mana, false);
+            usleep(10);
             mana = getMana(minio_client);
             if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
             {
