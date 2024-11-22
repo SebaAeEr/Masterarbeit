@@ -288,21 +288,21 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
         while (true)
         {
             auto in_outcome = minio_client->PutObject(in_request);
-            if (timeLimit != -1)
+            /* if (timeLimit != -1)
             {
                 auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
                 std::cout << "Write duration2: " << duration << std::endl;
-            }
+            } */
             if (!in_outcome.IsSuccess())
             {
                 std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
             }
             else
             {
-                if (freeLock)
+                /* if (freeLock)
                 {
                     std::cout << "Lock released by: " << std::to_string((int)(mana.thread_lock)) << std::endl;
-                }
+                } */
                 return 1;
             }
         }
@@ -319,13 +319,13 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             mana.worker_lock = worker_id;
             mana.thread_lock = thread_id;
             writeMana(minio_client, mana, false, 0);
-            usleep(100000);
+            usleep(500000);
             mana = getMana(minio_client);
             if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
             {
-                std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock));
+                // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock));
                 mana = getMana(minio_client);
-                std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+                // std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
                 return mana;
             }
         }
