@@ -1021,7 +1021,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
                     if (spill_number > 0)
                     {
-                        // minioSpiller.join();
+                        minioSpiller.join();
                     }
 
                     temp_spill_file = {-1, 0};
@@ -1082,7 +1082,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     }
     if (spill_number > 0)
     {
-        // minioSpiller.join();
+        minioSpiller.join();
     }
 }
 
