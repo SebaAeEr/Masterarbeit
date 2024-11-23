@@ -998,12 +998,13 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 if (true)
                 {
                     // comb_hash_size -= hmap->size();
-                    temp_spill_file.second = 0;
-                    spillToFile(hmap, &temp_spill_file, id, pagesize * 20);
+
                     if (spill_number > 0)
                     {
                         minioSpiller.join();
                     }
+                    temp_spill_file.second = 0;
+                    spillToFile(hmap, &temp_spill_file, id, pagesize * 20);
                     // std::cout << "Spilling" << std::endl;
                     std::string uName;
                     uName += worker_id;
@@ -1048,7 +1049,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     try
     {
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
-        std::cout << "Thread " << id << " finished scanning. With time: " << duration << "s. Scanned Lines: " << numLinesLocal << ". microseconds/line: " << duration * 1000000 / numLinesLocal << ". Spilled with size: " << spill_size << std::endl;
+        std::cout << "Thread " << int(id) << " finished scanning. With time: " << duration << "s. Scanned Lines: " << numLinesLocal << ". microseconds/line: " << duration * 1000000 / numLinesLocal << ". Spilled with size: " << spill_size << std::endl;
     }
     catch (std::exception &err)
     {
@@ -1361,7 +1362,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
         int number_of_longs = key_number + value_number;
         int i = s3spillFile_head;
-        std::cout << "i: " << s3spillFile_head << std::endl;
         for (auto set_it = std::next(s3spillNames2->begin(), i); set_it != s3spillNames2->end(); set_it++)
         {
             firsts3File = !firsts3File && i == s3spillFile_head;
@@ -1382,7 +1382,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     break;
                 }
             }
-            // std::cout << "Reading spill: " << (*set_it).first << std::endl;
+            std::cout << "Reading spill: " << (*set_it).first << std::endl;
             auto &spill = outcome.GetResult().GetBody();
             char *bitmap_mapping;
             std::vector<char> *bitmap_vector;
@@ -1409,8 +1409,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 head = s3spillStart_head;
                 // std::cout << "First File" << std::endl;
                 spill.ignore(s3spillStart_head * sizeof(unsigned long) * number_of_longs);
+                std::cout << "Load bitmap: " << i << " at index: " << head << std::endl;
             }
-            std::cout << "Load bitmap: " << i << " at index: " << head << std::endl;
+
             unsigned long lower_head = 0;
             while (spill.peek() != EOF)
             {
