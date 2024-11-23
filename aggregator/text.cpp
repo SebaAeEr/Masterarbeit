@@ -1361,6 +1361,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
         int number_of_longs = key_number + value_number;
         int i = s3spillFile_head;
+        std::cout << "i: " << s3spillFile_head << std::endl;
         for (auto set_it = std::next(s3spillNames2->begin(), i); set_it != s3spillNames2->end(); set_it++)
         {
             firsts3File = !firsts3File && i == s3spillFile_head;
@@ -1409,6 +1410,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 // std::cout << "First File" << std::endl;
                 spill.ignore(s3spillStart_head * sizeof(unsigned long) * number_of_longs);
             }
+            std::cout << "Load bitmap: " << i << " at index: " << head << std::endl;
             unsigned long lower_head = 0;
             while (spill.peek() != EOF)
             {
@@ -1554,6 +1556,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         //  write merged hashmap to the result and update head to point at the end of the file
         if (writeRes)
         {
+            std::cout << "Writing hmap with size: " << hmap->size() << std::endl;
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
 
             if (hmap->size() > maxHashsize)
@@ -1781,6 +1784,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             std::cout << std::get<0>(name) << ", ";
         }
         std::cout << std::endl;
+        std::cout << files.size() << std::endl;
         merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, &extra_mem, true);
         delete files;
     }
