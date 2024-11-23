@@ -1038,7 +1038,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                         std::cout << "Spilling 1262938 with value" << (*hmap)[{1262938, 0}][0] << " to " << uName << std::endl;
                     }
                     std::string empty = "";
-                    spillToMinio(hmap, std::ref(empty), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
+                    spillToMinio(hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
                     // minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
