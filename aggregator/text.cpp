@@ -1032,14 +1032,14 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     uName += "_";
                     uName += std::to_string((int)(id));
                     uName += "_" + std::to_string(spill_number);
-                    std::cout << "spilling to: " << uName << std::endl;
+                    //std::cout << "spilling to: " << uName << std::endl;
                     if (hmap->contains({1262938, 0}))
                     {
                         std::cout << "Spilling 1262938 with value" << (*hmap)[{1262938, 0}][0] << " to " << uName << std::endl;
                     }
                     std::string empty = "";
-                    // spillToMinio(hmap, std::ref(empty), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0);
-                    minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
+                     spillToMinio(hmap, std::ref(empty), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
+                    //minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
                         std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
@@ -1389,7 +1389,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         int i = s3spillFile_head;
         for (auto set_it = std::next(s3spillNames2->begin(), i); set_it != s3spillNames2->end(); set_it++)
         {
-            firsts3File = !firsts3File && i == s3spillFile_head;
+            firsts3File = hmap->empty();
             // std::cout << "Start reading: " << spillname << std::endl;
             Aws::S3::Model::GetObjectRequest request;
             request.SetBucket("trinobucket");
