@@ -1784,7 +1784,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             std::cout << std::get<0>(name) << ", ";
         }
         std::cout << std::endl;
-        std::cout << files.size() << std::endl;
+        std::cout << files->size() << std::endl;
         merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, &extra_mem, true);
         delete files;
     }
