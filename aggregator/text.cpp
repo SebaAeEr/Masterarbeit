@@ -586,10 +586,7 @@ int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             mapped_count += writeString(&mappedoutputFile[mapped_count], key_names[k]);
             mapped_count += writeString(&mappedoutputFile[mapped_count], "\":");
             mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.first[k]));
-            if (key_names[k] == 1262938)
-            {
-                std::cout << "Writing Key 1262938 with value: " << it.first[k] << std::endl;
-            }
+
             // temp_line += "\"" + key_names[k] + "\":" + std::to_string(it.first[k]);
             if (k + 1 < key_number)
             {
@@ -612,7 +609,10 @@ int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         // std::cout << temp_line << std::endl;
         // for (auto &itt : temp_line)
         //{
-
+        if (it.first[0] == 1262938)
+        {
+            std::cout << "Writing Key 1262938 with value: " << it.second[0] << std::endl;
+        }
         unsigned long used_space = (mapped_count - head);
         if (used_space >= free_mem && used_space > pagesize)
         {
@@ -1035,7 +1035,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     std::cout << "spilling to: " << uName << std::endl;
                     if (hmap->contains({1262938, 0}))
                     {
-                        std::cout << "Spilling 1262938 with value" << (*hmap)[{1262938, 0}][0] << " to " << uName;
+                        std::cout << "Spilling 1262938 with value" << (*hmap)[{1262938, 0}][0] << " to " << uName << std::endl;
                     }
                     std::string empty = "";
                     // spillToMinio(hmap, std::ref(empty), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0);
