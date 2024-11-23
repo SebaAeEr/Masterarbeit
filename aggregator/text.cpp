@@ -939,10 +939,18 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             }
             std::cout << "conversion error on: " << err.what() << std::endl;
         }
+        if (keys[0] == 1262938)
+        {
+            std::cout << "Found 1262938 with value: " << opValue;
+        }
 
         // add 1 to count when customerkey is already in hashmap
         if (hmap->contains(keys))
         {
+            if (keys[0] == 1262938)
+            {
+                std::cout << " Countained with value: " << (*hmap)[keys][0];
+            }
             if (opValue != ULONG_MAX)
             {
                 execOperation(&(*hmap)[keys], opValue);
@@ -950,6 +958,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         }
         else
         {
+            if (keys[0] == 1262938)
+            {
+                std::cout << " Not contained";
+            }
 
             // add customerkey, count pair to hashmap. When orderkey is not null count starts at 1.
             addPair(hmap, keys, opValue);
@@ -957,6 +969,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             {
                 comb_hash_size.fetch_add(1);
             }
+        }
+        if (keys[0] == 1262938)
+        {
+            std::cout << std::endl;
         }
 
         // Check if Estimations exceed memlimit
@@ -1002,6 +1018,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     if (spill_number > 0)
                     {
                         minioSpiller.join();
+                    }
+                    if (hmap->contains({1262938, 0}))
+                    {
+                        std::cout << "Spilling 1262938 with value" << (*hmap)[{1262938, 0}][0];
                     }
                     temp_spill_file.second = 0;
                     spillToFile(hmap, &temp_spill_file, id, pagesize * 20);
@@ -1382,7 +1402,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     break;
                 }
             }
-            std::cout << "Reading spill: " << (*set_it).first << std::endl;
+            // std::cout << "Reading spill: " << (*set_it).first << std::endl;
             auto &spill = outcome.GetResult().GetBody();
             char *bitmap_mapping;
             std::vector<char> *bitmap_vector;
@@ -1455,11 +1475,19 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     {
                         values[k] = buf[k + key_number];
                     }
+                    if (keys[0] == 1262938)
+                    {
+                        std::cout << "Key 1262938 found with value: " << values[0];
+                    }
                     if (hmap->contains(keys))
                     {
                         read_lines++;
 
                         std::array<unsigned long, max_size> temp = (*hmap)[keys];
+                        if (keys[0] == 1262938)
+                        {
+                            std::cout << " Contained with value: " << temp[0];
+                        }
 
                         for (int k = 0; k < value_number; k++)
                         {
@@ -1471,6 +1499,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     else if (!locked)
                     {
+                        if (keys[0] == 1262938)
+                        {
+                            std::cout << " Not contained";
+                        }
                         read_lines++;
                         // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
                         hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
@@ -1480,6 +1512,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         }
                         *bit &= ~(0x01 << (head % 8));
                         // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
+                    }
+                    if (keys[0] == 1262938)
+                    {
+                        std::cout << std::endl;
                     }
                     if (spilled_bitmap)
                     {
@@ -1921,22 +1957,31 @@ int test(std::string file1name, std::string file2name)
         return 0;
     }
     bool same = true;
+    unsigned long not_contained_keys = 0;
+    unsigned long different_values = 0;
     for (auto &it : hashmap)
     {
         if (!hashmap2.contains(it.first))
+
         {
-            std::cout << "File 2 does not contain: " << it.first[0] << std::endl;
+            not_contained_keys++;
+            // std::cout << "File 2 does not contain: " << it.first[0] << std::endl;
             same = false;
         }
         if (std::abs(hashmap2[it.first] - it.second) > 0.001)
         {
-            std::cout << "File 2 has different value for key: " << it.first[0] << "; File 1: " << it.second << "; File 2: " << hashmap2[it.first] << std::endl;
+            different_values++;
+            //            std::cout << "File 2 has different value for key: " << it.first[0] << "; File 1: " << it.second << "; File 2: " << hashmap2[it.first] << std::endl;
             same = false;
         }
     }
     if (same)
     {
         std::cout << "Files are the Same!" << std::endl;
+    }
+    else
+    {
+        std::cout << "Files different! Not contained keys: " << not_contained_keys << ", different values: " << different_values << std::endl;
     }
     return 1;
 }
