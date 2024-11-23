@@ -586,6 +586,10 @@ int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             mapped_count += writeString(&mappedoutputFile[mapped_count], key_names[k]);
             mapped_count += writeString(&mappedoutputFile[mapped_count], "\":");
             mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.first[k]));
+            if (key_names[k] == 1262938)
+            {
+                std::cout << "Writing Key 1262938 with value: " << it.first[k] << std::endl;
+            }
             // temp_line += "\"" + key_names[k] + "\":" + std::to_string(it.first[k]);
             if (k + 1 < key_number)
             {
@@ -887,7 +891,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     }
     madvise(mappedFile, size + offset, MADV_SEQUENTIAL | MADV_WILLNEED);
     std::unordered_map<std::string, std::string> lineObjects;
-    std::array<unsigned long, max_size> keys;
+    std::array<unsigned long, max_size> keys = {0, 0};
     std::string coloumns[key_number + 1];
     for (int i = 0; i < key_number; i++)
     {
@@ -1019,10 +1023,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     {
                         minioSpiller.join();
                     }
-                    if (hmap->contains({1262938, 0}))
-                    {
-                        std::cout << "Spilling 1262938 with value" << (*hmap)[{1262938, 0}][0];
-                    }
+
                     temp_spill_file.second = 0;
                     spillToFile(hmap, &temp_spill_file, id, pagesize * 20);
                     // std::cout << "Spilling" << std::endl;
@@ -1032,6 +1033,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     uName += std::to_string((int)(id));
                     uName += "_" + std::to_string(spill_number);
                     std::cout << "spilling to: " << uName << std::endl;
+                    if (hmap->contains({1262938, 0}))
+                    {
+                        std::cout << "Spilling 1262938 with value" << (*hmap)[{1262938, 0}][0] << " to " << uName;
+                    }
                     std::string empty = "";
                     // spillToMinio(hmap, std::ref(empty), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0);
                     minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
@@ -1477,7 +1482,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     if (keys[0] == 1262938)
                     {
-                        std::cout << "Key 1262938 found with value: " << values[0];
+                        std::cout << "Key 1262938 found with value: " << values[0] << " In spill: " << (*set_it).first;
                     }
                     if (hmap->contains(keys))
                     {
