@@ -288,6 +288,27 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
 
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
+        if (freeLock)
+        {
+            Aws::S3::Model::PutObjectLegalHoldRequest lock_request;
+            lock_request.SetBucket(bucketName);
+            lock_request.SetKey(manag_file_name);
+            Aws::S3::Model::ObjectLockLegalHold lock;
+            lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
+            lock_request.SetLegalHold(lock);
+            while (true)
+            {
+                auto lock_outcome = minio_client->PutObjectLegalHold(lock_request);
+                if (lock_outcome.IsSuccess())
+                {
+                    break;
+                }
+                else
+                {
+                    std::cout << "Error not able to free lock: " << lock_outcome.GetError().GetMessage() << std::endl;
+                }
+            }
+        }
         while (true)
         {
             auto in_outcome = minio_client->PutObject(in_request);
@@ -330,7 +351,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             if (status.IsSuccess())
             {
                 auto legalhole = status.GetResult().GetLegalHold().GetStatus();
-                if (legalhole == Aws::S3::Model::ObjectLockLegalHoldStatus::ON) // Aws::S3::Model::ObjectLockLegalHoldStatus()
+                if (legalhole == Aws::S3::Model::ObjectLockLegalHoldStatus::OFF) // Aws::S3::Model::ObjectLockLegalHoldStatus()
                 {
                     Aws::S3::Model::PutObjectLegalHoldRequest request;
                     request.SetBucket(bucketName);
@@ -352,7 +373,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             }
             else
             {
-                std::cout << "Error: " << status.GetError().GetMessage() << std::endl;
+                std::cout << "Error seeing lock status: " << status.GetError().GetMessage() << std::endl;
             }
         }
     }
