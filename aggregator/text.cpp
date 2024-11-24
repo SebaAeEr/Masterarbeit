@@ -21,6 +21,8 @@
 #include <aws/s3/model/PutObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/DeleteObjectRequest.h>
+#include <aws/s3/model/GetObjectLegalHoldRequest.h>
+#include <aws/s3/model/PutObjectLegalHoldRequest.h>
 #include <bitset>
 #include <cmath>
 
@@ -56,6 +58,7 @@ int value_number;
 char worker_id;
 std::string manag_file_name = "manag_file";
 long pagesize;
+std::string bucketName = "trinobucket";
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -140,7 +143,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
 {
     manaFile mana;
     Aws::S3::Model::GetObjectRequest request;
-    request.SetBucket("trinobucket");
+    request.SetBucket(bucketName);
     request.SetKey(manag_file_name);
     Aws::S3::Model::GetObjectOutcome outcome;
 
@@ -158,7 +161,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         }
     }
     Aws::S3::Model::PutObjectRequest in_request;
-    in_request.SetBucket("trinobucket");
+    in_request.SetBucket(bucketName);
     in_request.SetKey(manag_file_name);
     const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
     auto &out_stream = outcome.GetResult().GetBody();
@@ -206,7 +209,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
 int getManagVersion(Aws::S3::S3Client *minio_client)
 {
     Aws::S3::Model::GetObjectRequest request;
-    request.SetBucket("trinobucket");
+    request.SetBucket(bucketName);
     request.SetKey(manag_file_name);
     Aws::S3::Model::GetObjectOutcome outcome;
 
@@ -220,7 +223,7 @@ int getManagVersion(Aws::S3::S3Client *minio_client)
         else
         {
             Aws::S3::Model::PutObjectRequest in_request;
-            in_request.SetBucket("trinobucket");
+            in_request.SetBucket(bucketName);
             in_request.SetKey(manag_file_name);
             const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
             auto &out_stream = outcome.GetResult().GetBody();
@@ -241,7 +244,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
     {
         auto start_time = std::chrono::high_resolution_clock::now();
         Aws::S3::Model::PutObjectRequest in_request;
-        in_request.SetBucket("trinobucket");
+        in_request.SetBucket(bucketName);
         in_request.SetKey(manag_file_name);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         size_t in_mem_size = 2;
@@ -319,14 +322,37 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             mana.worker_lock = worker_id;
             mana.thread_lock = thread_id;
             writeMana(minio_client, mana, false, 0);
-            usleep(500000);
-            mana = getMana(minio_client);
-            if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
+            Aws::S3::Model::GetObjectLegalHoldRequest request;
+            request.SetBucket(bucketName);
+            request.SetKey(manag_file_name);
+            // request.SetVersionId();
+            auto status = minio_client->GetObjectLegalHold(request);
+            if (status.IsSuccess())
             {
-                // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock));
-                mana = getMana(minio_client);
-                // std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
-                return mana;
+                auto legalhole = status.GetResult().GetLegalHold().GetStatus();
+                if (legalhole == Aws::S3::Model::ObjectLockLegalHoldStatus::ON) // Aws::S3::Model::ObjectLockLegalHoldStatus()
+                {
+                    Aws::S3::Model::PutObjectLegalHoldRequest request;
+                    request.SetBucket(bucketName);
+                    request.SetKey(manag_file_name);
+                    Aws::S3::Model::ObjectLockLegalHold lock;
+                    lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
+                    request.SetLegalHold(lock);
+                    minio_client->PutObjectLegalHold(request);
+                    usleep(500000);
+                    mana = getMana(minio_client);
+                    if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
+                    {
+                        // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock));
+                        mana = getMana(minio_client);
+                        // std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+                        return mana;
+                    }
+                }
+            }
+            else
+            {
+                std::cout << "Error: " << status.GetError().GetMessage() << std::endl;
             }
         }
     }
@@ -749,7 +775,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                  size_t free_mem, Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus, char thread_id)
 {
     Aws::S3::Model::PutObjectRequest request;
-    request.SetBucket("trinobucket");
+    request.SetBucket(bucketName);
     request.SetKey(uniqueName.c_str());
     // Calc spill size
     size_t spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
@@ -1392,7 +1418,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             firsts3File = hmap->empty();
             // std::cout << "Start reading: " << spillname << std::endl;
             Aws::S3::Model::GetObjectRequest request;
-            request.SetBucket("trinobucket");
+            request.SetBucket(bucketName);
             request.SetKey((*set_it).first);
             Aws::S3::Model::GetObjectOutcome outcome;
             while (true)
@@ -1638,7 +1664,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         for (auto &it : *s3spillNames2)
         {
             Aws::S3::Model::DeleteObjectRequest request;
-            request.WithKey(it.first).WithBucket("trinobucket");
+            request.WithKey(it.first).WithBucket(bucketName);
             while (true)
             {
                 auto outcome = minio_client->DeleteObject(request);
