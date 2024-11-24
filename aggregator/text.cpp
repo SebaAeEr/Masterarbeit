@@ -587,15 +587,15 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
 }
 
 // Write hashmap hmap into file with head on start.
-int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, unsigned long start, unsigned long free_mem)
+unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, unsigned long start, unsigned long free_mem)
 {
     // Calc the output size for hmap.
     unsigned long output_size = 0;
     for (auto &it : *hmap)
     {
-        for (auto &itt : it.first)
+        for (int i = 0; i < key_number; i++)
         {
-            output_size += std::to_string(itt).length();
+            output_size += std::to_string(it.first[i]).length();
         }
 
         if (op != average)
@@ -695,7 +695,7 @@ int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     }
     freed_mem += (output_size + start_diff) - head;
     // std::cout << "freed mem: " << freed_mem << " size: " << output_size + start_diff << std::endl;
-
+    std::cout << "Output file size: " << output_size << std::endl;
     return output_size;
 }
 
