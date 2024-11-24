@@ -1626,7 +1626,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         //  write merged hashmap to the result and update head to point at the end of the file
         if (writeRes)
         {
-            // std::cout << "Writing hmap with size: " << hmap->size() << std::endl;
+            std::cout << "Writing hmap with size: " << hmap->size() << " output_head: " << output_head << std::endl;
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
 
             if (hmap->size() > maxHashsize)
