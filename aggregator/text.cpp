@@ -336,17 +336,16 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
 }
 
 manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
+
 {
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<std::mt19937::result_type> dist6(1, 100);
     while (true)
     {
         manaFile mana = getMana(minio_client);
         if (mana.worker_lock == 0)
         {
-            std::random_device dev;
-            std::mt19937 rng(dev());
-            std::uniform_int_distribution<std::mt19937::result_type> dist6(1, 100); // distribution in range [1, 6]
-
-            std::cout << dist6(rng) << std::endl;
             usleep(dist6(rng) * 10000);
             manaFile mana = getMana(minio_client);
             if (mana.worker_lock == 0)
@@ -386,7 +385,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                  {
                      std::cout << "Error seeing lock status: " << status.GetError().GetMessage() << std::endl;
                  } */
-                usleep(500000);
+                usleep(250000);
                 mana = getMana(minio_client);
                 if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
                 {
@@ -677,10 +676,6 @@ int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         // std::cout << temp_line << std::endl;
         // for (auto &itt : temp_line)
         //{
-        if (it.first[0] == 1262938)
-        {
-            std::cout << "Writing Key 1262938 with value: " << it.second[0] << std::endl;
-        }
         unsigned long used_space = (mapped_count - head);
         if (used_space >= free_mem && used_space > pagesize)
         {
@@ -1011,18 +1006,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             }
             std::cout << "conversion error on: " << err.what() << std::endl;
         }
-        if (keys[0] == 1262938)
-        {
-            std::cout << "Found 1262938 with value: " << opValue;
-        }
 
         // add 1 to count when customerkey is already in hashmap
         if (hmap->contains(keys))
         {
-            if (keys[0] == 1262938)
-            {
-                std::cout << " Countained with value: " << (*hmap)[keys][0];
-            }
             if (opValue != ULONG_MAX)
             {
                 execOperation(&(*hmap)[keys], opValue);
@@ -1030,10 +1017,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         }
         else
         {
-            if (keys[0] == 1262938)
-            {
-                std::cout << " Not contained";
-            }
 
             // add customerkey, count pair to hashmap. When orderkey is not null count starts at 1.
             addPair(hmap, keys, opValue);
@@ -1041,10 +1024,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             {
                 comb_hash_size.fetch_add(1);
             }
-        }
-        if (keys[0] == 1262938)
-        {
-            std::cout << std::endl;
         }
 
         // Check if Estimations exceed memlimit
@@ -1101,10 +1080,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     uName += std::to_string((int)(id));
                     uName += "_" + std::to_string(spill_number);
                     // std::cout << "spilling to: " << uName << std::endl;
-                    if (hmap->contains({1262938, 0}))
-                    {
-                        std::cout << "Spilling 1262938 with value" << (*hmap)[{1262938, 0}][0] << " to " << uName << std::endl;
-                    }
                     std::string empty = "";
                     // spillToMinio(hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
                     minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
@@ -1502,7 +1477,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 head = s3spillStart_head;
                 // std::cout << "First File" << std::endl;
                 spill.ignore(s3spillStart_head * sizeof(unsigned long) * number_of_longs);
-                std::cout << "Load bitmap: " << i << " at index: " << head << std::endl;
+                // std::cout << "Load bitmap: " << i << " at index: " << head << std::endl;
             }
 
             unsigned long lower_head = 0;
@@ -1548,19 +1523,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     {
                         values[k] = buf[k + key_number];
                     }
-                    if (keys[0] == 1262938)
-                    {
-                        std::cout << "Key 1262938 found with value: " << values[0] << " In spill: " << (*set_it).first;
-                    }
                     if (hmap->contains(keys))
                     {
                         read_lines++;
 
                         std::array<unsigned long, max_size> temp = (*hmap)[keys];
-                        if (keys[0] == 1262938)
-                        {
-                            std::cout << " Contained with value: " << temp[0];
-                        }
 
                         for (int k = 0; k < value_number; k++)
                         {
@@ -1572,10 +1539,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     else if (!locked)
                     {
-                        if (keys[0] == 1262938)
-                        {
-                            std::cout << " Not contained";
-                        }
                         read_lines++;
                         // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
                         hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
@@ -1585,10 +1548,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         }
                         *bit &= ~(0x01 << (head % 8));
                         // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
-                    }
-                    if (keys[0] == 1262938)
-                    {
-                        std::cout << std::endl;
                     }
                     if (spilled_bitmap)
                     {
@@ -1666,7 +1625,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         //  write merged hashmap to the result and update head to point at the end of the file
         if (writeRes)
         {
-            std::cout << "Writing hmap with size: " << hmap->size() << std::endl;
+            // std::cout << "Writing hmap with size: " << hmap->size() << std::endl;
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
 
             if (hmap->size() > maxHashsize)
@@ -1887,14 +1846,14 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             }
         }
         writeMana(&minio_client, mana, true);
-        printMana(&minio_client);
+        // printMana(&minio_client);
         auto files = getAllMergeFileNames(&minio_client);
-        for (auto &name : *files)
+        /* for (auto &name : *files)
         {
             std::cout << std::get<0>(name) << ", ";
         }
         std::cout << std::endl;
-        std::cout << files->size() << std::endl;
+        std::cout << files->size() << std::endl; */
         merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, &extra_mem, true);
         delete files;
     }
