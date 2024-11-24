@@ -296,6 +296,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
             Aws::S3::Model::ObjectLockLegalHold lock;
             lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::OFF);
             lock_request.SetLegalHold(lock);
+            lock_request.SetExpectedBucketOwner("erasmus");
             while (true)
             {
                 auto lock_outcome = minio_client->PutObjectLegalHold(lock_request);
