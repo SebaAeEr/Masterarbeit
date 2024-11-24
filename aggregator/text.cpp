@@ -635,7 +635,8 @@ int writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     if (mappedoutputFile == MAP_FAILED)
     {
         close(file);
-        perror("Error mmapping the file");
+        std::cout << "Start: " << output_size << " + " << start_diff << " start_page: " << start_page << std::endl;
+        perror("Error mmapping the file in write Hashmap");
         exit(EXIT_FAILURE);
     }
     unsigned long freed_mem = 0;
@@ -2045,6 +2046,22 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
             {
                 // Try to change beggar worker or load in new files
                 hmap.clear();
+                manaFile mana = getLockedMana(&minio_client, 0);
+                for (auto &worker : mana.workers)
+                {
+                    if (worker.id == beggarWorker && !worker.locked)
+                    {
+                        for (auto &w_file : worker.files)
+                        {
+                            if (std::get<0>(w_file) == uName)
+                            {
+                                std::get<2>(w_file) = 0;
+                            }
+                        }
+                        break;
+                    }
+                }
+                writeMana(&minio_client, mana, true);
                 beggarWorker = 0;
                 file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, 0);
                 std::cout << "beggar: " << file->second << std::endl;
@@ -2094,7 +2111,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
                     }
                     if (std::get<0>(w_file) == uName)
                     {
-                        std::get<2>(w_file) = 0;
+                        std::get<2>(w_file) = worker_id;
                     }
                     if (std::get<0>(w_file) == old_uName)
                     {
@@ -2199,6 +2216,7 @@ int main(int argc, char **argv)
     }
     helpMerge(memLimit, minio_client);
     Aws::ShutdownAPI(options);
+    std::cout << "Finished!" << stzd::endl;
     return 1;
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
