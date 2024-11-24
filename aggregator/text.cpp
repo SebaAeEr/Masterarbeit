@@ -294,7 +294,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
             lock_request.SetBucket(bucketName);
             lock_request.SetKey(manag_file_name);
             Aws::S3::Model::ObjectLockLegalHold lock;
-            lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
+            lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::OFF);
             lock_request.SetLegalHold(lock);
             while (true)
             {
