@@ -2183,6 +2183,7 @@ int main(int argc, char **argv)
     std::string log_time_string = argv[8];
 
     log_size = log_size_string.compare("true");
+    std::cout << log_size_string << std::endl;
     std::cout << log_size << std::endl;
     log_time = log_time_string.compare("true");
     std::cout << log_time_string << std::endl;
