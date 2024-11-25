@@ -1180,7 +1180,6 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             if (duration - oldduration > 100)
             {
                 oldduration = duration;
-                std::cout << newsize << "," << duration << std::endl;
                 output << std::to_string(newsize);
                 output << ",";
 
@@ -2274,7 +2273,7 @@ int main(int argc, char **argv)
     tstruct = *localtime(&now);
     // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
     // for more information about date/time format
-    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+    strftime(buf, sizeof(buf), "%m-%d_%H-%M", &tstruct);
     date_now = buf;
 
     if (co_output != "-")
