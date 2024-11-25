@@ -60,7 +60,7 @@ int value_number;
 char worker_id;
 std::string manag_file_name = "manag_file";
 long pagesize;
-std::string bucketName = "trinobucket";
+std::string bucketName = "trinobucket2";
 bool log_size;
 bool log_time;
 std::string date_now;
