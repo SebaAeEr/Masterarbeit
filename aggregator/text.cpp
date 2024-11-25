@@ -2182,10 +2182,10 @@ int main(int argc, char **argv)
     std::string log_size_string = argv[7];
     std::string log_time_string = argv[8];
 
-    log_size = log_size_string.compare("true");
+    log_size = log_size_string.compare("true") == 0;
     std::cout << log_size_string << std::endl;
     std::cout << log_size << std::endl;
-    log_time = log_time_string.compare("true");
+    log_time = log_time_string.compare("true") == 0;
     std::cout << log_time_string << std::endl;
 
     int threadNumber = std::stoi(threadNumber_string);
