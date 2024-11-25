@@ -1152,7 +1152,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     {
         // int log_file = open(("times_" + date_now).c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
         // close(log_file);
-        std::cout << "times_" + date_now + ".csv" << std::endl;
+        //std::cout << "times_" + date_now + ".csv" << std::endl;
         output.open(("times_" + date_now + ".csv").c_str());
         output << "mes_size,hmap_size,base_size,map_size,bit_size,time\n";
     }
@@ -1177,7 +1177,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         {
             auto stop = std::chrono::high_resolution_clock::now();
             duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000;
-            if (duration - oldduration > 100)
+            if (duration - oldduration > 500)
             {
                 oldduration = duration;
                 output << std::to_string(newsize);
