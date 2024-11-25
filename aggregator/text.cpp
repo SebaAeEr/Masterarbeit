@@ -65,7 +65,7 @@ bool log_size;
 bool log_time;
 std::string date_now;
 std::chrono::_V2::system_clock::time_point start_time;
-unsigned long base_size = 0;
+unsigned long base_size = 1;
 int thread_number;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
@@ -1184,7 +1184,6 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
                 output << std::to_string(newsize);
                 output << ",";
 
-                unsigned long calc_size = ((*avg) * comb_hash_size.load()) + phyMemBase + reservedMem + (*extra_mem);
                 output << std::to_string((*avg) * comb_hash_size.load());
                 output << ",";
                 output << std::to_string(phyMemBase);
@@ -1195,7 +1194,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
                 output << ",";
                 output << std::to_string(duration);
                 output << "\n";
-                std::cout << newsize << "," << calc_size << "," << duration << std::endl;
+                // std::cout << newsize << "," << calc_size << "," << duration << std::endl;
             }
         }
         while (abs(static_cast<long>(size - newsize)) > 5000000000)
@@ -1215,7 +1214,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             }
             if (memLimit * 0.95 < size)
             {
-                *avg = (size - phyMemBase - reservedMem - (*extra_mem)) / (float)(comb_hash_size.load());
+                *avg = (size - base_size) / (float)(comb_hash_size.load());
                 *avg *= 1.2;
                 // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
                 usleep(0);
