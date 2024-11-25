@@ -1148,8 +1148,8 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             if (duration - oldduration > 500)
             {
                 oldduration = duration;
-                output << std::to_string(newsize) << "," << std::to_string((*avg) * comb_hash_size.load()) << "," << std::to_string(phyMemBase) << "," << std::to_string(reservedMem) << "," << std::to_string(*extra_mem) << "," << std::to_string(duration) << "\n";
-                output << std::flush;
+                output << std::to_string(newsize) << "," << std::to_string((*avg) * comb_hash_size.load()) << "," << std::to_string(phyMemBase) << "," << std::to_string(reservedMem) << "," << std::to_string(*extra_mem) << "," << std::to_string(duration);
+                output << std::endl;
                 // std::cout << newsize << "," << calc_size << "," << duration << std::endl;
             }
         }
