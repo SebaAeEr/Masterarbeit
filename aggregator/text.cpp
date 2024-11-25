@@ -1280,10 +1280,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         // not spilling bitmaps
         for (auto &name : *s3spillNames2)
         {
-            std::vector<char> bitmap = std::vector<char>(std::ceil((float)(name.second) / 8), 255);
+            std::vector<char> bitmap = std::vector<char>(std::ceil((float)(name.second) / 8), -1);
             s3spillBitmaps.push_back({-1, bitmap});
         }
     }
+    std::cout << "Bitmaps created" << std::endl;
     *extra_mem = bitmap_size_sum;
 
     // std::cout << "comb_spill_size: " << comb_spill_size << std::endl;
@@ -1492,7 +1493,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     exit(EXIT_FAILURE);
                 }
                 madvise(bitmap_mapping, std::ceil((float)((*set_it).second) / 8), MADV_SEQUENTIAL | MADV_WILLNEED);
-                // std::cout << "Size: " << std::ceil((float)((*set_it).second) / 8) << " Addr: " << bitmap_mapping << std::endl;
+                std::cout << "Size: " << std::ceil((float)((*set_it).second) / 8) << " Addr: " << bitmap_mapping << std::endl;
             }
             // std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector->size() << std::endl;
             unsigned long head = 0;
