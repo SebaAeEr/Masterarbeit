@@ -558,6 +558,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
         }
         if (m_file.second == 0)
         {
+            std::cout << "second == 0, givenbeggarWorker: " << given_beggarWorker << std::endl;
             if (given_beggarWorker == 0)
             {
                 worker_blacklist.push_back(beggarWorker);
