@@ -2272,7 +2272,7 @@ int main(int argc, char **argv)
     }
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
-    initManagFile(&minio_client);
+    //initManagFile(&minio_client);
     start_time = std::chrono::high_resolution_clock::now();
     time_t now = time(0);
     struct tm tstruct;
