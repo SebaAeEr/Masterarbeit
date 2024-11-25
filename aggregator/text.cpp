@@ -214,38 +214,6 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     return mana;
 }
 
-int getManagVersion(Aws::S3::S3Client *minio_client)
-{
-    Aws::S3::Model::GetObjectRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(manag_file_name);
-    Aws::S3::Model::GetObjectOutcome outcome;
-
-    while (true)
-    {
-        outcome = minio_client->GetObject(request);
-        if (!outcome.IsSuccess())
-        {
-            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
-        }
-        else
-        {
-            Aws::S3::Model::PutObjectRequest in_request;
-            in_request.SetBucket(bucketName);
-            in_request.SetKey(manag_file_name);
-            const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-            auto &out_stream = outcome.GetResult().GetBody();
-            size_t out_size = outcome.GetResult().GetContentLength();
-
-            int version;
-            char char_buf[sizeof(int)];
-            out_stream.read(char_buf, sizeof(int));
-            std::memcpy(&version, &char_buf, sizeof(int));
-            return version;
-        }
-    }
-}
-
 bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, int timeLimit = -1)
 {
     while (true)
@@ -422,7 +390,7 @@ Aws::S3::S3Client init()
 void printMana(Aws::S3::S3Client *minio_client)
 {
     manaFile mana = getMana(minio_client);
-    std::string status = mana.worker_lock == 0 ? status = "free" : std::to_string(mana.worker_lock);
+    std::string status = mana.worker_lock == 0 ? "free" : std::to_string(mana.worker_lock);
     std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(mana.thread_lock) << std::endl;
     for (auto &worker : mana.workers)
     {
@@ -502,7 +470,6 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
     manaFile mana = getLockedMana(minio_client, thread_id);
     while (true)
     {
-        std::cout << "It" << std::endl;
         // If no beggarWorker is yet selected choose the worker with the largest spill
         if (beggarWorker == 0)
         {
@@ -559,7 +526,6 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
         }
         if (m_file.second == 0)
         {
-            std::cout << "second == 0, givenbeggarWorker: " << given_beggarWorker << std::endl;
             if (given_beggarWorker == 0)
             {
                 worker_blacklist.push_back(beggarWorker);
@@ -1047,7 +1013,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
         // Check if Estimations exceed memlimit
         // if (hashmap.size() * avg + phyMemBase > memLimit * (1ull << 20))
-        if (hmap->size() * avg + base_size / threadNumber >= memLimit * 0.8)
+        if (hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
         {
             // std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + (i - head + 1) << " size: " << hmap->size() << " avg: " << avg << " diff: " << i - head << std::endl;
             unsigned long freed_space_temp = (i - head + 1) - ((i - head + 1) % pagesize);
@@ -1183,19 +1149,8 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             if (duration - oldduration > 500)
             {
                 oldduration = duration;
-                output << std::to_string(newsize);
-                output << ",";
-
-                output << std::to_string((*avg) * comb_hash_size.load());
-                output << ",";
-                output << std::to_string(phyMemBase);
-                output << ",";
-                output << std::to_string(reservedMem);
-                output << ",";
-                output << std::to_string(*extra_mem);
-                output << ",";
-                output << std::to_string(duration);
-                output << "\n";
+                output << std::to_string(newsize) << "," << std::to_string((*avg) * comb_hash_size.load()) << ","  << std::to_string(phyMemBase) << "," << std::to_string(reservedMem) << 
+                "," << std::to_string(*extra_mem) << "," << std::to_string(duration) << "\n";
                 // std::cout << newsize << "," << calc_size << "," << duration << std::endl;
             }
         }
@@ -1226,7 +1181,6 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         usleep(100);
     }
     std::cout << "Max Size: " << maxSize << "B." << std::endl;
-    output.close();
 }
 
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
@@ -1434,7 +1388,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
 
             // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
-            if (hmap->size() * (*avg) + base_size >= memLimit * 0.7)
+            if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
             {
                 unsigned long used_space = (newi - input_head) * sizeof(unsigned long);
                 if (used_space > pagesize)
@@ -1607,7 +1561,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     if (spilled_bitmap)
                     {
                         (*diff)[0] = head - lower_head;
-                        if (hmap->size() * (*avg) + base_size >= memLimit * 0.7)
+                        if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
                         {
                             // std::cout << "spilling: " << head - lower_head << std::endl;
                             unsigned long freed_space_temp = (head - lower_head) - ((head - lower_head) % pagesize);
@@ -2156,7 +2110,8 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         avg = (phy - phyMemBase) / (float)(hmap.size());
         avg *= 1.2;
         std::string old_uName = uName;
-        uName += "_" + std::to_string(counter);
+        uName = worker_id;
+        uName += "_merge_" + std::to_string(counter);
         std::string empty_file = "";
         if (!spillToMinio(&hmap, empty_file, uName, memLimit - phy, &minio_client, beggarWorker, 255, 0))
         {
