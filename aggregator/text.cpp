@@ -1145,14 +1145,14 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         if (log_size)
         {
             duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000;
-            if (duration - oldduration > 500)
+            if (duration - oldduration > 100)
             {
                 oldduration = duration;
-                std::string concat_string = std::to_string(newsize) + "," + std::to_string((unsigned long)((*avg) * comb_hash_size.load())) + "," + std::to_string(phyMemBase) + "," + std::to_string(reservedMem) + "," + std::to_string(*extra_mem) + "," + std::to_string(duration);
-                // output << std::to_string(newsize) << "," << std::to_string((*avg) * comb_hash_size.load()) << "," << std::to_string(phyMemBase) << "," << std::to_string(reservedMem) << "," << std::to_string(*extra_mem) << "," << std::to_string(duration);
-                output << concat_string;
+                // std::string concat_string = std::to_string(newsize) + "," + std::to_string((unsigned long)((*avg) * comb_hash_size.load())) + "," + std::to_string(phyMemBase) + "," + std::to_string(reservedMem) + "," + std::to_string(*extra_mem) + "," + std::to_string(duration);
+                output << std::to_string(newsize) << "," << std::to_string((*avg) * comb_hash_size.load()) << "," << std::to_string(phyMemBase) << "," << std::to_string(reservedMem) << "," << std::to_string(*extra_mem) << "," << std::to_string(duration);
+                // output << concat_string;
                 output << std::endl;
-                std::cout << concat_string << std::endl;
+                // std::cout << concat_string << std::endl;
             }
         }
         while (abs(static_cast<long>(size - newsize)) > 5000000000)
