@@ -1152,7 +1152,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     {
         // int log_file = open(("times_" + date_now).c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
         // close(log_file);
-        //std::cout << "times_" + date_now + ".csv" << std::endl;
+        // std::cout << "times_" + date_now + ".csv" << std::endl;
         output.open(("times_" + date_now + ".csv").c_str());
         output << "mes_size,hmap_size,base_size,map_size,bit_size,time\n";
     }
@@ -1799,12 +1799,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     for (int i = 0; i < threadNumber - 1; i++)
     {
         emHashmaps[i] = {};
-        threads.push_back(std::thread(fillHashmap, id, &emHashmaps[i], fd, t1_size * i, t1_size, true, (memLimit - phyMemBase) / threadNumber, phyMemBase / threadNumber,
+        threads.push_back(std::thread(fillHashmap, id, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber, phyMemBase / threadNumber,
                                       std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i], &minio_client));
         id++;
     }
     emHashmaps[threadNumber - 1] = {};
-    threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, (memLimit - phyMemBase) / threadNumber, phyMemBase / threadNumber,
+    threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, phyMemBase / threadNumber,
                                   std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1], &minio_client));
 
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
