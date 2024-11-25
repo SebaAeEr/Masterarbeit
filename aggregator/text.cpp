@@ -1114,7 +1114,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     }
 }
 
-void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::vector<unsigned long> diff, float *avg, unsigned long *extra_mem)
+void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::vector<unsigned long> *diff, float *avg, unsigned long *extra_mem)
 {
     std::ofstream output;
     if (log_size)
@@ -1137,9 +1137,9 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     while (finished == 0 || finished == 1)
     {
         unsigned long reservedMem = 0;
-        for (int i = 0; i < diff.size(); i++)
+        for (int i = 0; i < diff->size(); i++)
         {
-            reservedMem += diff[i];
+            reservedMem += (*diff)[i];
         }
         size_t newsize = getPhyValue() * 1024;
         if (log_size)
@@ -1749,7 +1749,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     unsigned long extra_mem = 0;
     if (measure_mem)
     {
-        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, threadNumber, std::ref(comb_hash_size), diff, &avg, &extra_mem);
+        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, threadNumber, std::ref(comb_hash_size), &diff, &avg, &extra_mem);
     }
 
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -2054,7 +2054,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     unsigned long extra_mem = 0;
     log_size = false;
 
-    sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), diff, &avg, &extra_mem);
+    sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), &diff, &avg, &extra_mem);
 
     char beggarWorker = 0;
     unsigned long phyMemBase = getPhyValue() * 1024;
