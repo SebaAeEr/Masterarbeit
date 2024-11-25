@@ -500,7 +500,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
     char given_beggarWorker = beggarWorker;
     std::vector<char> worker_blacklist = {};
     std::pair<std::string, size_t> m_file = {"", 0};
-    manaFile mana = getLockedMana(minio_client, thread_id);
+    manaFile mana = getMana(minio_client); // getLockedMana(minio_client, thread_id);
     while (true)
     {
         std::cout << "It" << std::endl;
@@ -2104,6 +2104,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
 
     while (true)
     {
+        std::cout << "Alive!" << std::endl;
         file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, 0);
         std::cout << "beggar: " << file->second << std::endl;
         if (file->second == 0)
