@@ -700,7 +700,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     }
     freed_mem += (output_size + start_diff) - head;
     // std::cout << "freed mem: " << freed_mem << " size: " << output_size + start_diff << std::endl;
-    std::cout << "Output file size: " << output_size << std::endl;
+    // std::cout << "Output file size: " << output_size << std::endl;
     return output_size;
 }
 
@@ -1150,6 +1150,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     {
         // int log_file = open(("times_" + date_now).c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
         // close(log_file);
+        std::cout << "times_" + date_now + ".csv" << std::endl;
         output.open(("times_" + date_now + ".csv").c_str());
         output << "size, time\n";
     }
@@ -1656,7 +1657,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         //  write merged hashmap to the result and update head to point at the end of the file
         if (writeRes)
         {
-            std::cout << "Writing hmap with size: " << hmap->size() << " output_head: " << output_head << std::endl;
+            // std::cout << "Writing hmap with size: " << hmap->size() << " output_head: " << output_head << std::endl;
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
 
             if (hmap->size() > maxHashsize)
@@ -2169,7 +2170,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
 int main(int argc, char **argv)
 {
     Aws::SDKOptions options;
-    options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
+    //options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
     std::string co_output = argv[1];
