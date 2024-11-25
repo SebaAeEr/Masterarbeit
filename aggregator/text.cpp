@@ -1244,7 +1244,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     if (bitmap_size_sum > memLimit * 0.3)
     {
         std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
-        int counter = 0;
         for (auto &name : *s3spillNames2)
         {
             size_t size = std::ceil((float)(name.second) / 8);
@@ -1266,13 +1265,12 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 perror("Error mmapping the file");
                 exit(EXIT_FAILURE);
             }
-            for (int i = 0; i < size; i++)
+            for (unsigned long i = 0; i < size; i++)
             {
-                spill[i] = 255;
+                spill[i] = -1;
             }
             munmap(spill, size);
             s3spillBitmaps.push_back({fd, {}});
-            counter++;
         }
         bitmap_size_sum = 0;
     }
@@ -1511,11 +1509,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             {
                 char *bit;
                 size_t index = std::floor(head / 8);
-                if (index >= bitmap_vector->size())
-                {
-                    std::cout << "index too big: " << index << " head: " << head << " bitmap size: " << bitmap_vector->size() << std::endl;
-                    break;
-                }
                 if (!spilled_bitmap)
                 {
                     bit = &(*bitmap_vector)[index];
