@@ -1284,7 +1284,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             s3spillBitmaps.push_back({-1, bitmap});
         }
     }
-    std::cout << "Bitmaps created" << std::endl;
     *extra_mem = bitmap_size_sum;
 
     // std::cout << "comb_spill_size: " << comb_spill_size << std::endl;
@@ -1493,7 +1492,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     exit(EXIT_FAILURE);
                 }
                 madvise(bitmap_mapping, std::ceil((float)((*set_it).second) / 8), MADV_SEQUENTIAL | MADV_WILLNEED);
-                std::cout << "Size: " << std::ceil((float)((*set_it).second) / 8) << " Addr: " << bitmap_mapping << std::endl;
             }
             // std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector->size() << std::endl;
             unsigned long head = 0;
@@ -1505,7 +1503,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 // std::cout << "Load bitmap: " << i << " at index: " << head << std::endl;
             }
 
-            unsigned long lower_head = 0;
+            unsigned long lower_index = 0;
             while (spill.peek() != EOF)
             {
                 char *bit;
@@ -1571,14 +1569,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     if (spilled_bitmap)
                     {
-                        (*diff)[0] = head - lower_head;
+                        (*diff)[0] = index - lower_index;
                         if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
                         {
-                            // std::cout << "spilling: " << head - lower_head << std::endl;
-                            unsigned long freed_space_temp = (head - lower_head) - ((head - lower_head) % pagesize);
-                            if (head - lower_head >= pagesize)
+                            // std::cout << "spilling: " << head - lower_index << std::endl;
+                            unsigned long freed_space_temp = (index - lower_index) - ((index - lower_index) % pagesize);
+                            if (index - lower_index >= pagesize)
                             {
-                                if (munmap(&bitmap_mapping[lower_head], freed_space_temp) == -1)
+                                if (munmap(&bitmap_mapping[lower_index], freed_space_temp) == -1)
                                 {
                                     std::cout << freed_space_temp << std::endl;
                                     perror("Could not free memory of bitmap 1!");
@@ -1586,7 +1584,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                 // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(unsigned long) + input_head << std::endl;
                                 freed_mem += freed_space_temp;
                                 // Update Head to point at the new unfreed mapping space.
-                                lower_head += freed_space_temp;
+                                lower_index += freed_space_temp;
                             }
                             if (freed_space_temp < pagesize * 2)
                             {
@@ -1633,9 +1631,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             if (spilled_bitmap)
             {
-                if (munmap(&bitmap_mapping[lower_head], std::ceil((float)((*set_it).second) / 8) - lower_head) == -1)
+                if (munmap(&bitmap_mapping[lower_index], std::ceil((float)((*set_it).second) / 8) - lower_index) == -1)
                 {
-                    std::cout << std::ceil((float)((*set_it).second) / 8) - lower_head << " lower_head: " << lower_head << std::endl;
+                    std::cout << std::ceil((float)((*set_it).second) / 8) - lower_index << " lower_index: " << lower_index << std::endl;
                     perror("Could not free memory of bitmap 2!");
                 }
             }
