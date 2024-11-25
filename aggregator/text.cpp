@@ -66,7 +66,7 @@ bool log_time;
 std::string date_now;
 std::chrono::_V2::system_clock::time_point start_time;
 unsigned long base_size = 1;
-int thread_number;
+int threadNumber;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -1044,7 +1044,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
         // Check if Estimations exceed memlimit
         // if (hashmap.size() * avg + phyMemBase > memLimit * (1ull << 20))
-        if (hmap->size() * avg + base_size / thread_number >= memLimit * 0.8)
+        if (hmap->size() * avg + base_size / threadNumber >= memLimit * 0.8)
         {
             // std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + (i - head + 1) << " size: " << hmap->size() << " avg: " << avg << " diff: " << i - head << std::endl;
             unsigned long freed_space_temp = (i - head + 1) - ((i - head + 1) % pagesize);
@@ -1741,7 +1741,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 }
 
 // aggregate inputfilename and write results into outpufilename
-int aggregate(std::string inputfilename, std::string outputfilename, size_t memLimit, int threadNumber, bool measure_mem, Aws::S3::S3Client minio_client)
+int aggregate(std::string inputfilename, std::string outputfilename, size_t memLimit, bool measure_mem, Aws::S3::S3Client minio_client)
 {
 
     // Inits and decls
@@ -2207,7 +2207,7 @@ int main(int argc, char **argv)
     log_size = log_size_string.compare("true") == 0;
     log_time = log_time_string.compare("true") == 0;
 
-    int threadNumber = std::stoi(threadNumber_string);
+    threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
     size_t memLimit = std::stof(memLimit_string) * (1ul << 30);
     pagesize = sysconf(_SC_PAGE_SIZE);
@@ -2279,7 +2279,7 @@ int main(int argc, char **argv)
 
     if (co_output != "-")
     {
-        aggregate(co_output, agg_output, memLimit, threadNumber, true, minio_client);
+        aggregate(co_output, agg_output, memLimit, true, minio_client);
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
         std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
