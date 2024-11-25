@@ -1152,7 +1152,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         // close(log_file);
         std::cout << "times_" + date_now + ".csv" << std::endl;
         output.open(("times_" + date_now + ".csv").c_str());
-        output << "size, time\n";
+        output << "mes_size,calc_size,time\n";
     }
     int phyMemBase = (getPhyValue()) * 1024;
     bool first = true;
@@ -1176,8 +1176,17 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
                 std::cout << newsize << "," << duration << std::endl;
                 output << std::to_string(newsize);
                 output << ",";
+                unsigned long reservedMem = 0;
+                for (int i = 0; i < diff.size(); i++)
+                {
+                    reservedMem += diff[i];
+                }
+                unsigned long calc_size = ((*avg) * comb_hash_size.load()) + phyMemBase + reservedMem + (*extra_mem);
+                output << std::to_string(calc_size);
+                output << ",";
                 output << std::to_string(duration);
                 output << "\n";
+                std::cout << newsize << "," << calc_size << "," << duration << std::endl;
             }
         }
         while (abs(static_cast<long>(size - newsize)) > 5000000000)
@@ -1192,7 +1201,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             if (size > maxSize)
             {
                 maxSize = size;
-                //std::cout << "phy: " << size << std::endl;
+                // std::cout << "phy: " << size << std::endl;
             }
             if (memLimit * 0.95 < size)
             {
