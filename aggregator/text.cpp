@@ -757,7 +757,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         std::string name;
         name += worker_id;
         name += "_";
-        name += id;
+        name += std::to_string((int)(id));
         name += "_temp_spill";
         spill_file->first = open(name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     }
@@ -982,7 +982,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     std::string temp_spill_file_name;
     temp_spill_file_name += worker_id;
     temp_spill_file_name += "_";
-    temp_spill_file_name += id;
+    temp_spill_file_name += std::to_string((int)(id));
     temp_spill_file_name += "_temp_spill";
     temp_spill_file.first = open(temp_spill_file_name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     std::thread minioSpiller;
