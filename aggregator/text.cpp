@@ -65,6 +65,8 @@ bool log_size;
 bool log_time;
 std::string date_now;
 std::chrono::_V2::system_clock::time_point start_time;
+unsigned long base_size = 0;
+int thread_number;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -945,10 +947,10 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
 }
 
 void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit, int phyMembase,
-                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff)
+                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, unsigned long *shared_diff, Aws::S3::S3Client *minio_client)
 {
-    Aws::S3::S3Client minio_client = init();
-    // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
+    // Aws::S3::S3Client minio_client = init();
+    //  hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
     auto start_time = std::chrono::high_resolution_clock::now();
     int offset = 0;
     unsigned long spill_size = 0;
@@ -1042,7 +1044,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
         // Check if Estimations exceed memlimit
         // if (hashmap.size() * avg + phyMemBase > memLimit * (1ull << 20))
-        if (hmap->size() * avg + (i - head + 1) >= memLimit * 0.8)
+        if (hmap->size() * avg + base_size / thread_number >= memLimit * 0.8)
         {
             // std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + (i - head + 1) << " size: " << hmap->size() << " avg: " << avg << " diff: " << i - head << std::endl;
             unsigned long freed_space_temp = (i - head + 1) - ((i - head + 1) % pagesize);
@@ -1096,7 +1098,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     // std::cout << "spilling to: " << uName << std::endl;
                     std::string empty = "";
                     // spillToMinio(hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
-                    minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
+                    minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, minio_client, worker_id, 0, id);
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
                         std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
@@ -1152,7 +1154,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         // close(log_file);
         std::cout << "times_" + date_now + ".csv" << std::endl;
         output.open(("times_" + date_now + ".csv").c_str());
-        output << "mes_size,calc_size,time\n";
+        output << "mes_size,hmap_size,base_size,map_size,bit_size,time\n";
     }
     int phyMemBase = (getPhyValue()) * 1024;
     bool first = true;
@@ -1165,6 +1167,11 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     float duration = 0;
     while (finished == 0 || finished == 1)
     {
+        unsigned long reservedMem = 0;
+        for (int i = 0; i < diff.size(); i++)
+        {
+            reservedMem += diff[i];
+        }
         size_t newsize = getPhyValue() * 1024;
         if (log_size)
         {
@@ -1176,13 +1183,15 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
                 std::cout << newsize << "," << duration << std::endl;
                 output << std::to_string(newsize);
                 output << ",";
-                unsigned long reservedMem = 0;
-                for (int i = 0; i < diff.size(); i++)
-                {
-                    reservedMem += diff[i];
-                }
+
                 unsigned long calc_size = ((*avg) * comb_hash_size.load()) + phyMemBase + reservedMem + (*extra_mem);
-                output << std::to_string(calc_size);
+                output << std::to_string((*avg) * comb_hash_size.load());
+                output << ",";
+                output << std::to_string(phyMemBase);
+                output << ",";
+                output << std::to_string(reservedMem);
+                output << ",";
+                output << std::to_string(*extra_mem);
                 output << ",";
                 output << std::to_string(duration);
                 output << "\n";
@@ -1194,6 +1203,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             newsize = getPhyValue() * 1024;
         }
         size = newsize;
+        base_size = phyMemBase + reservedMem + (*extra_mem);
         // std::cout << "phy: " << size << std::endl;
 
         if (size > old_size)
@@ -1205,11 +1215,6 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             }
             if (memLimit * 0.95 < size)
             {
-                unsigned long reservedMem = 0;
-                for (int i = 0; i < diff.size(); i++)
-                {
-                    reservedMem += diff[i];
-                }
                 *avg = (size - phyMemBase - reservedMem - (*extra_mem)) / (float)(comb_hash_size.load());
                 *avg *= 1.2;
                 // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
@@ -1428,7 +1433,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
 
             // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
-            if (hmap->size() * (*avg) + (newi - input_head) * sizeof(unsigned long) >= memLimit * 0.7)
+            if (hmap->size() * (*avg) + base_size >= memLimit * 0.7)
             {
                 unsigned long used_space = (newi - input_head) * sizeof(unsigned long);
                 if (used_space > pagesize)
@@ -1600,7 +1605,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     if (spilled_bitmap)
                     {
-                        if (hmap->size() * (*avg) + (head - lower_head) + bitmap_size_sum >= memLimit * 0.7)
+                        (*diff)[0] = head - lower_head;
+                        if (hmap->size() * (*avg) + base_size >= memLimit * 0.7)
                         {
                             // std::cout << "spilling: " << head - lower_head << std::endl;
                             unsigned long freed_space_temp = (head - lower_head) - ((head - lower_head) % pagesize);
@@ -1633,7 +1639,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     else
                     {
-                        if (hmap->size() * (*avg) + bitmap_size_sum >= memLimit * 0.7)
+                        if (hmap->size() * (*avg) + base_size >= memLimit * 0.7)
                         {
                             if (!locked)
                             {
@@ -1796,12 +1802,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, id, &emHashmaps[i], fd, t1_size * i, t1_size, true, (memLimit - phyMemBase) / threadNumber, phyMemBase / threadNumber,
-                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i]));
+                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[i], &minio_client));
         id++;
     }
     emHashmaps[threadNumber - 1] = {};
     threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, (memLimit - phyMemBase) / threadNumber, phyMemBase / threadNumber,
-                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1]));
+                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff[threadNumber - 1], &minio_client));
 
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
     /* avg = (getPhyValue() - phyMemBase) / (float)(comb_hash_size.load());
