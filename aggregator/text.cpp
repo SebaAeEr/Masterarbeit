@@ -1168,6 +1168,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         {
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000;
+            std::cout << newsize << "," << duration << std::endl;
             output << std::to_string(newsize);
             output << ",";
             output << std::to_string(duration);
@@ -1185,7 +1186,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             if (size > maxSize)
             {
                 maxSize = size;
-                // std::cout << "phy: " << size << std::endl;
+                std::cout << "phy: " << size << std::endl;
             }
             if (memLimit * 0.95 < size)
             {
@@ -2183,10 +2184,7 @@ int main(int argc, char **argv)
     std::string log_time_string = argv[8];
 
     log_size = log_size_string.compare("true") == 0;
-    std::cout << log_size_string << std::endl;
-    std::cout << log_size << std::endl;
     log_time = log_time_string.compare("true") == 0;
-    std::cout << log_time_string << std::endl;
 
     int threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);

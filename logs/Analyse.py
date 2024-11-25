@@ -2,6 +2,7 @@ import json
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 
 def convertByteToGB(byte: str):
@@ -734,6 +735,30 @@ def analyse_1_6_13():
         )
 
 
+def c_size_by_time():
+    try:
+        directory = "c++_logs"
+        f = open(os.path.join(directory, "times_2024-11-25.14_19_25.csv"))
+    except:
+        print("File not found.")
+    df = pd.read_csv(f)
+    # Step 2: Extract the columns you want to plot
+    # Assuming the columns are named 'Column1' and 'Column2' (change these to match your CSV)
+    x = df[" time"]
+    y = df["size"]
+
+    # Step 3: Create the plot
+    plt.figure()
+    plt.plot(x, y, label="size")  # Line plot (you can change to scatter plot or others)
+    plt.xlabel("time")  # Label for x-axis
+    plt.ylabel("size")  # Label for y-axis
+    plt.title("size over time")  # Title of the plot
+    plt.legend()  # Show the legend
+
+    # Step 4: Show the plot
+    plt.show()
+
+
 # TPC()
 # analyse_Query("8")
-analyse_1_6_13()
+c_size_by_time()
