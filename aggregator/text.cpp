@@ -60,7 +60,7 @@ int value_number;
 char worker_id;
 std::string manag_file_name = "manag_file";
 long pagesize;
-std::string bucketName = "trinobucket2";
+std::string bucketName = "trinobucket";
 bool log_size;
 bool log_time;
 std::string date_now;
@@ -2093,13 +2093,15 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     unsigned long extra_mem = 0;
     sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), diff, &avg, &extra_mem);
 
-    char beggarWorker = 0;
+    char beggarWorker = 1;
     unsigned long phyMemBase = getPhyValue() * 1024;
     std::string uName = "merge";
+    int counter = 0;
     std::pair<std::pair<std::string, size_t>, char> *file;
     while (true)
     {
         file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, 0);
+        std::cout << "beggar: " << file->second << std::endl;
         if (file->second == 0)
         {
             if (beggarWorker != 0)
@@ -2150,7 +2152,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         avg = (phy - phyMemBase) / (float)(hmap.size());
         avg *= 1.2;
         std::string old_uName = uName;
-        uName += "_" + file->first.first;
+        uName += "_" + std::to_string(counter);
         std::string empty_file = "";
         if (!spillToMinio(&hmap, empty_file, uName, memLimit - phy, &minio_client, beggarWorker, 255, 0))
         {
@@ -2182,6 +2184,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
             }
         }
         writeMana(&minio_client, mana, true);
+        counter++;
         delete file;
     }
     finished = 2;
