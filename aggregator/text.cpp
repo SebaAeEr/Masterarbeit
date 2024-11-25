@@ -2170,7 +2170,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
 int main(int argc, char **argv)
 {
     Aws::SDKOptions options;
-    //options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
+    // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
     std::string co_output = argv[1];
@@ -2183,7 +2183,9 @@ int main(int argc, char **argv)
     std::string log_time_string = argv[8];
 
     log_size = log_size_string.compare("true");
+    std::cout << log_size << std::endl;
     log_time = log_time_string.compare("true");
+    std::cout << log_time_string << std::endl;
 
     int threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
