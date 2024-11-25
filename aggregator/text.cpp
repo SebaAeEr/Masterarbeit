@@ -60,7 +60,7 @@ int value_number;
 char worker_id;
 std::string manag_file_name = "manag_file";
 long pagesize;
-std::string bucketName = "trinobucket2";
+std::string bucketName = "trinobucket";
 bool log_size;
 bool log_time;
 std::string date_now;
@@ -343,7 +343,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
 }
 
 manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
-
 {
     std::random_device dev;
     std::mt19937 rng(dev());
@@ -500,7 +499,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
     char given_beggarWorker = beggarWorker;
     std::vector<char> worker_blacklist = {};
     std::pair<std::string, size_t> m_file = {"", 0};
-    manaFile mana = getMana(minio_client); // getLockedMana(minio_client, thread_id);
+    manaFile mana = getLockedMana(minio_client, thread_id);
     while (true)
     {
         std::cout << "It" << std::endl;
@@ -530,6 +529,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
         }
         if (beggarWorker == 0)
         {
+            writeMana(minio_client, mana, true);
             return res;
         }
         for (auto &worker : mana.workers)
@@ -567,6 +567,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
             }
             else
             {
+                writeMana(minio_client, mana, true);
                 return res;
             }
         }
@@ -2096,7 +2097,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
 
     sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), diff, &avg, &extra_mem);
 
-    char beggarWorker = '1';
+    char beggarWorker = 0;
     unsigned long phyMemBase = getPhyValue() * 1024;
     std::string uName = "merge";
     int counter = 0;
@@ -2104,9 +2105,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
 
     while (true)
     {
-        std::cout << "Alive!" << std::endl;
         file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, 0);
-        std::cout << "beggar: " << file->second << std::endl;
         if (file->second == 0)
         {
             if (beggarWorker != 0)
@@ -2273,7 +2272,7 @@ int main(int argc, char **argv)
     }
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
-    // initManagFile(&minio_client);
+    initManagFile(&minio_client);
     start_time = std::chrono::high_resolution_clock::now();
     time_t now = time(0);
     struct tm tstruct;
