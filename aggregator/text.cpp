@@ -1161,18 +1161,24 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     size_t maxSize = 0;
     size_t old_size = 0;
     size_t size = 0;
+    float oldduration = 0;
+    float duration = 0;
     while (finished == 0 || finished == 1)
     {
         size_t newsize = getPhyValue() * 1024;
         if (log_size)
         {
             auto stop = std::chrono::high_resolution_clock::now();
-            auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000;
-            std::cout << newsize << "," << duration << std::endl;
-            output << std::to_string(newsize);
-            output << ",";
-            output << std::to_string(duration);
-            output << "\n";
+            duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000;
+            if (duration - oldduration > 1000)
+            {
+                oldduration = duration;
+                std::cout << newsize << "," << duration << std::endl;
+                output << std::to_string(newsize);
+                output << ",";
+                output << std::to_string(duration);
+                output << "\n";
+            }
         }
         while (abs(static_cast<long>(size - newsize)) > 5000000000)
         {
