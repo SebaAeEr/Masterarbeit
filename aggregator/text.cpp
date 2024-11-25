@@ -1173,10 +1173,17 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             if (memLimit * 0.95 < size)
             {
                 *avg = (size - base_size) / (float)(comb_hash_size.load());
-                *avg *= 1.2;
+                //*avg *= 1.2;
                 // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
                 usleep(0);
             }
+        }
+        if (base_size > memLimit * 0.95 && size < memLimit * 0.8)
+        {
+            *avg = (size - base_size) / (float)(comb_hash_size.load());
+            //*avg *= 1.2;
+            // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
+            usleep(0);
         }
         old_size = size;
         usleep(100);
@@ -2050,6 +2057,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     int finished = 0;
     std::thread sizePrinter;
     unsigned long extra_mem = 0;
+    log_size = false;
 
     sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), diff, &avg, &extra_mem);
 
