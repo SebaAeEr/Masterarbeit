@@ -2095,16 +2095,12 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     unsigned long extra_mem = 0;
 
     sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), diff, &avg, &extra_mem);
-    std::cout << "Alive!" << std::endl;
 
     char beggarWorker = '1';
-    std::cout << "Alive!" << std::endl;
     unsigned long phyMemBase = getPhyValue() * 1024;
-    std::cout << "Alive!" << std::endl;
     std::string uName = "merge";
     int counter = 0;
     std::pair<std::pair<std::string, size_t>, char> *file;
-    std::cout << "beggar: " << file->second << std::endl;
 
     while (true)
     {
