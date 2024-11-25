@@ -962,8 +962,15 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     for (unsigned long i = 0; i < size + offset; i++)
     {
         i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
-
-        (*shared_diff)[id] = i - head;
+        if (i - head > 0)
+        {
+            (*shared_diff)[id] = i - head;
+        }
+        else
+        {
+            std::cout << "negativ diff! i: " << i << ", head: " << head << std::endl;
+            return;
+        }
         if (i == ULONG_MAX)
         {
             break;
@@ -1016,9 +1023,9 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         if (hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
         {
             // std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + (i - head + 1) << " size: " << hmap->size() << " avg: " << avg << " diff: " << i - head << std::endl;
-            unsigned long freed_space_temp = (i - head + 1) - ((i - head + 1) % pagesize);
+            unsigned long freed_space_temp = (i - head) - ((i - head) % pagesize);
             // Free up space from mapping that is no longer needed.
-            if (i - head + 1 > pagesize)
+            if (i - head > pagesize)
             {
                 // calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
 
