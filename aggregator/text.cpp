@@ -975,7 +975,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     std::string okey, lineObjectValue;
     std::pair<int, size_t> spill_file(-1, 0);
     std::pair<int, size_t> temp_spill_file(-1, 0);
-    std::string temp_spill_file_name = id + "temp_spill";
+    std::string temp_spill_file_name = worker_id;
+    temp_spill_file_name += "_";
+    temp_spill_file_name += id;
+    temp_spill_file_name += "_temp_spill";
     temp_spill_file.first = open(temp_spill_file_name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     std::thread minioSpiller;
 
@@ -1142,7 +1145,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     {
         // int log_file = open(("times_" + date_now).c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
         // close(log_file);
-        output.open(("times_" + date_now).c_str());
+        output.open(("times_" + date_now + ".csv").c_str());
         output << "size, time\n";
     }
     int phyMemBase = (getPhyValue()) * 1024;
@@ -1160,7 +1163,9 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000;
             output << std::to_string(newsize);
+            output << ",";
             output << std::to_string(duration);
+            output << "\n";
         }
         while (abs(static_cast<long>(size - newsize)) > 5000000000)
         {
