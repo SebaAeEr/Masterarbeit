@@ -962,7 +962,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     for (unsigned long i = 0; i < size + offset; i++)
     {
         i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
-        if (i - head > 0)
+        if (i - head > 0 && i - head < 59688700600)
         {
             (*shared_diff)[id] = i - head;
         }
@@ -970,10 +970,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         {
             std::cout << "negativ diff! i: " << i << ", head: " << head << std::endl;
             return;
-        }
-        if (i == ULONG_MAX)
-        {
-            break;
         }
         try
         {
@@ -1155,6 +1151,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             {
                 std::cout << it << std::endl;
             }
+            return;
         }
         size_t newsize = getPhyValue() * 1024;
         if (log_size)
