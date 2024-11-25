@@ -1144,13 +1144,12 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         size_t newsize = getPhyValue() * 1024;
         if (log_size)
         {
-            auto stop = std::chrono::high_resolution_clock::now();
-            duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000;
+            duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000;
             if (duration - oldduration > 500)
             {
+                std::cout << "asdf" << std::endl;
                 oldduration = duration;
-                output << std::to_string(newsize) << "," << std::to_string((*avg) * comb_hash_size.load()) << ","  << std::to_string(phyMemBase) << "," << std::to_string(reservedMem) << 
-                "," << std::to_string(*extra_mem) << "," << std::to_string(duration) << "\n";
+                output << std::to_string(newsize) << "," << std::to_string((*avg) * comb_hash_size.load()) << "," << std::to_string(phyMemBase) << "," << std::to_string(reservedMem) << "," << std::to_string(*extra_mem) << "," << std::to_string(duration) << "\n";
                 // std::cout << newsize << "," << calc_size << "," << duration << std::endl;
             }
         }
