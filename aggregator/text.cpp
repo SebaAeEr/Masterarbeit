@@ -503,6 +503,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
     manaFile mana = getLockedMana(minio_client, thread_id);
     while (true)
     {
+        std::cout << "It" << std::endl;
         // If no beggarWorker is yet selected choose the worker with the largest spill
         if (beggarWorker == 0)
         {
@@ -2099,6 +2100,10 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     std::string uName = "merge";
     int counter = 0;
     std::pair<std::pair<std::string, size_t>, char> *file;
+
+    manaFile temp = getMana(&minio_client);
+    writeMana(&minio_client, temp, true);
+
     while (true)
     {
         file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, 0);
