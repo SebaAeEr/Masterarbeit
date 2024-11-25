@@ -2086,14 +2086,16 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
     std::vector<std::pair<int, size_t>> spills = std::vector<std::pair<int, size_t>>();
     std::atomic<unsigned long> comb_hash_size = 0;
-    std::vector<unsigned long> diff;
+    std::vector<unsigned long> diff = {0};
     std::vector<std::string> blacklist;
 
     float avg = 1;
     int finished = 0;
     std::thread sizePrinter;
     unsigned long extra_mem = 0;
+    std::cout << "Alive!" << std::endl;
     sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), diff, &avg, &extra_mem);
+    std::cout << "Alive!" << std::endl;
 
     char beggarWorker = '1';
     unsigned long phyMemBase = getPhyValue() * 1024;
@@ -2272,7 +2274,7 @@ int main(int argc, char **argv)
     }
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
-    //initManagFile(&minio_client);
+    // initManagFile(&minio_client);
     start_time = std::chrono::high_resolution_clock::now();
     time_t now = time(0);
     struct tm tstruct;
