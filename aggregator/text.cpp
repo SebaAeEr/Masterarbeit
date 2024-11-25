@@ -1170,7 +1170,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         {
             auto stop = std::chrono::high_resolution_clock::now();
             duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000;
-            if (duration - oldduration > 1000)
+            if (duration - oldduration > 100)
             {
                 oldduration = duration;
                 std::cout << newsize << "," << duration << std::endl;
@@ -1192,7 +1192,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             if (size > maxSize)
             {
                 maxSize = size;
-                std::cout << "phy: " << size << std::endl;
+                //std::cout << "phy: " << size << std::endl;
             }
             if (memLimit * 0.95 < size)
             {
@@ -1211,6 +1211,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         usleep(100);
     }
     std::cout << "Max Size: " << maxSize << "B." << std::endl;
+    output.close();
 }
 
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
