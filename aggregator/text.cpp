@@ -26,6 +26,7 @@
 #include <aws/s3/model/PutObjectLegalHoldRequest.h>
 #include <bitset>
 #include <cmath>
+#include <time.h>
 
 enum Operation
 {
@@ -60,6 +61,10 @@ char worker_id;
 std::string manag_file_name = "manag_file";
 long pagesize;
 std::string bucketName = "trinobucket2";
+bool log_size;
+bool log_time;
+std::string date_now;
+std::chrono::_V2::system_clock::time_point start_time;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -1132,6 +1137,14 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
 void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::vector<unsigned long> diff, float *avg, unsigned long *extra_mem)
 {
+    std::ofstream output;
+    if (log_size)
+    {
+        // int log_file = open(("times_" + date_now).c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+        // close(log_file);
+        output.open(("times_" + date_now).c_str());
+        output << "size, time\n";
+    }
     int phyMemBase = (getPhyValue()) * 1024;
     bool first = true;
     int small_counter = 0;
@@ -1142,6 +1155,13 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     while (finished == 0 || finished == 1)
     {
         size_t newsize = getPhyValue() * 1024;
+        if (log_size)
+        {
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000;
+            output << std::to_string(newsize);
+            output << std::to_string(duration);
+        }
         while (abs(static_cast<long>(size - newsize)) > 5000000000)
         {
             newsize = getPhyValue() * 1024;
@@ -2140,6 +2160,11 @@ int main(int argc, char **argv)
     std::string threadNumber_string = argv[4];
     std::string tpc_query_string = argv[5];
     worker_id = *argv[6];
+    std::string log_size_string = argv[7];
+    std::string log_time_string = argv[8];
+
+    log_size = log_size_string.compare("true");
+    log_time = log_time_string.compare("true");
 
     int threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
@@ -2201,13 +2226,21 @@ int main(int argc, char **argv)
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
     initManagFile(&minio_client);
-    auto start = std::chrono::high_resolution_clock::now();
+    start_time = std::chrono::high_resolution_clock::now();
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+    tstruct = *localtime(&now);
+    // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+    // for more information about date/time format
+    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+    date_now = buf;
 
     if (co_output != "-")
     {
         aggregate(co_output, agg_output, memLimit, threadNumber, true, minio_client);
         auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()) / 1000000;
+        auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
         std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
         if (tpc_sup != "-")
         {
