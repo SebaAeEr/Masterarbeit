@@ -419,6 +419,24 @@ void initManagFile(Aws::S3::S3Client *minio_client)
     printMana(minio_client);
 }
 
+void printProgressBar(float progress)
+{
+    int barWidth = 70;
+    std::cout << "[";
+    int pos = barWidth * progress;
+    for (int i = 0; i < barWidth; ++i)
+    {
+        if (i < pos)
+            std::cout << "=";
+        else if (i == pos)
+            std::cout << ">";
+        else
+            std::cout << " ";
+    }
+    std::cout << "] " << int(progress * 100.0) << " %\r";
+    std::cout.flush();
+}
+
 int addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, size_t file_size, char write_to_id, unsigned char fileStatus, char thread_id)
 {
     manaFile mana = getLockedMana(minio_client, thread_id);
@@ -916,7 +934,7 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
 }
 
 void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit, int phyMembase,
-                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::vector<unsigned long> *shared_diff, Aws::S3::S3Client *minio_client)
+                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::vector<unsigned long> *shared_diff, Aws::S3::S3Client *minio_client, std::atomic<unsigned long> &readBytes)
 {
     // Aws::S3::S3Client minio_client = init();
     //  hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
@@ -957,6 +975,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     temp_spill_file_name += "_temp_spill";
     temp_spill_file.first = open(temp_spill_file_name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     std::thread minioSpiller;
+    unsigned long old_i = 0;
 
     // loop through entire mapping
     for (unsigned long i = 0; i < size + offset; i++)
@@ -967,6 +986,8 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             break;
         }
         (*shared_diff)[id] = i - head;
+        readBytes.fetch_add(i - old_i);
+        old_i = i;
 
         try
         {
@@ -1200,28 +1221,9 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     output.close();
 }
 
-void printProgressBar(float progress)
-{
-    int barWidth = 70;
-    std::cout << "[";
-    int pos = barWidth * progress;
-    for (int i = 0; i < barWidth; ++i)
-    {
-        if (i < pos)
-            std::cout << "=";
-        else if (i == pos)
-            std::cout << ">";
-        else
-            std::cout << " ";
-    }
-    std::cout << "] " << int(progress * 100.0) << " %\r";
-    std::cout.flush();
-}
-
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
           float *avg, float memLimit, std::vector<unsigned long> *diff, std::string &outputfilename, std::set<std::pair<std::string, size_t>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client, unsigned long *extra_mem, bool writeRes)
 {
-
     // Open the outputfile to write results
     int output_fd;
     if (writeRes)
@@ -1306,6 +1308,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         }
     }
     *extra_mem = bitmap_size_sum;
+    printProgressBar(0);
 
     // std::cout << "comb_spill_size: " << comb_spill_size << std::endl;
 
@@ -1478,7 +1481,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         for (auto set_it = std::next(s3spillNames2->begin(), i); set_it != s3spillNames2->end(); set_it++)
         {
             firsts3File = hmap->empty();
-            // std::cout << "Start reading: " << spillname << std::endl;
+            std::cout << "Start reading: " << (*set_it).first << std::endl;
             Aws::S3::Model::GetObjectRequest request;
             request.SetBucket(bucketName);
             request.SetKey((*set_it).first);
@@ -1670,14 +1673,15 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             int counter = 0;
             for (auto &name : *s3spillNames2)
             {
-                if(counter >= s3spillFile_head) {
+                if (counter >= s3spillFile_head)
+                {
                     break;
                 }
                 finished_rows += name.second;
-                counter ++;
+                counter++;
             }
             finished_rows += s3spillStart_head;
-            printProgressBar(finished_rows / (float) (overall_s3spillsize));
+            printProgressBar(finished_rows / (float)(overall_s3spillsize));
             // std::cout << "Writing hmap with size: " << hmap->size() << " output_head: " << output_head << std::endl;
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
 
@@ -1768,6 +1772,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmaps[threadNumber];
     std::vector<std::pair<int, size_t>> spills = std::vector<std::pair<int, size_t>>();
     std::atomic<unsigned long> numLines = 0;
+    std::atomic<unsigned long> readBytes = 0;
     std::atomic<unsigned long> comb_hash_size = 0;
     std::vector<unsigned long> diff(threadNumber, 0);
     size_t t1_size = size / threadNumber - (size / threadNumber % pagesize);
@@ -1795,18 +1800,23 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, id, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber, phyMemBase / threadNumber,
-                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client));
+                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes)));
         id++;
     }
     emHashmaps[threadNumber - 1] = {};
     threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, phyMemBase / threadNumber,
-                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client));
+                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes)));
 
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
     /* avg = (getPhyValue() - phyMemBase) / (float)(comb_hash_size.load());
     avg *= 1.3;
     std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " #Hash entries: " << comb_hash_size.load() << " avg: " << avg << std::endl;
  */
+    while (readBytes < size)
+    {
+        printProgressBar(readBytes / size);
+    }
+
     for (auto &thread : threads)
     {
         thread.join();
