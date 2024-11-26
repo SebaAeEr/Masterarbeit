@@ -1089,7 +1089,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     spill_file_name += "spill";
                 }
                 std::pair<int, size_t> spill_file(-1, 0);
-                std::cout << spill_file_name << ", " << hmap->size() << std::endl;
+                // std::cout << spill_file_name << ", " << hmap->size() << std::endl;
                 spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
                 if (spilltoS3)
                 {
