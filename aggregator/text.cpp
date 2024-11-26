@@ -1089,12 +1089,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     spill_file_name += "spill";
                 }
                 std::pair<int, size_t> spill_file(-1, 0);
-                std::cout << "spilling locally" << std ::endl;
+                std::cout << spill_file_name << std::endl;
                 spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
-                std::cout << "finished spilling locally" << std ::endl;
                 if (spilltoS3)
                 {
-                    std::cout << "spilling s3" << std ::endl;
                     if (spillS3Thread)
                     {
                         minioSpiller.join();
