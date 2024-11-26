@@ -1171,18 +1171,10 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     while (finished == 0 || finished == 1)
     {
         unsigned long reservedMem = 0;
-        for (auto &it : *diff)
+        /* for (auto &it : *diff)
         {
             reservedMem += it;
-        }
-        if (reservedMem > 59688700600)
-        {
-            std::cout << "Too big reservedMem!" << std::endl;
-            for (auto &it : *diff)
-            {
-                std::cout << it << std::endl;
-            }
-        }
+        } */
         size_t newsize = getPhyValue() * 1024;
         if (log_size)
         {
