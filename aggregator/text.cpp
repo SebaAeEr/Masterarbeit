@@ -1226,7 +1226,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             usleep(0);
         }
         old_size = size;
-        usleep(100);
+        usleep(10);
     }
     std::cout << "Max Size: " << maxSize << "B." << std::endl;
     output.close();
