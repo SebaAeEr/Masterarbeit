@@ -27,6 +27,7 @@
 #include <bitset>
 #include <cmath>
 #include <time.h>
+#include <atomic>
 
 enum Operation
 {
@@ -1148,7 +1149,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     }
 }
 
-void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::vector<unsigned long> *diff, float *avg, unsigned long *extra_mem)
+void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::vector<std::atomic<unsigned long>> *diff, float *avg, unsigned long *extra_mem)
 {
     std::ofstream output;
     if (log_size)
@@ -1225,7 +1226,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
 }
 
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
-          float *avg, float memLimit, std::vector<unsigned long> *diff, std::string &outputfilename, std::set<std::pair<std::string, size_t>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client, unsigned long *extra_mem, bool writeRes)
+          float *avg, float memLimit, std::vector<std::atomic<unsigned long>> *diff, std::string &outputfilename, std::set<std::pair<std::string, size_t>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client, unsigned long *extra_mem, bool writeRes)
 {
     // Open the outputfile to write results
     int output_fd;
@@ -1234,8 +1235,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     }
     auto start_time = std::chrono::high_resolution_clock::now();
-    diff->clear();
-    diff->push_back(0);
+    for (auto &it : *diff)
+    {
+        it.exchange(0);
+    }
     // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
     unsigned long input_head_base = 0;
     unsigned long output_head = 0;
@@ -1454,7 +1457,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     if (spilled_bitmap)
                     {
-                        (*diff)[0] = index - lower_index;
+                        (*diff)[0].exchange(index - lower_index);
                         if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
                         {
                             // std::cout << "spilling: " << head - lower_index << std::endl;
@@ -1572,7 +1575,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             newi = i - offset;
             unsigned long ognewi = newi;
-            (*diff)[0] = (newi - input_head) * sizeof(unsigned long);
+            (*diff)[0].exchange((newi - input_head) * sizeof(unsigned long));
 
             if (spill_map[newi] == ULONG_MAX)
             {
@@ -1779,7 +1782,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::atomic<unsigned long> readBytes = 0;
     std::atomic<unsigned long> comb_hash_size = 0;
     std::atomic<unsigned long> comb_spill_size = 0;
-    std::vector<std::atomic<unsigned long>> diff(threadNumber, 0);
+    std::vector<std::atomic<unsigned long>> diff(threadNumber);
+    for (int i = 0; i < diff.size(); i++)
+    {
+        diff[i].exchange(0);
+    }
     size_t t1_size = size / threadNumber - (size / threadNumber % pagesize);
     size_t t2_size = size - t1_size * (threadNumber - 1);
     std::cout << "t1 size: " << t1_size << " t2 size: " << t2_size << std::endl;
@@ -1881,8 +1888,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     start_time = std::chrono::high_resolution_clock::now();
     unsigned long written_lines = 0;
     unsigned long read_lines = 0;
-    diff.clear();
-    diff.push_back(0);
     comb_hash_size = emHashmap.size();
     unsigned long freed_mem = 0;
     unsigned long overall_size = 0;
@@ -2139,7 +2144,8 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
     std::vector<std::pair<int, size_t>> spills = std::vector<std::pair<int, size_t>>();
     std::atomic<unsigned long> comb_hash_size = 0;
-    std::vector<unsigned long> diff = {0};
+    std::vector<std::atomic<unsigned long>> diff(1);
+    diff[0].exchange(0);
     std::vector<std::string> blacklist;
 
     float avg = 1;
