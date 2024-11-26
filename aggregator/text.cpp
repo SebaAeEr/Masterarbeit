@@ -68,6 +68,7 @@ std::string date_now;
 std::chrono::_V2::system_clock::time_point start_time;
 unsigned long base_size = 1;
 int threadNumber;
+bool accessDiff = true;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -984,7 +985,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         {
             break;
         }
-        (*shared_diff)[id].exchange(i - head);
+        if (accessDiff)
+        {
+            (*shared_diff)[id].exchange(i - head);
+        }
         readBytes.fetch_add(i - old_i);
         old_i = i;
 
@@ -1172,10 +1176,12 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     while (finished == 0 || finished == 1)
     {
         unsigned long reservedMem = 0;
+        accessDiff = false;
         for (int i = 0; i < diff->size(); i++)
         {
             reservedMem += (*diff)[i].load();
         }
+        accessDiff = true;
         size_t newsize = getPhyValue() * 1024;
         if (log_size)
         {
@@ -1457,7 +1463,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     if (spilled_bitmap)
                     {
-                        (*diff)[0].exchange(index - lower_index);
+                        if (accessDiff)
+                        {
+                            (*diff)[0].exchange(index - lower_index);
+                        }
                         if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
                         {
                             // std::cout << "spilling: " << head - lower_index << std::endl;
@@ -1575,7 +1584,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             newi = i - offset;
             unsigned long ognewi = newi;
-            (*diff)[0].exchange((newi - input_head) * sizeof(unsigned long));
+            if (accessDiff)
+            {
+                (*diff)[0].exchange((newi - input_head) * sizeof(unsigned long));
+            }
 
             if (spill_map[newi] == ULONG_MAX)
             {
