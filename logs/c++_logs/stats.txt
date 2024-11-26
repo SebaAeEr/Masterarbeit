@@ -1,0 +1,22 @@
+1 Worker, 4 threads MM:
+1406s
+  merge: 738s
+  scan: 252s
+  spill size: 18.15 GB
+  read lines: 812093447
+  
+
+1 Worker, 4 threads:
+6962s
+  merge: 6431s
+  scan: 505s
+  spill size: 4,58GB
+  read lines: 837172280
+
+2 Worker, 4 threads:
+7008s
+  merge : 6462s
+  scan: 519s
+  spill size: 4,55GB
+  read lines: 812863563
+  merged file: 1 with 5
