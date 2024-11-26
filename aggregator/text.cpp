@@ -533,7 +533,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                     if (get<2>(file) == 0 && !std::count(blacklist->begin(), blacklist->end(), get<0>(file)))
                     {
                         size_t size_temp = get<1>(file);
-                        if (size_temp > max && (size_temp / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) < memLimit)
+                        if (size_temp > max && (size_temp / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) + base_size < memLimit * 0.9)
                         {
                             max = size_temp;
                             m_file = {get<0>(file), size_temp};
@@ -736,7 +736,7 @@ unsigned long parseJson(char *mapping, unsigned long start, std::string keys[], 
     }
 }
 
-void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::pair<int, size_t> *spill_file, char id, size_t free_mem)
+void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::pair<int, size_t> *spill_file, char id, size_t free_mem, std::string &fileName)
 {
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
     // Calc spill size
@@ -744,12 +744,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     if (spill_file->first == -1)
     {
-        std::string name;
-        name += worker_id;
-        name += "_";
-        name += std::to_string((int)(id));
-        name += "_temp_spill";
-        spill_file->first = open(name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+        spill_file->first = open(fileName.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     }
 
     // extend file
@@ -935,7 +930,8 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
 }
 
 void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit, int phyMembase,
-                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::vector<unsigned long> *shared_diff, Aws::S3::S3Client *minio_client, std::atomic<unsigned long> &readBytes)
+                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::vector<unsigned long> *shared_diff, Aws::S3::S3Client *minio_client,
+                 std::atomic<unsigned long> &readBytes, unsigned long memLimitMain, std::atomic<unsigned long> &comb_spill_size)
 {
     // Aws::S3::S3Client minio_client = init();
     //  hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
@@ -967,16 +963,17 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     unsigned long opValue = 0;
     int spill_number = 0;
     std::string okey, lineObjectValue;
-    std::pair<int, size_t> spill_file(-1, 0);
+
     std::pair<int, size_t> temp_spill_file(-1, 0);
     std::string temp_spill_file_name;
     temp_spill_file_name += worker_id;
     temp_spill_file_name += "_";
     temp_spill_file_name += std::to_string((int)(id));
     temp_spill_file_name += "_temp_spill";
-    temp_spill_file.first = open(temp_spill_file_name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     std::thread minioSpiller;
     unsigned long old_i = 0;
+    bool spilltoS3 = false;
+    bool spillS3Thread = false;
 
     // loop through entire mapping
     for (unsigned long i = 0; i < size + offset; i++)
@@ -1068,28 +1065,46 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     maxHmapSize = hmap->size();
                     // std::cout << "new MaxSize: " << maxHmapSize << std::endl;
                 }
-                spill_size += hmap->size() * (key_number + value_number) * sizeof(unsigned long);
-                if (true)
+                unsigned long temp_spill_size = hmap->size() * (key_number + value_number) * sizeof(unsigned long);
+                spill_size += temp_spill_size;
+                comb_spill_size.fetch_add(temp_spill_size);
+                spilltoS3 = memLimitMain < spill_size + temp_spill_size;
+                std::string spill_file_name;
+                if (spilltoS3)
                 {
-                    // comb_hash_size -= hmap->size();
+                    spill_file_name += worker_id;
+                    spill_file_name += "_";
+                    spill_file_name += std::to_string((int)(id));
+                    spill_file_name += "_";
+                    spill_file_name += "temp_spill";
+                }
+                else
+                {
+                    spill_file_name += worker_id;
+                    spill_file_name += "_";
+                    spill_file_name += std::to_string((int)(id));
+                    spill_file_name += "_";
+                    spill_file_name += std::to_string(spill_number);
+                    spill_file_name += "_";
+                    spill_file_name += "spill";
+                }
+                std::pair<int, size_t> spill_file(-1, 0);
+                spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
 
-                    if (spill_number > 0)
+                if (spilltoS3)
+                {
+                    if (spillS3Thread)
                     {
                         minioSpiller.join();
                     }
-
-                    temp_spill_file = {-1, 0};
-                    spillToFile(hmap, &temp_spill_file, id, pagesize * 20);
-                    // std::cout << "Spilling" << std::endl;
                     std::string uName;
                     uName += worker_id;
                     uName += "_";
                     uName += std::to_string((int)(id));
                     uName += "_" + std::to_string(spill_number);
-                    // std::cout << "spilling to: " << uName << std::endl;
-                    std::string empty = "";
                     // spillToMinio(hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
                     minioSpiller = std::thread(spillToMinio, hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, minio_client, worker_id, 0, id);
+                    spillS3Thread = true;
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
                         std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
@@ -1097,7 +1112,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 }
                 else
                 {
-                    spillToFile(hmap, &spill_file, id, pagesize * 20);
+                    spill_files->push_back(spill_file);
                 }
                 spill_number++;
 
@@ -1115,12 +1130,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         std::cout << "head: " << head << " freed_space_temp: " << size - head << std::endl;
         perror("Could not free memory in end of thread!");
     }
-
-    if (spill_file.first != -1)
-    {
-        spill_files->push_back(spill_file);
-        // std::cout << "Thread: " << id << " spilled with size: " << spill_file.second << std::endl;
-    }
     try
     {
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
@@ -1130,7 +1139,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     {
         std::cout << "Not able to print time: " << err.what() << std::endl;
     }
-    if (spill_number > 0)
+    if (spillS3Thread)
     {
         minioSpiller.join();
     }
@@ -1200,15 +1209,13 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
                 maxSize = size;
                 // std::cout << "phy: " << size << std::endl;
             }
-            if (memLimit * 0.95 < size)
-            {
-                *avg = (size - base_size) / (float)(comb_hash_size.load());
-                //*avg *= 1.2;
-                // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
-                usleep(0);
-            }
+            *avg = (size - base_size) / (float)(comb_hash_size.load());
+            //*avg *= 1.2;
+            // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
+            usleep(0);
         }
-        if (base_size + (*avg) * comb_hash_size.load() > memLimit * 0.95 && size < memLimit * 0.8)
+        // if (base_size + (*avg) * comb_hash_size.load() > memLimit * 0.85 && size < memLimit * 0.8)
+        if (base_size + (*avg) * comb_hash_size.load() > size)
         {
             *avg = (size - base_size) / (float)(comb_hash_size.load());
             //*avg *= 1.2;
@@ -1327,148 +1334,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         unsigned long newi = 0;
         size_t mapping_size = 0;
 
-        // std::cout << "New round" << std::endl;
-
-        // Go through entire mapping
-        for (unsigned long i = input_head_base; i < comb_spill_size / sizeof(unsigned long); i++)
-        {
-            if (i >= sum / sizeof(unsigned long))
-            {
-                // std::cout << "New mapping" << std::endl;
-                sum = 0;
-                for (auto &it : *spills)
-                {
-                    sum += it.second;
-                    if (i < sum / sizeof(unsigned long))
-                    {
-                        if (spill_map != nullptr && mapping_size - input_head * sizeof(unsigned long) > 0)
-                        {
-                            // save empty flag and release the mapping
-                            if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(unsigned long)) == -1)
-                            {
-                                std::cout << "invalid size: " << mapping_size - input_head * sizeof(unsigned long) << std::endl;
-                                perror("Could not free memory in merge 2_1!");
-                            }
-                            freed_mem += mapping_size - input_head * sizeof(unsigned long);
-                            // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(unsigned long) << std::endl;
-                        }
-                        unsigned long map_start = i * sizeof(unsigned long) - (sum - it.second) - ((i * sizeof(unsigned long) - (sum - it.second)) % pagesize);
-                        mapping_size = it.second - map_start;
-                        // std::cout << " map_start: " << map_start << std::endl;
-                        spill_map = static_cast<unsigned long *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, it.first, map_start));
-                        overall_size += mapping_size;
-                        if (spill_map == MAP_FAILED)
-                        {
-                            close(it.first);
-                            perror("Error mmapping the file");
-                            exit(EXIT_FAILURE);
-                        }
-                        madvise(spill_map, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
-                        input_head = 0;
-                        offset = ((sum - it.second) + map_start) / sizeof(unsigned long);
-
-                        // std::cout << "sum: " << sum / sizeof(unsigned long) << " offset: " << offset << " head: " << input_head_base << " map_start: " << map_start / sizeof(unsigned long) << " i: " << i << std::endl;
-                        break;
-                    }
-                }
-            }
-            newi = i - offset;
-            unsigned long ognewi = newi;
-            (*diff)[0] = (newi - input_head) * sizeof(unsigned long);
-
-            if (spill_map[newi] == ULONG_MAX)
-            {
-                i += key_number;
-                i += value_number - 1;
-            }
-            else
-            {
-                for (int k = 0; k < key_number; k++)
-                {
-                    keys[k] = spill_map[newi];
-                    newi++;
-                }
-
-                for (int k = 0; k < value_number; k++)
-                {
-                    values[k] = spill_map[newi];
-                    newi++;
-                }
-                newi--;
-                i = newi + offset;
-
-                // std::cout << "merging/adding" << std::endl;
-                //  Update count if customerkey is in hashmap and delete pair in spill
-                if (hmap->contains(keys))
-                {
-                    read_lines++;
-
-                    std::array<unsigned long, max_size> temp = (*hmap)[keys];
-
-                    for (int k = 0; k < value_number; k++)
-                    {
-                        temp[k] += values[k];
-                    }
-                    (*hmap)[keys] = temp;
-                    // mergeHashEntries(&emHashmap[keys], &values);
-                    //    delete pair in spill
-                    spill_map[ognewi] = ULONG_MAX;
-                }
-                else if (!locked)
-                {
-                    read_lines++;
-                    hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
-                    if (hmap->size() > maxHashsize)
-                    {
-                        comb_hash_size++;
-                    }
-                    // delete pair in spill
-                    spill_map[ognewi] = ULONG_MAX;
-                }
-            }
-
-            // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
-            if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
-            {
-                unsigned long used_space = (newi - input_head) * sizeof(unsigned long);
-                if (used_space > pagesize)
-                {
-                    //  calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
-                    unsigned long freed_space_temp = used_space - (used_space % pagesize);
-                    if (munmap(&spill_map[input_head], freed_space_temp) == -1)
-                    {
-                        perror("Could not free memory in merge 1!");
-                    }
-                    // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(unsigned long) + input_head << std::endl;
-                    freed_mem += freed_space_temp;
-                    // Update Head to point at the new unfreed mapping space.
-                    input_head += freed_space_temp / sizeof(unsigned long);
-                    // std::cout << input_head << std::endl;
-                    //  Update numHashRows so that the estimations are still correct.
-
-                    // std::cout << "hashmap size: " << emHashmap.size() * avg << " freed space: " << freed_space_temp << std::endl;
-                }
-                if (!locked && used_space <= pagesize * 40)
-                {
-                    // std::cout << "head base: " << input_head_base << std::endl;
-                    locked = true;
-                    input_head_base = i + 1;
-                }
-            }
-        }
-        // std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
-
-        //  save empty flag and release the mapping
-        if (mapping_size - input_head * sizeof(unsigned long) > 0)
-        {
-            if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(unsigned long)) == -1)
-            {
-                perror("Could not free memory in merge 2!");
-            }
-        }
-        // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(unsigned long) << std::endl;
-        //  std::cout << "Last head: " << input_head << " should be: " << (mapping_size - (mapping_size - input_head * sizeof(unsigned long))) / sizeof(unsigned long) << std::endl;
-        freed_mem += mapping_size - input_head * sizeof(unsigned long);
         // std::cout << "merger: freed_mem: " << freed_mem << " size: " << overall_size << std::endl;
         overall_size = 0;
         freed_mem = 0;
@@ -1665,6 +1530,149 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             i++;
         }
 
+        // std::cout << "New round" << std::endl;
+
+        // Go through entire mapping
+        for (unsigned long i = input_head_base; i < comb_spill_size / sizeof(unsigned long); i++)
+        {
+            if (i >= sum / sizeof(unsigned long))
+            {
+                // std::cout << "New mapping" << std::endl;
+                sum = 0;
+                for (auto &it : *spills)
+                {
+                    sum += it.second;
+                    if (i < sum / sizeof(unsigned long))
+                    {
+                        if (spill_map != nullptr && mapping_size - input_head * sizeof(unsigned long) > 0)
+                        {
+                            // save empty flag and release the mapping
+                            if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(unsigned long)) == -1)
+                            {
+                                std::cout << "invalid size: " << mapping_size - input_head * sizeof(unsigned long) << std::endl;
+                                perror("Could not free memory in merge 2_1!");
+                            }
+                            freed_mem += mapping_size - input_head * sizeof(unsigned long);
+                            // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(unsigned long) << std::endl;
+                        }
+                        unsigned long map_start = i * sizeof(unsigned long) - (sum - it.second) - ((i * sizeof(unsigned long) - (sum - it.second)) % pagesize);
+                        mapping_size = it.second - map_start;
+                        // std::cout << " map_start: " << map_start << std::endl;
+                        spill_map = static_cast<unsigned long *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, it.first, map_start));
+                        overall_size += mapping_size;
+                        if (spill_map == MAP_FAILED)
+                        {
+                            close(it.first);
+                            perror("Error mmapping the file");
+                            exit(EXIT_FAILURE);
+                        }
+                        madvise(spill_map, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
+                        input_head = 0;
+                        offset = ((sum - it.second) + map_start) / sizeof(unsigned long);
+
+                        // std::cout << "sum: " << sum / sizeof(unsigned long) << " offset: " << offset << " head: " << input_head_base << " map_start: " << map_start / sizeof(unsigned long) << " i: " << i << std::endl;
+                        break;
+                    }
+                }
+            }
+            newi = i - offset;
+            unsigned long ognewi = newi;
+            (*diff)[0] = (newi - input_head) * sizeof(unsigned long);
+
+            if (spill_map[newi] == ULONG_MAX)
+            {
+                i += key_number;
+                i += value_number - 1;
+            }
+            else
+            {
+                for (int k = 0; k < key_number; k++)
+                {
+                    keys[k] = spill_map[newi];
+                    newi++;
+                }
+
+                for (int k = 0; k < value_number; k++)
+                {
+                    values[k] = spill_map[newi];
+                    newi++;
+                }
+                newi--;
+                i = newi + offset;
+
+                // std::cout << "merging/adding" << std::endl;
+                //  Update count if customerkey is in hashmap and delete pair in spill
+                if (hmap->contains(keys))
+                {
+                    read_lines++;
+
+                    std::array<unsigned long, max_size> temp = (*hmap)[keys];
+
+                    for (int k = 0; k < value_number; k++)
+                    {
+                        temp[k] += values[k];
+                    }
+                    (*hmap)[keys] = temp;
+                    // mergeHashEntries(&emHashmap[keys], &values);
+                    //    delete pair in spill
+                    spill_map[ognewi] = ULONG_MAX;
+                }
+                else if (!locked)
+                {
+                    read_lines++;
+                    hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
+                    if (hmap->size() > maxHashsize)
+                    {
+                        comb_hash_size++;
+                    }
+                    // delete pair in spill
+                    spill_map[ognewi] = ULONG_MAX;
+                }
+            }
+
+            // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
+            if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
+            {
+                unsigned long used_space = (newi - input_head) * sizeof(unsigned long);
+                if (used_space > pagesize)
+                {
+                    //  calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
+                    unsigned long freed_space_temp = used_space - (used_space % pagesize);
+                    if (munmap(&spill_map[input_head], freed_space_temp) == -1)
+                    {
+                        perror("Could not free memory in merge 1!");
+                    }
+                    // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(unsigned long) + input_head << std::endl;
+                    freed_mem += freed_space_temp;
+                    // Update Head to point at the new unfreed mapping space.
+                    input_head += freed_space_temp / sizeof(unsigned long);
+                    // std::cout << input_head << std::endl;
+                    //  Update numHashRows so that the estimations are still correct.
+
+                    // std::cout << "hashmap size: " << emHashmap.size() * avg << " freed space: " << freed_space_temp << std::endl;
+                }
+                if (!locked && used_space <= pagesize * 40)
+                {
+                    // std::cout << "head base: " << input_head_base << std::endl;
+                    locked = true;
+                    input_head_base = i + 1;
+                }
+            }
+        }
+        // std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
+
+        //  save empty flag and release the mapping
+        if (mapping_size - input_head * sizeof(unsigned long) > 0)
+        {
+            if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(unsigned long)) == -1)
+            {
+                perror("Could not free memory in merge 2!");
+            }
+        }
+        // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(unsigned long) << std::endl;
+        //  std::cout << "Last head: " << input_head << " should be: " << (mapping_size - (mapping_size - input_head * sizeof(unsigned long))) / sizeof(unsigned long) << std::endl;
+        freed_mem += mapping_size - input_head * sizeof(unsigned long);
+
         // std::cout << "Writing hmap with size: " << hmap->size() << std::endl;
         //  write merged hashmap to the result and update head to point at the end of the file
         if (writeRes)
@@ -1682,7 +1690,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 counter++;
             }
             finished_rows += s3spillStart_head * number_of_longs * sizeof(unsigned long);
-            printProgressBar(finished_rows / (float)(overall_s3spillsize));
+            printProgressBar((finished_rows + input_head_base * sizeof(unsigned long)) / (float)(overall_s3spillsize + comb_spill_size));
             std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
 
@@ -1745,7 +1753,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 }
 
 // aggregate inputfilename and write results into outpufilename
-int aggregate(std::string inputfilename, std::string outputfilename, size_t memLimit, bool measure_mem, Aws::S3::S3Client minio_client)
+int aggregate(std::string inputfilename, std::string outputfilename, size_t memLimit, bool measure_mem, Aws::S3::S3Client minio_client, size_t memLimitMain)
 {
 
     // Inits and decls
@@ -1775,6 +1783,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::atomic<unsigned long> numLines = 0;
     std::atomic<unsigned long> readBytes = 0;
     std::atomic<unsigned long> comb_hash_size = 0;
+    std::atomic<unsigned long> comb_spill_size = 0;
     std::vector<unsigned long> diff(threadNumber, 0);
     size_t t1_size = size / threadNumber - (size / threadNumber % pagesize);
     size_t t2_size = size - t1_size * (threadNumber - 1);
@@ -1801,12 +1810,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, id, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber, phyMemBase / threadNumber,
-                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes)));
+                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitMain / threadNumber, std::ref(comb_spill_size)));
         id++;
     }
     emHashmaps[threadNumber - 1] = {};
     threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, phyMemBase / threadNumber,
-                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes)));
+                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitMain / threadNumber, std::ref(comb_spill_size)));
 
     // calc avg as Phy mem used by hashtable + mapping / hashtable size
     /* avg = (getPhyValue() - phyMemBase) / (float)(comb_hash_size.load());
@@ -1824,13 +1833,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         thread.join();
     }
     close(fd);
-    unsigned long o_spill = 0;
-    for (auto &spill : spills)
-    {
-        o_spill += spill.second;
-    }
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
-    std::cout << "Scanning finished with time: " << duration << "s. Scanned Lines: " << numLines << ". macroseconds/line: " << duration * 1000000 / numLines << " Overall spill: " << o_spill << "B." << std::endl;
+    std::cout << "Scanning finished with time: " << duration << "s. Scanned Lines: " << numLines << ". macroseconds/line: " << duration * 1000000 / numLines << " Overall spill: " << comb_spill_size << "B." << std::endl;
 
     start_time = std::chrono::high_resolution_clock::now();
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap = emHashmaps[0];
@@ -2200,7 +2204,29 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         spills.insert(file->first);
         // merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true);
         std::cout << "found beggar: " << beggarWorker << std::endl;
-        merge(&hmap, &empty, comb_hash_size, &avg, memLimit, &diff, empty_string, &spills, &minio_client, &extra_mem, false);
+        if (!merge(&hmap, &empty, comb_hash_size, &avg, memLimit, &diff, empty_string, &spills, &minio_client, &extra_mem, false))
+        {
+            // blacklist.push_back(file->first.first);
+            hmap.clear();
+            manaFile mana = getLockedMana(&minio_client, 0);
+            for (auto &worker : mana.workers)
+            {
+                if (worker.id == beggarWorker && !worker.locked)
+                {
+                    for (auto &w_file : worker.files)
+                    {
+                        if (std::get<0>(w_file) == uName)
+                        {
+                            std::get<2>(w_file) = 0;
+                        }
+                    }
+                    break;
+                }
+            }
+            writeMana(&minio_client, mana, true);
+            beggarWorker = 0;
+            continue;
+        }
         std::cout << "merged hmap size: " << hmap.size() << std::endl;
         size_t phy = getPhyValue() * 1024;
         avg = (phy - phyMemBase) / (float)(hmap.size());
@@ -2216,7 +2242,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         std::string empty_file = "";
 
         std::pair<int, size_t> temp_spill_file = {-1, 0};
-        spillToFile(&hmap, &temp_spill_file, 0, pagesize * 20);
+        spillToFile(&hmap, &temp_spill_file, 0, pagesize * 20, uName);
         minioSpiller = std::thread(spillHelpMerge, &hmap, uName, memLimit - phy, &minio_client, beggarWorker, file->first.first, old_uName);
         counter++;
         delete file;
@@ -2247,11 +2273,12 @@ int main(int argc, char **argv)
 
     std::string tpc_sup = argv[2];
     std::string memLimit_string = argv[3];
-    std::string threadNumber_string = argv[4];
-    std::string tpc_query_string = argv[5];
-    worker_id = *argv[6];
-    std::string log_size_string = argv[7];
-    std::string log_time_string = argv[8];
+    std::string memLimitMain_string = argv[4];
+    std::string threadNumber_string = argv[5];
+    std::string tpc_query_string = argv[6];
+    worker_id = *argv[7];
+    std::string log_size_string = argv[8];
+    std::string log_time_string = argv[9];
 
     log_size = log_size_string.compare("true") == 0;
     log_time = log_time_string.compare("true") == 0;
@@ -2259,6 +2286,7 @@ int main(int argc, char **argv)
     threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
     size_t memLimit = std::stof(memLimit_string) * (1ul << 30);
+    size_t memLimitMain = std::stof(memLimitMain_string) * (1ul << 30);
     pagesize = sysconf(_SC_PAGE_SIZE);
 
     switch (tpc_query)
@@ -2328,7 +2356,7 @@ int main(int argc, char **argv)
 
     if (co_output != "-")
     {
-        aggregate(co_output, agg_output, memLimit, true, minio_client);
+        aggregate(co_output, agg_output, memLimit, true, minio_client, memLimitMain);
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
         std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
