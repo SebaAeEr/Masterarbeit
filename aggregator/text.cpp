@@ -1200,9 +1200,28 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     output.close();
 }
 
+void printProgressBar(float progress)
+{
+    int barWidth = 70;
+    std::cout << "[";
+    int pos = barWidth * progress;
+    for (int i = 0; i < barWidth; ++i)
+    {
+        if (i < pos)
+            std::cout << "=";
+        else if (i == pos)
+            std::cout << ">";
+        else
+            std::cout << " ";
+    }
+    std::cout << "] " << int(progress * 100.0) << " %\r";
+    std::cout.flush();
+}
+
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
           float *avg, float memLimit, std::vector<unsigned long> *diff, std::string &outputfilename, std::set<std::pair<std::string, size_t>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client, unsigned long *extra_mem, bool writeRes)
 {
+
     // Open the outputfile to write results
     int output_fd;
     if (writeRes)
@@ -1232,6 +1251,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     std::vector<std::pair<int, std::vector<char>>> s3spillBitmaps;
     int s3spillFile_head = 0;
     unsigned long s3spillStart_head = 0;
+    unsigned long overall_s3spillsize = 0;
 
     for (auto &it : *spills)
         comb_spill_size += it.second;
@@ -1239,6 +1259,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     int counter = 0;
     for (auto &name : *s3spillNames2)
     {
+        overall_s3spillsize += name.second;
         bitmap_size_sum += std::ceil((float)(name.second) / 8);
     }
     if (bitmap_size_sum > memLimit * 0.7)
@@ -1432,7 +1453,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
         }
         // std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
-        written_lines += hmap->size();
+
         //  save empty flag and release the mapping
         if (mapping_size - input_head * sizeof(unsigned long) > 0)
         {
@@ -1644,6 +1665,19 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         //  write merged hashmap to the result and update head to point at the end of the file
         if (writeRes)
         {
+            written_lines += hmap->size();
+            unsigned long finished_rows = 0;
+            int counter = 0;
+            for (auto &name : *s3spillNames2)
+            {
+                if(counter >= s3spillFile_head) {
+                    break;
+                }
+                finished_rows += name.second;
+                counter ++;
+            }
+            finished_rows += s3spillStart_head;
+            printProgressBar(finished_rows / (float) (overall_s3spillsize));
             // std::cout << "Writing hmap with size: " << hmap->size() << " output_head: " << output_head << std::endl;
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
 
