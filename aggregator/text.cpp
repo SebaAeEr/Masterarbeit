@@ -1683,7 +1683,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             finished_rows += s3spillStart_head * number_of_longs * sizeof(unsigned long);
             printProgressBar(finished_rows / (float)(overall_s3spillsize));
-            std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << std::endl;
+            std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
 
             if (hmap->size() > maxHashsize)
