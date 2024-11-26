@@ -930,7 +930,7 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
 }
 
 void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit, int phyMembase,
-                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::vector<unsigned long> *shared_diff, Aws::S3::S3Client *minio_client,
+                 float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::vector<std::atomic<unsigned long>> *shared_diff, Aws::S3::S3Client *minio_client,
                  std::atomic<unsigned long> &readBytes, unsigned long memLimitMain, std::atomic<unsigned long> &comb_spill_size)
 {
     // Aws::S3::S3Client minio_client = init();
@@ -983,7 +983,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         {
             break;
         }
-        (*shared_diff)[id] = i - head;
+        (*shared_diff)[id].exchange(i - head);
         readBytes.fetch_add(i - old_i);
         old_i = i;
 
@@ -1171,10 +1171,10 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     while (finished == 0 || finished == 1)
     {
         unsigned long reservedMem = 0;
-        /* for (auto &it : *diff)
+        for (auto &it : *diff)
         {
-            reservedMem += it;
-        } */
+            reservedMem += it.load();
+        }
         size_t newsize = getPhyValue() * 1024;
         if (log_size)
         {
@@ -1779,7 +1779,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::atomic<unsigned long> readBytes = 0;
     std::atomic<unsigned long> comb_hash_size = 0;
     std::atomic<unsigned long> comb_spill_size = 0;
-    std::vector<unsigned long> diff(threadNumber, 0);
+    std::vector<std::atomic<unsigned long>> diff(threadNumber, 0);
     size_t t1_size = size / threadNumber - (size / threadNumber % pagesize);
     size_t t2_size = size - t1_size * (threadNumber - 1);
     std::cout << "t1 size: " << t1_size << " t2 size: " << t2_size << std::endl;
