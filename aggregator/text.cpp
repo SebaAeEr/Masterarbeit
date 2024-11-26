@@ -446,6 +446,7 @@ int addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, size
         {
             if (worker.locked)
             {
+                writeMana(minio_client, mana, true);
                 return 0;
             }
             worker.files.push_back({file_name, file_size, fileStatus});
@@ -2086,7 +2087,7 @@ int test(std::string file1name, std::string file2name)
 }
 
 void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uName,
-                    size_t memLimit, Aws::S3::S3Client *minio_client, char beggarWorker, std::pair<std::pair<std::string, size_t>, char> file, std::string old_uName)
+                    size_t memLimit, Aws::S3::S3Client *minio_client, char beggarWorker, std::string filename, std::string old_uName)
 {
     // std::cout << "Spilling" << std::endl;
     std::string local_name;
@@ -2110,7 +2111,7 @@ void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::a
         {
             for (auto &w_file : worker.files)
             {
-                if (std::get<0>(w_file) == file.first.first)
+                if (std::get<0>(w_file) == filename)
                 {
                     std::get<2>(w_file) = 255;
                 }
@@ -2216,7 +2217,7 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
 
         std::pair<int, size_t> temp_spill_file = {-1, 0};
         spillToFile(&hmap, &temp_spill_file, 0, pagesize * 20);
-        minioSpiller = std::thread(spillHelpMerge, &hmap, uName, memLimit - phy, &minio_client, beggarWorker, *file, old_uName);
+        minioSpiller = std::thread(spillHelpMerge, &hmap, uName, memLimit - phy, &minio_client, beggarWorker, file->first.first, old_uName);
         counter++;
         delete file;
     }
