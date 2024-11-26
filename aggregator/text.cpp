@@ -1680,7 +1680,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 finished_rows += name.second;
                 counter++;
             }
-            finished_rows += s3spillStart_head;
+            finished_rows += s3spillStart_head * number_of_longs * sizeof(unsigned long);
             printProgressBar(finished_rows / (float)(overall_s3spillsize));
             std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << std::endl;
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
@@ -2235,6 +2235,15 @@ int main(int argc, char **argv)
     Aws::InitAPI(options);
 
     std::string co_output = argv[1];
+
+    if (co_output.compare("status"))
+    {
+        Aws::S3::S3Client minio_client_2 = init();
+        printMana(&minio_client_2);
+        Aws::ShutdownAPI(options);
+        return 1;
+    }
+
     std::string tpc_sup = argv[2];
     std::string memLimit_string = argv[3];
     std::string threadNumber_string = argv[4];
