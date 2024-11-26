@@ -1812,7 +1812,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     avg *= 1.3;
     std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " #Hash entries: " << comb_hash_size.load() << " avg: " << avg << std::endl;
  */
-    while (readBytes.load() < size - 1)
+    while (readBytes.load() < size - 1000)
     {
         // std::cout << readBytes.load() << std::endl;
         printProgressBar((float)(readBytes.load()) / size);
