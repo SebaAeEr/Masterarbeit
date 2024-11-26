@@ -1098,12 +1098,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
                 if (spilltoS3)
                 {
-                    std::cout << "Spilling to S3" << std::endl;
                     if (spillS3Thread)
                     {
                         minioSpiller.join();
                     }
-                    std::cout << "Joined" << std::endl;
                     std::string uName;
                     uName += worker_id;
                     uName += "_";
@@ -1112,7 +1110,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     // spillToMinio(hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
                     minioSpiller = std::thread(spillToMinio, hmap, std::ref(spill_file_name), std::ref(uName), pagesize * 20, minio_client, worker_id, 0, id);
                     spillS3Thread = true;
-                    std::cout << "Spill to " << uName << "finished" << std::endl;
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
                         std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
