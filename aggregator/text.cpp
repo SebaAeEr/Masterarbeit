@@ -1814,6 +1814,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
  */
     while (readBytes.load() < size)
     {
+        std::cout << readBytes.load() << std::endl;
         printProgressBar(readBytes.load() / size);
     }
 
