@@ -2236,7 +2236,7 @@ int main(int argc, char **argv)
 
     std::string co_output = argv[1];
 
-    if (co_output.compare("status"))
+    if (co_output.compare("status") == 0)
     {
         Aws::S3::S3Client minio_client_2 = init();
         printMana(&minio_client_2);
