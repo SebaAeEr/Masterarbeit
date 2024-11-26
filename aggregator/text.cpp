@@ -1241,7 +1241,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     {
         bitmap_size_sum += std::ceil((float)(name.second) / 8);
     }
-    if (bitmap_size_sum > memLimit * 0.3)
+    if (bitmap_size_sum > memLimit * 0.7)
     {
         std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
         for (auto &name : *s3spillNames2)
