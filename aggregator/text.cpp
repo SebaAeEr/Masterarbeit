@@ -1238,7 +1238,10 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         // if (base_size + (*avg) * comb_hash_size.load() > memLimit * 0.85 && size < memLimit * 0.8)
         if (base_size + (*avg) * comb_hash_size.load() > size && comb_hash_size.load() > 0)
         {
-            *avg = (size - base_size) / (float)(comb_hash_size.load());
+            float temp_avg = (size - base_size) / (float)(comb_hash_size.load());
+            if(temp_avg < *avg) {
+            *avg = temp_avg;  
+            }
             std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " avg: " << *avg << " reservedMem: " << reservedMem << " (*extra_mem): " << (*extra_mem) << std::endl;
             //*avg *= 1.2;
             // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
