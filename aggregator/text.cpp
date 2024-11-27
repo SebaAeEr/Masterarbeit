@@ -2376,7 +2376,7 @@ int main(int argc, char **argv)
     if (co_output.compare("trywrite") == 0)
     {
         Aws::S3::S3Client minio_client_2 = init();
-        writeMana(&minio_client_2, false);
+        writeMana(&minio_client_2, getMana(&minio_client_2), false);
         return 1;
     }
 
