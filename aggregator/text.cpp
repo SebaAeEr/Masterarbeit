@@ -1062,7 +1062,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         // if (hashmap.size() * avg + phyMemBase > memLimit * (1ull << 20))
         if (hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
         {
-            std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + base_size / threadNumber << " size: " << hmap->size() << " avg: " << avg << " base_size / threadNumber: " << base_size / threadNumber << std::endl;
+            // std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + base_size / threadNumber << " size: " << hmap->size() << " avg: " << avg << " base_size / threadNumber: " << base_size / threadNumber << std::endl;
             unsigned long freed_space_temp = (i - head) - ((i - head) % pagesize);
             // Free up space from mapping that is no longer needed.
             if (i - head > pagesize)
@@ -1239,8 +1239,9 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
         if (base_size + (*avg) * comb_hash_size.load() > size && comb_hash_size.load() > 0)
         {
             float temp_avg = (size - base_size) / (float)(comb_hash_size.load());
-            if(temp_avg < *avg) {
-            *avg = temp_avg;  
+            if (temp_avg < *avg)
+            {
+                *avg = temp_avg;
             }
             std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " avg: " << *avg << " reservedMem: " << reservedMem << " (*extra_mem): " << (*extra_mem) << std::endl;
             //*avg *= 1.2;
