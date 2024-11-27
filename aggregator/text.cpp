@@ -325,10 +325,10 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
         }
         else
         {
-            /* if (freeLock)
+            if (freeLock)
             {
                 std::cout << "Lock released by: " << std::to_string((int)(mana.thread_lock)) << std::endl;
-            } */
+            }
             return 1;
         }
         //}
@@ -371,16 +371,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                 mana = getMana(minio_client);
                 if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
                 {
-                    // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock));
-                    mana = getMana(minio_client);
-                    // std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
-                    return mana;
-                }
-                usleep(250000);
-                mana = getMana(minio_client);
-                if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
-                {
-                    // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock));
+                    std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock));
                     mana = getMana(minio_client);
                     // std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
                     return mana;
@@ -1090,7 +1081,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 comb_spill_size.fetch_add(temp_spill_size);
                 spilltoS3 = memLimitMain < spill_size + temp_spill_size;
                 std::string spill_file_name;
-                std::cout << "temp_spill_size: " << temp_spill_size << std::endl;
+
                 if (spilltoS3)
                 {
                     spill_file_name += worker_id;
