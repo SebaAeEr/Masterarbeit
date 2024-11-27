@@ -2274,6 +2274,38 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     sizePrinter.join();
 }
 
+void Lock(Aws::S3::S3Client *minio_client)
+{
+    Aws::S3::Model::PutObjectLegalHoldRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(manag_file_name);
+    Aws::S3::Model::ObjectLockLegalHold lock;
+    lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
+    request.SetLegalHold(lock);
+    request.SetVersionId(getManaVersion(minio_client));
+    auto outcome = minio_client->PutObjectLegalHold(request);
+    if (!outcome.IsSuccess())
+    {
+        std::cout << "Error setting lock status: " << outcome.GetError().GetMessage() << std::endl;
+    }
+}
+
+void UnLock(Aws::S3::S3Client *minio_client)
+{
+    Aws::S3::Model::PutObjectLegalHoldRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(manag_file_name);
+    Aws::S3::Model::ObjectLockLegalHold lock;
+    lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::OFF);
+    request.SetLegalHold(lock);
+    request.SetVersionId(getManaVersion(minio_client));
+    auto outcome = minio_client->PutObjectLegalHold(request);
+    if (!outcome.IsSuccess())
+    {
+        std::cout << "Error setting lock status: " << outcome.GetError().GetMessage() << std::endl;
+    }
+}
+
 int main(int argc, char **argv)
 {
     Aws::SDKOptions options;
@@ -2287,6 +2319,18 @@ int main(int argc, char **argv)
         Aws::S3::S3Client minio_client_2 = init();
         printMana(&minio_client_2);
         Aws::ShutdownAPI(options);
+        return 1;
+    }
+    if (co_output.compare("lock") == 0)
+    {
+        Aws::S3::S3Client minio_client_2 = init();
+        Lock(&minio_client_2);
+        return 1;
+    }
+    if (co_output.compare("unlock") == 0)
+    {
+        Aws::S3::S3Client minio_client_2 = init();
+        UnLock(&minio_client_2);
         return 1;
     }
 
