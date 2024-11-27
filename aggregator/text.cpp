@@ -2333,7 +2333,7 @@ void PrintLock(Aws::S3::S3Client *minio_client)
         }
         case (Aws::S3::Model::ObjectLockLegalHoldStatus::OFF):
         {
-            std::cout << "lock status on" << std::endl;
+            std::cout << "lock status off" << std::endl;
             break;
         }
         }
@@ -2376,7 +2376,10 @@ int main(int argc, char **argv)
     if (co_output.compare("trywrite") == 0)
     {
         Aws::S3::S3Client minio_client_2 = init();
-        writeMana(&minio_client_2, getMana(&minio_client_2), false);
+        manaFile mana = getMana(&minio_client_2);
+        mana.thread_lock++;
+        writeMana(&minio_client_2, mana, false);
+        printMana(&minio_client_2);
         return 1;
     }
 
