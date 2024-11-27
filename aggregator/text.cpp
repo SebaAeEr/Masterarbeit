@@ -1062,7 +1062,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         // if (hashmap.size() * avg + phyMemBase > memLimit * (1ull << 20))
         if (hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
         {
-            // std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + (i - head + 1) << " size: " << hmap->size() << " avg: " << avg << " diff: " << i - head << std::endl;
+            std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + base_size / threadNumber << " size: " << hmap->size() << " avg: " << avg << " base_size / threadNumber: " << base_size / threadNumber << std::endl;
             unsigned long freed_space_temp = (i - head) - ((i - head) % pagesize);
             // Free up space from mapping that is no longer needed.
             if (i - head > pagesize)
@@ -1092,7 +1092,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 if (maxHmapSize < hmap->size())
                 {
                     maxHmapSize = hmap->size();
-                    std::cout << "new MaxSize: " << maxHmapSize << std::endl;
+                    // std::cout << "new MaxSize: " << maxHmapSize << std::endl;
                 }
                 unsigned long temp_spill_size = hmap->size() * (key_number + value_number) * sizeof(unsigned long);
                 spill_size += temp_spill_size;
