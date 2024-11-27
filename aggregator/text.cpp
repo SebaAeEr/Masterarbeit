@@ -2373,7 +2373,7 @@ int main(int argc, char **argv)
         PrintLock(&minio_client_2);
         return 1;
     }
-    if (co_output.compare("write") == 0)
+    if (co_output.compare("trywrite") == 0)
     {
         Aws::S3::S3Client minio_client_2 = init();
         writeMana(&minio_client_2, false);
