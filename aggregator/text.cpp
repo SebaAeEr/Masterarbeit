@@ -288,6 +288,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
 
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
+        in_request.SetWriteOffsetBytes(1000);
         if (freeLock)
         {
             Aws::S3::Model::PutObjectLegalHoldRequest lock_request;
@@ -2282,10 +2283,10 @@ void Lock(Aws::S3::S3Client *minio_client)
     Aws::S3::Model::ObjectLockLegalHold lock;
     lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
     request.SetLegalHold(lock);
-    request.SetExpectedBucketOwner("erasmus");
+    // request.SetExpectedBucketOwner("erasmus");
     auto version = getManaVersion(minio_client);
-    std::cout << version << std::endl;
-    request.SetVersionId(version);
+    // std::cout << version << std::endl;
+    // request.SetVersionId(version);
     auto outcome = minio_client->PutObjectLegalHold(request);
     if (!outcome.IsSuccess())
     {
@@ -2301,8 +2302,8 @@ void UnLock(Aws::S3::S3Client *minio_client)
     Aws::S3::Model::ObjectLockLegalHold lock;
     lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::OFF);
     request.SetLegalHold(lock);
-    request.SetExpectedBucketOwner("erasmus");
-    request.SetVersionId(getManaVersion(minio_client));
+    //  request.SetExpectedBucketOwner("erasmus");
+    // request.SetVersionId(getManaVersion(minio_client));
     auto outcome = minio_client->PutObjectLegalHold(request);
     if (!outcome.IsSuccess())
     {
