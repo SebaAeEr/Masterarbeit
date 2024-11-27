@@ -61,7 +61,7 @@ int value_number;
 char worker_id;
 std::string manag_file_name = "manag_file";
 long pagesize;
-std::string bucketName = "trinobucket";
+std::string bucketName = "trinobucket2";
 bool log_size;
 bool log_time;
 std::string date_now;
@@ -148,6 +148,28 @@ int writeString(char *mapping, const std::string &string)
     return counter;
 }
 
+std::string getManaVersion(Aws::S3::S3Client *minio_client)
+{
+    manaFile mana;
+    Aws::S3::Model::GetObjectRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(manag_file_name);
+    Aws::S3::Model::GetObjectOutcome outcome;
+
+    while (true)
+    {
+        outcome = minio_client->GetObject(request);
+        if (!outcome.IsSuccess())
+        {
+            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
+        }
+        else
+        {
+            return outcome.GetResult().GetVersionId();
+        }
+    }
+}
+
 manaFile getMana(Aws::S3::S3Client *minio_client)
 {
     manaFile mana;
@@ -159,6 +181,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     while (true)
     {
         outcome = minio_client->GetObject(request);
+
         // outcome.GetResult().SetObjectLockMode();
         if (!outcome.IsSuccess())
         {
@@ -265,7 +288,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
 
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
-        /* if (freeLock)
+        if (freeLock)
         {
             Aws::S3::Model::PutObjectLegalHoldRequest lock_request;
             lock_request.SetBucket(bucketName);
@@ -274,6 +297,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
             lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::OFF);
             lock_request.SetLegalHold(lock);
             lock_request.SetExpectedBucketOwner("erasmus");
+            lock_request.SetVersionId(getManaVersion(minio_client));
             while (true)
             {
                 auto lock_outcome = minio_client->PutObjectLegalHold(lock_request);
@@ -286,7 +310,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
                     std::cout << "Error not able to free lock: " << lock_outcome.GetError().GetMessage() << std::endl;
                 }
             }
-        } */
+        }
         // while (true)
         //{
         auto in_outcome = minio_client->PutObject(in_request);
@@ -316,6 +340,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
     std::random_device dev;
     std::mt19937 rng(dev());
     std::uniform_int_distribution<std::mt19937::result_type> dist6(1, 100);
+    std::string version_id;
     while (true)
     {
         manaFile mana = getMana(minio_client);
@@ -331,35 +356,35 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                 Aws::S3::Model::GetObjectLegalHoldRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(manag_file_name);
-                // request.SetVersionId();
-                /*  auto status = minio_client->GetObjectLegalHold(request);
-                 if (status.IsSuccess())
-                 {
-                     auto legalhole = status.GetResult().GetLegalHold().GetStatus();
-                     if (legalhole == Aws::S3::Model::ObjectLockLegalHoldStatus::OFF) // Aws::S3::Model::ObjectLockLegalHoldStatus()
-                     {
-                         Aws::S3::Model::PutObjectLegalHoldRequest request;
-                         request.SetBucket(bucketName);
-                         request.SetKey(manag_file_name);
-                         Aws::S3::Model::ObjectLockLegalHold lock;
-                         lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
-                         request.SetLegalHold(lock);
-                         minio_client->PutObjectLegalHold(request);
-                         usleep(500000);
-                         mana = getMana(minio_client);
-                         if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
-                         {
-                             // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock));
-                             mana = getMana(minio_client);
-                             // std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
-                             return mana;
-                         }
-                     }
-                 }
-                 else
-                 {
-                     std::cout << "Error seeing lock status: " << status.GetError().GetMessage() << std::endl;
-                 } */
+                request.SetVersionId(getManaVersion(minio_client));
+                auto status = minio_client->GetObjectLegalHold(request);
+                if (status.IsSuccess())
+                {
+                    auto legalhole = status.GetResult().GetLegalHold().GetStatus();
+                    if (legalhole == Aws::S3::Model::ObjectLockLegalHoldStatus::OFF) // Aws::S3::Model::ObjectLockLegalHoldStatus()
+                    {
+                        Aws::S3::Model::PutObjectLegalHoldRequest request;
+                        request.SetBucket(bucketName);
+                        request.SetKey(manag_file_name);
+                        Aws::S3::Model::ObjectLockLegalHold lock;
+                        lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
+                        request.SetLegalHold(lock);
+                        minio_client->PutObjectLegalHold(request);
+                        usleep(500000);
+                        mana = getMana(minio_client);
+                        if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
+                        {
+                            // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock));
+                            mana = getMana(minio_client);
+                            // std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+                            return mana;
+                        }
+                    }
+                }
+                else
+                {
+                    std::cout << "Error seeing lock status: " << status.GetError().GetMessage() << std::endl;
+                }
                 usleep(250000);
                 mana = getMana(minio_client);
                 if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
@@ -416,7 +441,9 @@ void initManagFile(Aws::S3::S3Client *minio_client)
     worker.files = {};
     worker.locked = false;
     mana.workers.push_back(worker);
-    writeMana(minio_client, mana, true);
+    mana.thread_lock = 0;
+    mana.worker_lock = 0;
+    writeMana(minio_client, mana, worker_id != '1');
     printMana(minio_client);
 }
 
@@ -1747,7 +1774,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 // aggregate inputfilename and write results into outpufilename
 int aggregate(std::string inputfilename, std::string outputfilename, size_t memLimit, bool measure_mem, Aws::S3::S3Client minio_client, size_t memLimitMain)
 {
-
     // Inits and decls
 
     // open inputfile and get size from stats
