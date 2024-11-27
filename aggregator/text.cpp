@@ -2282,7 +2282,9 @@ void Lock(Aws::S3::S3Client *minio_client)
     Aws::S3::Model::ObjectLockLegalHold lock;
     lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
     request.SetLegalHold(lock);
-    request.SetVersionId(getManaVersion(minio_client));
+    auto version = getManaVersion(minio_client);
+    std::cout << version << std::endl;
+    request.SetVersionId(version);
     auto outcome = minio_client->PutObjectLegalHold(request);
     if (!outcome.IsSuccess())
     {
