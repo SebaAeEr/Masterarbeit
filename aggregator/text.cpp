@@ -2376,7 +2376,7 @@ int main(int argc, char **argv)
     if (co_output != "-")
     {
         manaFile mana = getLockedMana(&minio_client, 0);
-        writeMana(minio_client, mana, false);
+        writeMana(&minio_client, mana, false);
         aggregate(co_output, agg_output, memLimit, true, minio_client, memLimitMain);
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
