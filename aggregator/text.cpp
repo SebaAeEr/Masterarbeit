@@ -288,7 +288,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
 
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
-        in_request.SetWriteOffsetBytes(1000);
+        // in_request.SetWriteOffsetBytes(1000);
         if (freeLock)
         {
             Aws::S3::Model::PutObjectLegalHoldRequest lock_request;
