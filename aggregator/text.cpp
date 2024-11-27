@@ -364,7 +364,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                 auto outcome = minio_client->PutObjectLegalHold(request);
                 if (!outcome.IsSuccess())
                 {
-                    std::cout << "Error setting lock status: " << status.GetError().GetMessage() << std::endl;
+                    std::cout << "Error setting lock status: " << outcome.GetError().GetMessage() << std::endl;
                     continue;
                 }
                 //  usleep(500000);
