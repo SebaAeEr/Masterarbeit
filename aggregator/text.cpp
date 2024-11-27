@@ -238,6 +238,36 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     return mana;
 }
 
+void PrintLock(Aws::S3::S3Client *minio_client)
+{
+    Aws::S3::Model::GetObjectLegalHoldRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(manag_file_name);
+    request.SetVersionId(getManaVersion(minio_client));
+    request.SetExpectedBucketOwner("erasmus");
+    auto outcome = minio_client->GetObjectLegalHold(request);
+    if (!outcome.IsSuccess())
+    {
+        std::cout << "Error setting lock status: " << outcome.GetError().GetMessage() << std::endl;
+    }
+    else
+    {
+        switch (outcome.GetResult().GetLegalHold().GetStatus())
+        {
+        case (Aws::S3::Model::ObjectLockLegalHoldStatus::ON):
+        {
+            std::cout << "lock status on" << std::endl;
+            break;
+        }
+        case (Aws::S3::Model::ObjectLockLegalHoldStatus::OFF):
+        {
+            std::cout << "lock status off" << std::endl;
+            break;
+        }
+        }
+    }
+}
+
 bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, int timeLimit = -1)
 {
     while (true)
@@ -288,6 +318,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
 
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
+        in_request.SetObjectLockLegalHoldStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
         // in_request.SetWriteOffsetBytes(1000);
         if (freeLock)
         {
@@ -314,6 +345,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
         }
         // while (true)
         //{
+        PrintLock(minio_client);
         auto in_outcome = minio_client->PutObject(in_request);
         /* if (timeLimit != -1)
         {
@@ -389,6 +421,42 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                 }
             }
         }
+    }
+}
+
+void Lock(Aws::S3::S3Client *minio_client)
+{
+    Aws::S3::Model::PutObjectLegalHoldRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(manag_file_name);
+    Aws::S3::Model::ObjectLockLegalHold lock;
+    lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
+    request.SetLegalHold(lock);
+    // request.SetExpectedBucketOwner("erasmus");
+    auto version = getManaVersion(minio_client);
+    // std::cout << version << std::endl;
+    // request.SetVersionId(version);
+    auto outcome = minio_client->PutObjectLegalHold(request);
+    if (!outcome.IsSuccess())
+    {
+        std::cout << "Error setting lock status: " << outcome.GetError().GetMessage() << std::endl;
+    }
+}
+
+void UnLock(Aws::S3::S3Client *minio_client)
+{
+    Aws::S3::Model::PutObjectLegalHoldRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(manag_file_name);
+    Aws::S3::Model::ObjectLockLegalHold lock;
+    lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::OFF);
+    request.SetLegalHold(lock);
+    //  request.SetExpectedBucketOwner("erasmus");
+    // request.SetVersionId(getManaVersion(minio_client));
+    auto outcome = minio_client->PutObjectLegalHold(request);
+    if (!outcome.IsSuccess())
+    {
+        std::cout << "Error setting lock status: " << outcome.GetError().GetMessage() << std::endl;
     }
 }
 
@@ -2273,72 +2341,6 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     }
     finished = 2;
     sizePrinter.join();
-}
-
-void Lock(Aws::S3::S3Client *minio_client)
-{
-    Aws::S3::Model::PutObjectLegalHoldRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(manag_file_name);
-    Aws::S3::Model::ObjectLockLegalHold lock;
-    lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
-    request.SetLegalHold(lock);
-    // request.SetExpectedBucketOwner("erasmus");
-    auto version = getManaVersion(minio_client);
-    // std::cout << version << std::endl;
-    // request.SetVersionId(version);
-    auto outcome = minio_client->PutObjectLegalHold(request);
-    if (!outcome.IsSuccess())
-    {
-        std::cout << "Error setting lock status: " << outcome.GetError().GetMessage() << std::endl;
-    }
-}
-
-void UnLock(Aws::S3::S3Client *minio_client)
-{
-    Aws::S3::Model::PutObjectLegalHoldRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(manag_file_name);
-    Aws::S3::Model::ObjectLockLegalHold lock;
-    lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::OFF);
-    request.SetLegalHold(lock);
-    //  request.SetExpectedBucketOwner("erasmus");
-    // request.SetVersionId(getManaVersion(minio_client));
-    auto outcome = minio_client->PutObjectLegalHold(request);
-    if (!outcome.IsSuccess())
-    {
-        std::cout << "Error setting lock status: " << outcome.GetError().GetMessage() << std::endl;
-    }
-}
-
-void PrintLock(Aws::S3::S3Client *minio_client)
-{
-    Aws::S3::Model::GetObjectLegalHoldRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(manag_file_name);
-    request.SetVersionId(getManaVersion(minio_client));
-    request.SetExpectedBucketOwner("erasmus");
-    auto outcome = minio_client->GetObjectLegalHold(request);
-    if (!outcome.IsSuccess())
-    {
-        std::cout << "Error setting lock status: " << outcome.GetError().GetMessage() << std::endl;
-    }
-    else
-    {
-        switch (outcome.GetResult().GetLegalHold().GetStatus())
-        {
-        case (Aws::S3::Model::ObjectLockLegalHoldStatus::ON):
-        {
-            std::cout << "lock status on" << std::endl;
-            break;
-        }
-        case (Aws::S3::Model::ObjectLockLegalHoldStatus::OFF):
-        {
-            std::cout << "lock status off" << std::endl;
-            break;
-        }
-        }
-    }
 }
 
 int main(int argc, char **argv)
