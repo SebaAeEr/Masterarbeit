@@ -2308,6 +2308,36 @@ void UnLock(Aws::S3::S3Client *minio_client)
     }
 }
 
+void PrintLock(Aws::S3::S3Client *minio_client)
+{
+    Aws::S3::Model::GetObjectLegalHoldRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(manag_file_name);
+    request.SetVersionId(getManaVersion(minio_client));
+    request.SetExpectedBucketOwner("erasmus");
+    auto outcome = minio_client->GetObjectLegalHold(request);
+    if (!outcome.IsSuccess())
+    {
+        std::cout << "Error setting lock status: " << outcome.GetError().GetMessage() << std::endl;
+    }
+    else
+    {
+        switch (outcome.GetResult().GetLegalHold().GetStatus())
+        {
+        case (Aws::S3::Model::ObjectLockLegalHoldStatus::ON):
+        {
+            std::cout << "lock status on" << std::endl;
+            break;
+        }
+        case (Aws::S3::Model::ObjectLockLegalHoldStatus::OFF):
+        {
+            std::cout << "lock status on" << std::endl;
+            break;
+        }
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     Aws::SDKOptions options;
@@ -2333,6 +2363,12 @@ int main(int argc, char **argv)
     {
         Aws::S3::S3Client minio_client_2 = init();
         UnLock(&minio_client_2);
+        return 1;
+    }
+    if (co_output.compare("printlock") == 0)
+    {
+        Aws::S3::S3Client minio_client_2 = init();
+        PrintLock(&minio_client_2);
         return 1;
     }
 
