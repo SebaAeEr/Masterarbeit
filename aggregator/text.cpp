@@ -1092,13 +1092,14 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 if (maxHmapSize < hmap->size())
                 {
                     maxHmapSize = hmap->size();
-                    // std::cout << "new MaxSize: " << maxHmapSize << std::endl;
+                    std::cout << "new MaxSize: " << maxHmapSize << std::endl;
                 }
                 unsigned long temp_spill_size = hmap->size() * (key_number + value_number) * sizeof(unsigned long);
                 spill_size += temp_spill_size;
                 comb_spill_size.fetch_add(temp_spill_size);
                 spilltoS3 = memLimitMain < spill_size + temp_spill_size;
                 std::string spill_file_name;
+                std::cout << "temp_spill_size: " << temp_spill_size << std::endl;
                 if (spilltoS3)
                 {
                     spill_file_name += worker_id;
