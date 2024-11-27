@@ -2282,6 +2282,7 @@ void Lock(Aws::S3::S3Client *minio_client)
     Aws::S3::Model::ObjectLockLegalHold lock;
     lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
     request.SetLegalHold(lock);
+    request.SetExpectedBucketOwner("erasmus");
     auto version = getManaVersion(minio_client);
     std::cout << version << std::endl;
     request.SetVersionId(version);
@@ -2300,6 +2301,7 @@ void UnLock(Aws::S3::S3Client *minio_client)
     Aws::S3::Model::ObjectLockLegalHold lock;
     lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::OFF);
     request.SetLegalHold(lock);
+    request.SetExpectedBucketOwner("erasmus");
     request.SetVersionId(getManaVersion(minio_client));
     auto outcome = minio_client->PutObjectLegalHold(request);
     if (!outcome.IsSuccess())
@@ -2369,6 +2371,12 @@ int main(int argc, char **argv)
     {
         Aws::S3::S3Client minio_client_2 = init();
         PrintLock(&minio_client_2);
+        return 1;
+    }
+    if (co_output.compare("write") == 0)
+    {
+        Aws::S3::S3Client minio_client_2 = init();
+        writeMana(&minio_client_2, false);
         return 1;
     }
 
