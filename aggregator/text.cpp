@@ -514,7 +514,7 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                 }
             }
         }
-        sdt::cout << "beggar: " << beggarWorker << std::endl;
+        std::cout << "beggar: " << beggarWorker << std::endl;
         if (beggarWorker == 0)
         {
             writeMana(minio_client, mana, true);
