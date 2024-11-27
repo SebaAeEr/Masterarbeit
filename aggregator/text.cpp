@@ -341,8 +341,18 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
     std::mt19937 rng(dev());
     std::uniform_int_distribution<std::mt19937::result_type> dist6(1, 100);
     std::string version_id;
+    float duration = 0;
+    float oldduration = 0;
     while (true)
     {
+        duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000;
+        if (duration - oldduration > 1000)
+        {
+            oldduration = duration;
+            // std::string concat_string = std::to_string(newsize) + "," + std::to_string((unsigned long)((*avg) * comb_hash_size.load())) + "," + std::to_string(phyMemBase) + "," + std::to_string(reservedMem) + "," + std::to_string(*extra_mem) + "," + std::to_string(duration);
+            std::cout << "Trying to get lock: " << std::to_string((int)(thread_id)) << std::endl;
+            // std::cout << concat_string << std::endl;
+        }
         manaFile mana = getMana(minio_client);
         if (mana.worker_lock == 0)
         {
