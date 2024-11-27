@@ -287,27 +287,27 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
                 }
             }
         } */
-        while (true)
+        // while (true)
+        //{
+        auto in_outcome = minio_client->PutObject(in_request);
+        /* if (timeLimit != -1)
         {
-            auto in_outcome = minio_client->PutObject(in_request);
-            /* if (timeLimit != -1)
-            {
-                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
-                std::cout << "Write duration2: " << duration << std::endl;
-            } */
-            if (!in_outcome.IsSuccess())
-            {
-                std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
-            }
-            else
-            {
-                /* if (freeLock)
-                {
-                    std::cout << "Lock released by: " << std::to_string((int)(mana.thread_lock)) << std::endl;
-                } */
-                return 1;
-            }
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+            std::cout << "Write duration2: " << duration << std::endl;
+        } */
+        if (!in_outcome.IsSuccess())
+        {
+            std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
         }
+        else
+        {
+            /* if (freeLock)
+            {
+                std::cout << "Lock released by: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+            } */
+            return 1;
+        }
+        //}
     }
 }
 
