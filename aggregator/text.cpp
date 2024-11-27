@@ -353,37 +353,28 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                 mana.worker_lock = worker_id;
                 mana.thread_lock = thread_id;
                 writeMana(minio_client, mana, false, 0);
-                Aws::S3::Model::GetObjectLegalHoldRequest request;
+
+                Aws::S3::Model::PutObjectLegalHoldRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(manag_file_name);
+                Aws::S3::Model::ObjectLockLegalHold lock;
+                lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
+                request.SetLegalHold(lock);
                 request.SetVersionId(getManaVersion(minio_client));
-                auto status = minio_client->GetObjectLegalHold(request);
-                if (status.IsSuccess())
+                auto outcome = minio_client->PutObjectLegalHold(request);
+                if (!outcome.IsSuccess())
                 {
-                    auto legalhole = status.GetResult().GetLegalHold().GetStatus();
-                    if (legalhole == Aws::S3::Model::ObjectLockLegalHoldStatus::OFF) // Aws::S3::Model::ObjectLockLegalHoldStatus()
-                    {
-                        Aws::S3::Model::PutObjectLegalHoldRequest request;
-                        request.SetBucket(bucketName);
-                        request.SetKey(manag_file_name);
-                        Aws::S3::Model::ObjectLockLegalHold lock;
-                        lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
-                        request.SetLegalHold(lock);
-                        minio_client->PutObjectLegalHold(request);
-                        usleep(500000);
-                        mana = getMana(minio_client);
-                        if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
-                        {
-                            // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock));
-                            mana = getMana(minio_client);
-                            // std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
-                            return mana;
-                        }
-                    }
+                    std::cout << "Error setting lock status: " << status.GetError().GetMessage() << std::endl;
+                    continue;
                 }
-                else
+                //  usleep(500000);
+                mana = getMana(minio_client);
+                if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
                 {
-                    std::cout << "Error seeing lock status: " << status.GetError().GetMessage() << std::endl;
+                    // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock));
+                    mana = getMana(minio_client);
+                    // std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+                    return mana;
                 }
                 usleep(250000);
                 mana = getMana(minio_client);
@@ -1231,7 +1222,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             {
                 *avg = (size - base_size) / (float)(comb_hash_size.load());
                 //*avg *= 1.2;
-                std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " avg: " << *avg << " reservedMem: " << reservedMem << " (*extra_mem): " << (*extra_mem) << std::endl;
+                // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " avg: " << *avg << " reservedMem: " << reservedMem << " (*extra_mem): " << (*extra_mem) << std::endl;
                 usleep(0);
             }
         }
@@ -1243,9 +1234,9 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             {
                 *avg = temp_avg;
             }
-            std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " avg: " << *avg << " reservedMem: " << reservedMem << " (*extra_mem): " << (*extra_mem) << std::endl;
+            // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " avg: " << *avg << " reservedMem: " << reservedMem << " (*extra_mem): " << (*extra_mem) << std::endl;
             //*avg *= 1.2;
-            // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
+            //  std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
             usleep(0);
         }
         old_size = size;
