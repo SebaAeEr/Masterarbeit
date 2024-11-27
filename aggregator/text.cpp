@@ -270,6 +270,23 @@ void PrintLock(Aws::S3::S3Client *minio_client)
 
 bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, int timeLimit = -1)
 {
+    while(true) {
+        Aws::S3::Model::DeleteObjectRequest delete_request;
+        delete_request.WithKey(it.first).WithBucket(bucketName);
+        while (true)
+        {
+            auto outcome = minio_client->DeleteObject(delete_request);
+            if (!outcome.IsSuccess())
+            {
+                std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+                return false;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
     while (true)
     {
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -432,10 +449,6 @@ void Lock(Aws::S3::S3Client *minio_client)
     Aws::S3::Model::ObjectLockLegalHold lock;
     lock.SetStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
     request.SetLegalHold(lock);
-    // request.SetExpectedBucketOwner("erasmus");
-    auto version = getManaVersion(minio_client);
-    // std::cout << version << std::endl;
-    // request.SetVersionId(version);
     auto outcome = minio_client->PutObjectLegalHold(request);
     if (!outcome.IsSuccess())
     {
