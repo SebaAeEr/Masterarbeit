@@ -514,7 +514,6 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                 }
             }
         }
-        std::cout << "beggar: " << beggarWorker << std::endl;
         if (beggarWorker == 0)
         {
             writeMana(minio_client, mana, true);
@@ -535,7 +534,6 @@ std::pair<std::pair<std::string, size_t>, char> *getMergeFileName(emhash8::HashM
                     if (get<2>(file) == 0 && !std::count(blacklist->begin(), blacklist->end(), get<0>(file)))
                     {
                         size_t size_temp = get<1>(file);
-                        std::cout << "size: " << (size_temp / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) + base_size << ", " << base_size << std::endl;
                         if (size_temp > max && (size_temp / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) + base_size < memLimit * 0.9)
                         {
                             max = size_temp;
@@ -1205,7 +1203,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
             {
                 *avg = (size - base_size) / (float)(comb_hash_size.load());
                 //*avg *= 1.2;
-                std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " avg: " << *avg << " reservedMem: " << reservedMem << " (*extra_mem): " << (*extra_mem) << std::endl;
+                // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " avg: " << *avg << " reservedMem: " << reservedMem << " (*extra_mem): " << (*extra_mem) << std::endl;
                 usleep(0);
             }
         }
