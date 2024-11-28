@@ -2395,6 +2395,17 @@ int main(int argc, char **argv)
         printMana(&minio_client_2);
         return 1;
     }
+    if (co_output.compare("locktest") == 0)
+    {
+        Aws::S3::S3Client minio_client_2 = init();
+        manaFile mana = getMana(&minio_client_2);
+        mana.thread_lock++;
+        writeMana(&minio_client_2, mana, false);
+        printMana(&minio_client_2);
+        Lock(&minio_client_2);
+        writeMana(&minio_client_2, mana, false);
+        return 1;
+    }
 
     std::string tpc_sup = argv[2];
     std::string memLimit_string = argv[3];
