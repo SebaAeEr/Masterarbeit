@@ -326,6 +326,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
         // while (true)
         //{
         // PrintLock(minio_client);
+        auto old_version = manag_version;
         auto in_outcome = minio_client->PutObject(in_request);
         /* if (timeLimit != -1)
         {
@@ -338,20 +339,20 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
         }
         else
         {
-            if (manag_version != "empty" && !freeLock)
+            if (old_version != "empty" && !freeLock)
             {
                 Aws::S3::Model::DeleteObjectRequest delete_request;
                 delete_request.WithKey(manag_file_name).WithBucket(bucketName);
-                delete_request.SetVersionId(manag_version);
+                delete_request.SetVersionId(old_version);
                 auto outcome = minio_client->DeleteObject(delete_request);
                 if (!outcome.IsSuccess())
                 {
-                    //std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+                    // std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
                     return false;
                 }
             }
             manag_version = in_outcome.GetResult().GetVersionId();
-            //PrintLock(minio_client);
+            // PrintLock(minio_client);
             if (freeLock)
             {
                 std::cout << "Lock released by: " << std::to_string((int)(mana.thread_lock)) << std::endl;
