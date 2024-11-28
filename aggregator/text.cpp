@@ -1342,7 +1342,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         for (auto set_it = std::next(s3spillNames2->begin(), i); set_it != s3spillNames2->end(); set_it++)
         {
             firsts3File = hmap->empty();
-            std::cout << "Start reading: " << (*set_it).first << std::endl;
+            // std::cout << "Start reading: " << (*set_it).first << std::endl;
             Aws::S3::Model::GetObjectRequest request;
             request.SetBucket(bucketName);
             request.SetKey((*set_it).first);
@@ -1686,7 +1686,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             finished_rows += s3spillStart_head * number_of_longs * sizeof(unsigned long);
             printProgressBar((finished_rows + input_head_base * sizeof(unsigned long)) / (float)(overall_s3spillsize + comb_spill_size));
-            std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
+            // std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
 
             if (hmap->size() > maxHashsize)
