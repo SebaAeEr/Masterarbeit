@@ -69,6 +69,7 @@ std::chrono::_V2::system_clock::time_point start_time;
 unsigned long base_size = 1;
 int threadNumber;
 Aws::String manag_version = "empty";
+std::string lock_file_name = "lock";
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -181,7 +182,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
 
     while (true)
     {
-        request.SetVersionId(manag_version);
+        // request.SetVersionId(manag_version);
         outcome = minio_client->GetObject(request);
 
         // outcome.GetResult().SetObjectLockMode();
@@ -270,7 +271,7 @@ void PrintLock(Aws::S3::S3Client *minio_client)
     }
 }
 
-bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, int timeLimit = -1)
+bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
 {
     while (true)
     {
@@ -323,36 +324,42 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
         in_request.SetObjectLockLegalHoldStatus(freeLock ? Aws::S3::Model::ObjectLockLegalHoldStatus::OFF : Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
         // in_request.SetWriteOffsetBytes(1000);
 
-        // while (true)
-        //{
-        // PrintLock(minio_client);
-        auto old_version = manag_version;
         auto in_outcome = minio_client->PutObject(in_request);
-        /* if (timeLimit != -1)
-        {
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
-            std::cout << "Write duration2: " << duration << std::endl;
-        } */
         if (!in_outcome.IsSuccess())
         {
             std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
         }
         else
         {
-            if (manag_version != "empty" && !freeLock)
+            if (freeLock)
             {
                 Aws::S3::Model::DeleteObjectRequest delete_request;
-                delete_request.WithKey(manag_file_name).WithBucket(bucketName);
-                delete_request.SetVersionId("420c59f6-043d-462a-aa28-80d99181a240");
+                delete_request.WithKey(lock_file_name).WithBucket(bucketName);
                 auto outcome = minio_client->DeleteObject(delete_request);
                 if (!outcome.IsSuccess())
                 {
                     // std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
                     return false;
                 }
-                std::cout << "Version deleted: " << old_version << std::endl;
             }
-            manag_version = in_outcome.GetResult().GetVersionId();
+            /*  if (manag_version != "empty" && !freeLock)
+             {
+                 Aws::S3::Model::DeleteObjectRequest delete_request;
+                 delete_request.WithKey(manag_file_name).WithBucket(bucketName);
+                 delete_request.SetVersionId("420c59f6-043d-462a-aa28-80d99181a240");
+                 auto outcome = minio_client->DeleteObject(delete_request);
+                 if (!outcome.IsSuccess())
+                 {
+                     // std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+                     return false;
+                 }
+                 else
+                 {
+                     std::cout << outcome.GetResult().GetDeleteMarker() << ;
+                 }
+                 std::cout << "Version deleted: " << old_version << std::endl;
+             }
+             manag_version = in_outcome.GetResult().GetVersionId(); */
             // PrintLock(minio_client);
             if (freeLock)
             {
@@ -361,6 +368,30 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
             return 1;
         }
         //}
+    }
+}
+
+bool writeLock(Aws::S3::S3Client *minio_client)
+{
+    Aws::S3::Model::PutObjectRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(lock_file_name.c_str());
+    // Calc spill size
+    const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+    *in_stream << "locked";
+    request.SetContentLength(6);
+    request.SetBody(in_stream);
+    request.SetIfNoneMatch("*");
+
+    auto outcome = minio_client->PutObject(request);
+    if (!outcome.IsSuccess())
+    {
+        std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
+        return false;
+    }
+    else
+    {
+        return true;
     }
 }
 
@@ -382,11 +413,17 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             //{
             mana.worker_lock = worker_id;
             mana.thread_lock = thread_id;
-            if (!writeMana(minio_client, mana, false, 0))
+            /*  if (!writeMana(minio_client, mana, false, 0))
+             {
+                 std::cout << "Failed getting lock: " << std::to_string((int)(thread_id)) << std::endl;
+                 continue;
+             } */
+            if (!writeLock(minio_client))
             {
                 std::cout << "Failed getting lock: " << std::to_string((int)(thread_id)) << std::endl;
                 continue;
             }
+            writeMana(minio_client, mana, false);
 
             /* Aws::S3::Model::PutObjectLegalHoldRequest request;
             request.SetBucket(bucketName);
