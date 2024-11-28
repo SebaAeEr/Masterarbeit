@@ -270,14 +270,14 @@ void PrintLock(Aws::S3::S3Client *minio_client)
 
 bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, int timeLimit = -1)
 {
-    Aws::S3::Model::DeleteObjectRequest delete_request;
-    delete_request.WithKey(manag_file_name).WithBucket(bucketName);
-    auto outcome = minio_client->DeleteObject(delete_request);
-    if (!outcome.IsSuccess())
-    {
-        std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
-        return false;
-    }
+    /*     Aws::S3::Model::DeleteObjectRequest delete_request;
+        delete_request.WithKey(manag_file_name).WithBucket(bucketName);
+        auto outcome = minio_client->DeleteObject(delete_request);
+        if (!outcome.IsSuccess())
+        {
+            std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+            return false;
+        } */
     while (true)
     {
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -326,7 +326,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
 
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
-        in_request.SetObjectLockLegalHoldStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::ON);
+        in_request.SetObjectLockLegalHoldStatus(Aws::S3::Model::ObjectLockLegalHoldStatus::OFF);
         // in_request.SetWriteOffsetBytes(1000);
         if (freeLock)
         {
