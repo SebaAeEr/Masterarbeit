@@ -350,6 +350,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
         else
         {
             manag_version = in_outcome.GetResult().GetVersionId();
+            PrintLock(minio_client);
             if (freeLock)
             {
                 std::cout << "Lock released by: " << std::to_string((int)(mana.thread_lock)) << std::endl;
