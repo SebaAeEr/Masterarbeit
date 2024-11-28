@@ -68,6 +68,7 @@ std::string date_now;
 std::chrono::_V2::system_clock::time_point start_time;
 unsigned long base_size = 1;
 int threadNumber;
+Aws::String manag_version = "empty";
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -270,14 +271,18 @@ void PrintLock(Aws::S3::S3Client *minio_client)
 
 bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, int timeLimit = -1)
 {
-    /*     Aws::S3::Model::DeleteObjectRequest delete_request;
+    if (manag_version != "empty")
+    {
+        Aws::S3::Model::DeleteObjectRequest delete_request;
         delete_request.WithKey(manag_file_name).WithBucket(bucketName);
+        delete_request.SetVersionId(manag_version);
         auto outcome = minio_client->DeleteObject(delete_request);
         if (!outcome.IsSuccess())
         {
             std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
             return false;
-        } */
+        }
+    }
     while (true)
     {
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -366,6 +371,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
         }
         else
         {
+            manag_version = in_outcome.GetResult().GetVersionId();
             if (freeLock)
             {
                 std::cout << "Lock released by: " << std::to_string((int)(mana.thread_lock)) << std::endl;
