@@ -1245,6 +1245,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         std::cout << "head: " << head << " freed_space_temp: " << size - head << std::endl;
         perror("Could not free memory in end of thread!");
     }
+    if (spillS3Thread)
+    {
+        minioSpiller.join();
+    }
     try
     {
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
@@ -1253,10 +1257,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     catch (std::exception &err)
     {
         std::cout << "Not able to print time: " << err.what() << std::endl;
-    }
-    if (spillS3Thread)
-    {
-        minioSpiller.join();
     }
 }
 
@@ -1931,11 +1931,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     avg *= 1.3;
     std::cout << "phy: " << getPhyValue() << " phymemBase: " << phyMemBase << " #Hash entries: " << comb_hash_size.load() << " avg: " << avg << std::endl;
  */
-    while (readBytes.load() < size - 1000)
+    /* while (readBytes.load() < size - 1000)
     {
         // std::cout << readBytes.load() << std::endl;
         // printProgressBar((float)(readBytes.load()) / size);
-    }
+    } */
 
     for (auto &thread : threads)
     {
