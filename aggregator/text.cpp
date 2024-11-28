@@ -339,11 +339,11 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
         }
         else
         {
-            if (old_version != "empty" && !freeLock)
+            if (manag_version != "empty" && !freeLock)
             {
                 Aws::S3::Model::DeleteObjectRequest delete_request;
                 delete_request.WithKey(manag_file_name).WithBucket(bucketName);
-                delete_request.SetVersionId(old_version);
+                delete_request.SetVersionId(manag_version);
                 auto outcome = minio_client->DeleteObject(delete_request);
                 if (!outcome.IsSuccess())
                 {
