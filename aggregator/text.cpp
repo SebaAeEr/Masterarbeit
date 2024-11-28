@@ -181,6 +181,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
 
     while (true)
     {
+        request.SetVersionId(manag_version);
         outcome = minio_client->GetObject(request);
 
         // outcome.GetResult().SetObjectLockMode();
@@ -271,18 +272,6 @@ void PrintLock(Aws::S3::S3Client *minio_client)
 
 bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, int timeLimit = -1)
 {
-    if (manag_version != "empty" && !freeLock)
-    {
-        Aws::S3::Model::DeleteObjectRequest delete_request;
-        delete_request.WithKey(manag_file_name).WithBucket(bucketName);
-        delete_request.SetVersionId(manag_version);
-        auto outcome = minio_client->DeleteObject(delete_request);
-        if (!outcome.IsSuccess())
-        {
-            std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
-            return false;
-        }
-    }
     while (true)
     {
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -349,8 +338,20 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
         }
         else
         {
+            if (manag_version != "empty" && !freeLock)
+            {
+                Aws::S3::Model::DeleteObjectRequest delete_request;
+                delete_request.WithKey(manag_file_name).WithBucket(bucketName);
+                delete_request.SetVersionId(manag_version);
+                auto outcome = minio_client->DeleteObject(delete_request);
+                if (!outcome.IsSuccess())
+                {
+                    //std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+                    return false;
+                }
+            }
             manag_version = in_outcome.GetResult().GetVersionId();
-            PrintLock(minio_client);
+            //PrintLock(minio_client);
             if (freeLock)
             {
                 std::cout << "Lock released by: " << std::to_string((int)(mana.thread_lock)) << std::endl;
