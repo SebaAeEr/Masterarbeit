@@ -353,7 +353,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
         }
         // while (true)
         //{
-        PrintLock(minio_client);
+        // PrintLock(minio_client);
         auto in_outcome = minio_client->PutObject(in_request);
         /* if (timeLimit != -1)
         {
