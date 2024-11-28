@@ -343,7 +343,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
             {
                 Aws::S3::Model::DeleteObjectRequest delete_request;
                 delete_request.WithKey(manag_file_name).WithBucket(bucketName);
-                delete_request.SetVersionId(manag_version);
+                delete_request.SetVersionId("420c59f6-043d-462a-aa28-80d99181a240");
                 auto outcome = minio_client->DeleteObject(delete_request);
                 if (!outcome.IsSuccess())
                 {
