@@ -350,6 +350,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, in
                     // std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
                     return false;
                 }
+                std::cout << "Version deleted: " << old_version << std::endl;
             }
             manag_version = in_outcome.GetResult().GetVersionId();
             // PrintLock(minio_client);
