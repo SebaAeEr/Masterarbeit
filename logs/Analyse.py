@@ -739,22 +739,24 @@ def c_size_by_time():
     try:
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
-        f = open(os.path.join(directory, "times_11-29_15-28.csv"))
+        f = open(os.path.join(directory, "times_11-29_17-18.csv"))
     except:
         print("File not found.")
     df = pd.read_csv(f)
     # Step 2: Extract the columns you want to plot
     # Assuming the columns are named 'Column1' and 'Column2' (change these to match your CSV)
-    x = df["time"]
-    mes_y = df["mes_size"] / (2**30)
-    hmap_y = df["hmap_size"]/ (2**30)
-    base_y = df["base_size"]/ (2**30)
-    map_y = df["map_size"]/ (2**30)
-    bit_y = df["bit_size"]/ (2**30)
+    scale = 1  # 2**20
+    x = df["time"] / 1000
+    mes_y = df["mes_size"] / scale
+    hmap_y = df["hmap_size"] / scale
+    base_y = df["base_size"] / scale
+    map_y = df["map_size"] / scale
+    bit_y = df["bit_size"] / scale
+    avg_y = df["avg"]
     calc_y = hmap_y + base_y + map_y + bit_y
 
     # Step 3: Create the plot
-    plt.figure()
+    plt.figure(1)
     plt.plot(x, mes_y, label="measured size")
     plt.plot(x, hmap_y, label="clalc hmap size")
     plt.plot(x, base_y, label="base size")
@@ -763,11 +765,13 @@ def c_size_by_time():
     plt.plot(
         x, calc_y, label="calc overall size"
     )  # Line plot (you can change to scatter plot or others)
-    plt.xlabel("time")  # Label for x-axis
-    plt.ylabel("size")  # Label for y-axis
+    plt.xlabel("time in s")  # Label for x-axis
+    plt.ylabel("size in GiB")  # Label for y-axis
     plt.title("size over time")  # Title of the plot
     plt.legend()  # Show the legend
 
+    plt.figure(2)
+    plt.plot(x, avg_y, label="Average")
     # Step 4: Show the plot
     plt.show()
 

@@ -1143,7 +1143,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         std::cout << "head: " << head << " freed_space_temp: " << size - head << std::endl;
         perror("Could not free memory in end of thread!");
     }
-    std::cout << "Waiting for last spiller" << std::endl;
     if (spillS3Thread)
     {
         minioSpiller.join();
@@ -1182,6 +1181,10 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
     // memLimit -= 2ull << 10;
     while (finished == 0 || finished == 1)
     {
+        while (abs(static_cast<long>(size - newsize)) > 5000000000)
+        {
+            newsize = getPhyValue() * 1024;
+        }
         unsigned long reservedMem = diff->load();
         size_t newsize = getPhyValue() * 1024;
         if (log_size)
@@ -1191,15 +1194,11 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             {
                 oldduration = duration;
                 // std::string concat_string = std::to_string(newsize) + "," + std::to_string((unsigned long)((*avg) * comb_hash_size.load())) + "," + std::to_string(phyMemBase) + "," + std::to_string(reservedMem) + "," + std::to_string(*extra_mem) + "," + std::to_string(duration);
-                output << std::to_string(newsize) << "," << std::to_string((*avg) * comb_hash_size.load()) << "," << std::to_string(phyMemBase) << "," << std::to_string(reservedMem) << "," << std::to_string(*extra_mem)<< "," << std::to_string(*avg) << "," << std::to_string(duration);
+                output << std::to_string(newsize) << "," << std::to_string((*avg) * comb_hash_size.load()) << "," << std::to_string(phyMemBase) << "," << std::to_string(reservedMem) << "," << std::to_string(*extra_mem) << "," << std::to_string(*avg) << "," << std::to_string(duration);
                 // output << concat_string;
                 output << std::endl;
                 // std::cout << concat_string << std::endl;
             }
-        }
-        while (abs(static_cast<long>(size - newsize)) > 5000000000)
-        {
-            newsize = getPhyValue() * 1024;
         }
         size = newsize;
         base_size = phyMemBase + reservedMem + (*extra_mem);
