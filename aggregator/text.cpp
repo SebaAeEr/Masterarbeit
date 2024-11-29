@@ -1505,10 +1505,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     {
                         if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
                         {
-                            
+
                             if (!locked)
                             {
-                                std::cout << "Calc size: " << hmap->size() * (*avg) + base_size << " memlimit: " << memLimit << std::endl;
+                                std::cout << "Calc size: " << hmap->size() * (*avg) + base_size << " base_size: " << base_size << " hmap length " << hmap->size() << " memlimit: " << memLimit << std::endl;
                                 locked = true;
                                 s3spillFile_head = i;
                                 s3spillStart_head = head;
