@@ -2122,7 +2122,7 @@ void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::a
     std::string empty = "";
     // spillToMinio(hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
 
-    if (!spillToMinio(hmap, local_name, uName, minio_client, beggarWorker, 255, 1))
+    if (!spillToMinio(hmap, uName, uName, minio_client, beggarWorker, worker_id, 1))
     {
         return;
     }
@@ -2137,10 +2137,6 @@ void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::a
                 if (std::get<0>(w_file) == filename)
                 {
                     std::get<2>(w_file) = 255;
-                }
-                if (std::get<0>(w_file) == uName)
-                {
-                    std::get<2>(w_file) = worker_id;
                 }
                 if (std::get<0>(w_file) == old_uName)
                 {
@@ -2305,7 +2301,7 @@ int main(int argc, char **argv)
     threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
     size_t memLimit = (std::stof(memLimit_string) - 0.01) * (1ul << 30);
-    //memLimit -= 1ull << 20;
+    // memLimit -= 1ull << 20;
     size_t memLimitMain = std::stof(memLimitMain_string) * (1ul << 30);
     pagesize = sysconf(_SC_PAGE_SIZE);
 
