@@ -2304,8 +2304,8 @@ int main(int argc, char **argv)
 
     threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
-    size_t memLimit = std::stof(memLimit_string) * (1ul << 30);
-    memLimit -= 1ull << 20;
+    size_t memLimit = (std::stof(memLimit_string) - 0.01) * (1ul << 30);
+    //memLimit -= 1ull << 20;
     size_t memLimitMain = std::stof(memLimitMain_string) * (1ul << 30);
     pagesize = sysconf(_SC_PAGE_SIZE);
 
