@@ -2067,10 +2067,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::vector<std::thread> spill_threads;
     std::string empty = "";
     std::vector<std::string> uNames;
-    emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap = emHashmaps[0];
-    for (int i = 1; i < threadNumber; i++)
+    emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
+    for (int i = 0; i < threadNumber; i++)
     {
-        if ((comb_hash_size + emHashmaps[i].size()) * avg + base_size < memLimit * 0.9)
+        if ((comb_hash_size + emHashmaps[i].size()) * avg + base_size < memLimit * 0.9 && (emHashmap.size() + emHashmaps[i].size()) * avg + base_size < memLimit * 0.5)
         {
             for (auto &tuple : emHashmaps[i])
             {
@@ -2103,9 +2103,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         thread.join();
     }
-    for (int i = 1; i < threadNumber; i++)
+    for (int i = 0; i < threadNumber; i++)
     {
-        emHashmaps[i].clear();
+        emHashmaps[i]= emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
     }
     // delete[] emHashmaps;
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
