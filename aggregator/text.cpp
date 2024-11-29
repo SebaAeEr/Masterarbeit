@@ -1184,6 +1184,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
     {
         if(old_finish != finished)  {
             phyMemBase = (getPhyValue()) * 1024 - comb_hash_size.load() * (*avg);
+            old_finish = finished;
         }
         size_t newsize = getPhyValue() * 1024;
         while (abs(static_cast<long>(size - newsize)) > 5000000000)
