@@ -1166,7 +1166,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
     size_t size = 0;
     float oldduration = 0;
     float duration = 0;
-    memLimit -= 1ull << 10;
+    memLimit -= 2ull << 10;
     while (finished == 0 || finished == 1)
     {
         unsigned long reservedMem = diff->load();
