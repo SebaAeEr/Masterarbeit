@@ -802,13 +802,14 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 }
 
 int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string &file, std::string &uniqueName,
-                 size_t free_mem, Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus, char thread_id)
+                 Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus, char thread_id)
 {
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket(bucketName);
     request.SetKey(uniqueName.c_str());
     // Calc spill size
     size_t spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
+
     if (file == "")
     {
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
@@ -1103,7 +1104,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     uName += std::to_string((int)(id));
                     uName += "_" + std::to_string(spill_number);
                     // spillToMinio(hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
-                    minioSpiller = std::thread(spillToMinio, hmap, std::ref(spill_file_name), std::ref(uName), pagesize * 20, minio_client, worker_id, 0, id);
+                    minioSpiller = std::thread(spillToMinio, hmap, std::ref(spill_file_name), std::ref(uName), minio_client, worker_id, 0, id);
                     spillS3Thread = true;
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
@@ -1834,24 +1835,43 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::cout << "Scanning finished with time: " << duration << "s. Scanned Lines: " << numLines << ". macroseconds/line: " << duration * 1000000 / numLines << " Overall spill: " << comb_spill_size << "B. Spill to Main Memory: " << temp_loc_spills << "B. Spill to S3: " << comb_spill_size - temp_loc_spills << std::endl;
 
     start_time = std::chrono::high_resolution_clock::now();
+    std::vector<std::thread> spill_threads;
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap = emHashmaps[0];
     for (int i = 1; i < threadNumber; i++)
     {
-        for (auto &tuple : emHashmaps[i])
+        if ((comb_hash_size + emHashmaps[i].size()) * avg + base_size < memLimit * 0.9)
         {
-            if (emHashmap.contains(tuple.first))
+            for (auto &tuple : emHashmaps[i])
             {
-                for (int k = 0; k < value_number; k++)
+
+                if (emHashmap.contains(tuple.first))
                 {
-                    emHashmap[tuple.first][k] += tuple.second[k];
+                    for (int k = 0; k < value_number; k++)
+                    {
+                        emHashmap[tuple.first][k] += tuple.second[k];
+                    }
+                }
+                else
+                {
+                    emHashmap.insert_unique(tuple);
                 }
             }
-            else
-            {
-                emHashmap.insert_unique(tuple);
-            }
+        }
+        else
+        {
+            std::string empty = "";
+            std::string uName = "spill_" + std::to_string(i);
+            spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], std::ref(empty), std::ref(uName), &minio_client, worker_id, 0, i));
         }
         // delete &emHashmaps[i];
+        // emHashmaps[i].clear();
+    }
+    for (auto &thread : spill_threads)
+    {
+        thread.join();
+    }
+    for (int i = 1; i < threadNumber; i++)
+    {
         emHashmaps[i].clear();
     }
     // delete[] emHashmaps;
@@ -2098,7 +2118,7 @@ void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::a
     std::string empty = "";
     // spillToMinio(hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
 
-    if (!spillToMinio(hmap, local_name, uName, memLimit, minio_client, beggarWorker, 255, 1))
+    if (!spillToMinio(hmap, local_name, uName, minio_client, beggarWorker, 255, 1))
     {
         return;
     }
