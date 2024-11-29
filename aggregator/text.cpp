@@ -801,7 +801,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
 
-int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string &file, std::string &uniqueName,
+int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string &file, std::string uniqueName,
                  Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus, char thread_id)
 {
     Aws::S3::Model::PutObjectRequest request;
@@ -1104,7 +1104,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     uName += std::to_string((int)(id));
                     uName += "_" + std::to_string(spill_number);
                     // spillToMinio(hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
-                    minioSpiller = std::thread(spillToMinio, hmap, std::ref(spill_file_name), std::ref(uName), minio_client, worker_id, 0, id);
+                    minioSpiller = std::thread(spillToMinio, hmap, std::ref(spill_file_name), uName, minio_client, worker_id, 0, id);
                     spillS3Thread = true;
                     /* if (!spillToMinio(hmap, &temp_spill_file_name, &uName, pagesize * 20, &minio_client, worker_id, 0))
                     {
@@ -1863,8 +1863,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         }
         else
         {
-            uNames.push_back("spill_" + std::to_string(i));
-            spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], std::ref(empty), std::ref(uNames[uNames.size() - 1]), &minio_client, worker_id, 0, i));
+            std::string uName = "spill_" + std::to_string(i);
+            spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], std::ref(empty), uName, &minio_client, worker_id, 0, i));
         }
         // delete &emHashmaps[i];
         // emHashmaps[i].clear();
