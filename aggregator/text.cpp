@@ -2110,7 +2110,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
     std::cout << "Merging of hastables finished with time: " << duration << "s." << std::endl;
 
-    if (true)
+    if (false)
     {
         start_time = std::chrono::high_resolution_clock::now();
         helpMergePhase(memLimit, memLimitMain, minio_client, false, &emHashmap, comb_hash_size, diff, avg, extra_mem);
