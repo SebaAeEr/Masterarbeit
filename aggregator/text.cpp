@@ -1146,7 +1146,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     }
 }
 
-void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> *diff, float *avg, unsigned long *extra_mem)
+void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> *diff, float *avg, unsigned long *extra_mem)
 {
     std::ofstream output;
     if (log_size)
@@ -1166,6 +1166,7 @@ void printSize(int &finished, float memLimit, int threadNumber, std::atomic<unsi
     size_t size = 0;
     float oldduration = 0;
     float duration = 0;
+    memLimit -= 1ull << 10;
     while (finished == 0 || finished == 1)
     {
         unsigned long reservedMem = diff->load();
