@@ -738,14 +738,14 @@ def analyse_1_6_13():
 def c_size_by_time():
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_2024-11-25.14_19_25.csv"))
+        f = open(os.path.join(directory, "times_11-29_11-23.csv"))
     except:
         print("File not found.")
     df = pd.read_csv(f)
     # Step 2: Extract the columns you want to plot
     # Assuming the columns are named 'Column1' and 'Column2' (change these to match your CSV)
-    x = df[" time"]
-    y = df["size"]
+    x = df["time"]
+    y = df["mes_size"]
 
     # Step 3: Create the plot
     plt.figure()

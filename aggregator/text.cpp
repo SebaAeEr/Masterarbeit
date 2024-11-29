@@ -1836,6 +1836,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
     start_time = std::chrono::high_resolution_clock::now();
     std::vector<std::thread> spill_threads;
+    std::string empty = "";
+    std::vector<std::string> uNames;
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap = emHashmaps[0];
     for (int i = 1; i < threadNumber; i++)
     {
@@ -1861,9 +1863,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         }
         else
         {
-            std::string empty = "";
-            std::string uName = "spill_" + std::to_string(i);
-            spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], std::ref(empty), std::ref(uName), &minio_client, worker_id, 0, i));
+            uNames.push_back("spill_" + std::to_string(i));
+            spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], std::ref(empty), std::ref(uNames[uNames.size() - 1]), &minio_client, worker_id, 0, i));
         }
         // delete &emHashmaps[i];
         // emHashmaps[i].clear();
