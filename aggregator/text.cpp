@@ -927,7 +927,7 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
     }
 }
 
-void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit, int phyMembase,
+void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit,
                  float &avg, std::vector<std::pair<int, size_t>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> *shared_diff, Aws::S3::S3Client *minio_client,
                  std::atomic<unsigned long> &readBytes, unsigned long memLimitMain, std::atomic<unsigned long> &comb_spill_size)
 {
@@ -2026,19 +2026,17 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
 
     auto start_time = std::chrono::high_resolution_clock::now();
-
-    int phyMemBase = getPhyValue();
     char id = 0;
 
     for (int i = 0; i < threadNumber - 1; i++)
     {
         emHashmaps[i] = {};
-        threads.push_back(std::thread(fillHashmap, id, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber, phyMemBase / threadNumber,
+        threads.push_back(std::thread(fillHashmap, id, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber,
                                       std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitMain / threadNumber, std::ref(comb_spill_size)));
         id++;
     }
     emHashmaps[threadNumber - 1] = {};
-    threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber, phyMemBase / threadNumber,
+    threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber,
                                   std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitMain / threadNumber, std::ref(comb_spill_size)));
 
     while ((float)(readBytes.load()) / size < 0.99)
@@ -2089,6 +2087,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             }
             comb_hash_size.fetch_sub(emHashmaps[i].size());
             emHashmaps[i] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
+            avg = ((getPhyValue() * 1024 - base_size) / (float)(comb_hash_size));
         }
         else
         {
