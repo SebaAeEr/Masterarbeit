@@ -1843,7 +1843,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         {
             for (auto &tuple : emHashmaps[i])
             {
-
                 if (emHashmap.contains(tuple.first))
                 {
                     for (int k = 0; k < value_number; k++)
@@ -1854,8 +1853,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 else
                 {
                     emHashmap.insert_unique(tuple);
+                    comb_hash_size.fetch_add(1);
                 }
             }
+            comb_hash_size.fetch_sub(emHashmaps[i].size());
+            emHashmaps[i] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
         }
         else
         {
