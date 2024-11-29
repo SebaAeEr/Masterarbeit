@@ -1187,7 +1187,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             newsize = getPhyValue() * 1024;
         }
         unsigned long reservedMem = diff->load();
-        
+
         if (log_size)
         {
             duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000;
@@ -1261,8 +1261,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     unsigned long overall_size = 0;
     unsigned long read_lines = 0;
     unsigned long written_lines = 0;
-    unsigned long maxHashsize = hmap->size();
-    comb_hash_size = hmap->size();
+    // unsigned long maxHashsize = hmap->size();
+    comb_hash_size.exchange(comb_hash_size.load() > hmap->size() ? comb_hash_size.load() : hmap->size());
     std::array<unsigned long, max_size> keys = {0, 0};
     std::array<unsigned long, max_size> values = {0, 0};
     size_t mapping_size = 0;
@@ -1460,9 +1460,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         read_lines++;
                         // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
                         hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
-                        if (hmap->size() > maxHashsize)
+                        if (hmap->size() > comb_hash_size.load())
                         {
-                            comb_hash_size++;
+                            comb_hash_size.fetch_add(1);
                         }
                         *bit &= ~(0x01 << (head % 8));
                         // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
@@ -1631,9 +1631,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 {
                     read_lines++;
                     hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
-                    if (hmap->size() > maxHashsize)
+                    if (hmap->size() > comb_hash_size.load())
                     {
-                        comb_hash_size++;
+                        comb_hash_size.fetch_add(1);
                     }
                     // delete pair in spill
                     spill_map[ognewi] = ULONG_MAX;
@@ -1703,13 +1703,13 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             printProgressBar((finished_rows + input_head_base * sizeof(unsigned long)) / (float)(overall_s3spillsize + comb_spill_size));
             // std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
-
-            if (hmap->size() > maxHashsize)
-            {
-                maxHashsize = hmap->size();
-            }
+            /*
+                        if (hmap->size() > maxHashsize)
+                        {
+                            maxHashsize = hmap->size();
+                        } */
             hmap->clear();
-            comb_hash_size = maxHashsize;
+            // comb_hash_size = maxHashsize;
         }
         else if (locked)
         {
