@@ -2105,8 +2105,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
     for (int i = 0; i < threadNumber; i++)
     {
-        emHashmaps[i]= emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
+        emHashmaps[i] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
     }
+    comb_hash_size.exchange(emHashmap.size());
     // delete[] emHashmaps;
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
     std::cout << "Merging of hastables finished with time: " << duration << "s." << std::endl;
