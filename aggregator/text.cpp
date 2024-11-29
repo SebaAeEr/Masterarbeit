@@ -1181,12 +1181,13 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
     // memLimit -= 2ull << 10;
     while (finished == 0 || finished == 1)
     {
+        size_t newsize = getPhyValue() * 1024;
         while (abs(static_cast<long>(size - newsize)) > 5000000000)
         {
             newsize = getPhyValue() * 1024;
         }
         unsigned long reservedMem = diff->load();
-        size_t newsize = getPhyValue() * 1024;
+        
         if (log_size)
         {
             duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000;
