@@ -1166,7 +1166,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
     size_t size = 0;
     float oldduration = 0;
     float duration = 0;
-    memLimit -= 2ull << 10;
+    // memLimit -= 2ull << 10;
     while (finished == 0 || finished == 1)
     {
         unsigned long reservedMem = diff->load();
@@ -2305,6 +2305,7 @@ int main(int argc, char **argv)
     threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
     size_t memLimit = std::stof(memLimit_string) * (1ul << 30);
+    memLimit -= 1ull << 10;
     size_t memLimitMain = std::stof(memLimitMain_string) * (1ul << 30);
     pagesize = sysconf(_SC_PAGE_SIZE);
 
