@@ -935,6 +935,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     // Aws::S3::S3Client minio_client = init();
     //  hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
     auto start_time = std::chrono::high_resolution_clock::now();
+    auto thread_time = std::chrono::high_resolution_clock::now();
     int offset = 0;
     unsigned long spill_size = 0;
     if (addOffset)
@@ -973,6 +974,9 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     unsigned long old_i = 0;
     bool spilltoS3 = false;
     bool spillS3Thread = false;
+    bool thread_finishFlag = false;
+    std::string uName;
+    std::string spill_file_name;
 
     // loop through entire mapping
     for (unsigned long i = 0; i < size + offset; i++)
@@ -1069,36 +1073,35 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 spill_size += temp_spill_size;
                 comb_spill_size.fetch_add(temp_spill_size);
                 spilltoS3 = memLimitMain < spill_size + temp_spill_size;
-                std::string spill_file_name;
+
+                std::pair<int, size_t> spill_file(-1, 0);
+                // std::cout << spill_file_name << ", " << hmap->size() << std::endl;
 
                 if (spilltoS3)
                 {
+
+                    if (spillS3Thread)
+                    {
+                        /* while (!thread_finishFlag)
+                        {
+                            auto thread_dur = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_time).count();
+                            if (thread_dur > 10000000)
+                            {
+                                minioSpiller.terminate();
+                                minioSpiller = std::thread(spillToMinio, hmap, std::ref(spill_file_name), uName, minio_client, worker_id, 0, id);
+                                thread_time = std::chrono::high_resolution_clock::now();
+                            }
+                        } */
+                        minioSpiller.join();
+                    }
+                    spill_file_name = "";
                     spill_file_name += worker_id;
                     spill_file_name += "_";
                     spill_file_name += std::to_string((int)(id));
                     spill_file_name += "_";
                     spill_file_name += "temp_spill";
-                }
-                else
-                {
-                    spill_file_name += worker_id;
-                    spill_file_name += "_";
-                    spill_file_name += std::to_string((int)(id));
-                    spill_file_name += "_";
-                    spill_file_name += std::to_string(spill_number);
-                    spill_file_name += "_";
-                    spill_file_name += "spill";
-                }
-                std::pair<int, size_t> spill_file(-1, 0);
-                // std::cout << spill_file_name << ", " << hmap->size() << std::endl;
-                spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
-                if (spilltoS3)
-                {
-                    if (spillS3Thread)
-                    {
-                        minioSpiller.join();
-                    }
-                    std::string uName;
+                    spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
+                    uName = "";
                     uName += worker_id;
                     uName += "_";
                     uName += std::to_string((int)(id));
@@ -1113,6 +1116,15 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 }
                 else
                 {
+                    spill_file_name = "";
+                    spill_file_name += worker_id;
+                    spill_file_name += "_";
+                    spill_file_name += std::to_string((int)(id));
+                    spill_file_name += "_";
+                    spill_file_name += std::to_string(spill_number);
+                    spill_file_name += "_";
+                    spill_file_name += "spill";
+                    spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
                     spill_files->push_back(spill_file);
                 }
                 spill_number++;
@@ -1131,6 +1143,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         std::cout << "head: " << head << " freed_space_temp: " << size - head << std::endl;
         perror("Could not free memory in end of thread!");
     }
+    std::cout << "Waiting for last spiller" << std::endl;
     if (spillS3Thread)
     {
         minioSpiller.join();
@@ -2109,8 +2122,7 @@ int test(std::string file1name, std::string file2name)
     return 1;
 }
 
-void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uName,
-                    size_t memLimit, Aws::S3::S3Client *minio_client, char beggarWorker, std::string filename, std::string old_uName)
+void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uName, Aws::S3::S3Client *minio_client, char beggarWorker, std::string filename, std::string old_uName)
 {
     // std::cout << "Spilling" << std::endl;
     std::string local_name;
@@ -2244,21 +2256,23 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
         }
         std::cout << "merged hmap size: " << hmap.size() << std::endl;
         size_t phy = getPhyValue() * 1024;
-        avg = (phy - phyMemBase) / (float)(hmap.size());
-        avg *= 1.2;
-        if (uName != "merge")
-        {
-            blacklist.push_back(uName);
-            minioSpiller.join();
-        }
-        std::string old_uName = uName;
-        uName = worker_id;
-        uName += "_merge_" + std::to_string(counter);
-        std::string empty_file = "";
 
-        std::pair<int, size_t> temp_spill_file = {-1, 0};
-        spillToFile(&hmap, &temp_spill_file, 0, pagesize * 20, uName);
-        minioSpiller = std::thread(spillHelpMerge, &hmap, uName, memLimit - phy, &minio_client, beggarWorker, file->first.first, old_uName);
+        if (counter != 0)
+        {
+            if (uName != "merge")
+            {
+                blacklist.push_back(uName);
+                minioSpiller.join();
+            }
+            std::string old_uName = uName;
+            uName = worker_id;
+            uName += "_merge_" + std::to_string(counter);
+            std::string empty_file = "";
+
+            std::pair<int, size_t> temp_spill_file = {-1, 0};
+            spillToFile(&hmap, &temp_spill_file, 0, pagesize * 20, uName);
+            minioSpiller = std::thread(spillHelpMerge, &hmap, uName, &minio_client, beggarWorker, file->first.first, old_uName);
+        }
         counter++;
         delete file;
     }
@@ -2270,6 +2284,132 @@ void helpMerge(size_t memLimit, Aws::S3::S3Client minio_client)
     sizePrinter.join();
 }
 
+/* void helpMergePhase(size_t memLimit, Aws::S3::S3Client minio_client, bool init, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>(),
+                    std::atomic<unsigned long> comb_hash_size = 0, std::atomic<unsigned long> diff = 0, float avg = 1)
+{
+    if (init)
+    {
+        *hmap = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
+        comb_hash_size = 0;
+        diff = 0;
+        avg = 1;
+        int finished = 0;
+        std::thread sizePrinter;
+        unsigned long extra_mem = 0;
+        log_size = false;
+
+        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), &diff, &avg, &extra_mem);
+    }
+    std::vector<std::pair<int, size_t>> spills = std::vector<std::pair<int, size_t>>();
+    std::vector<std::string> blacklist;
+
+    char beggarWorker = 0;
+    unsigned long phyMemBase = getPhyValue() * 1024;
+    std::string uName = "merge";
+    int counter = 0;
+    std::pair<std::pair<std::string, size_t>, char> *file;
+    std::thread minioSpiller;
+
+    while (true)
+    {
+        file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, 0);
+        if (file->second == 0)
+        {
+            if (beggarWorker != 0)
+            {
+                // Try to change beggar worker or load in new files
+                hmap.clear();
+                manaFile mana = getLockedMana(&minio_client, 0);
+                for (auto &worker : mana.workers)
+                {
+                    if (worker.id == beggarWorker && !worker.locked)
+                    {
+                        for (auto &w_file : worker.files)
+                        {
+                            if (std::get<0>(w_file) == uName)
+                            {
+                                std::get<2>(w_file) = 0;
+                            }
+                        }
+                        break;
+                    }
+                }
+                writeMana(&minio_client, mana, true);
+                beggarWorker = 0;
+                file = getMergeFileName(&hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, 0);
+                std::cout << "beggar: " << file->second << std::endl;
+                if (file->second == 0)
+                {
+                    delete file;
+                    break;
+                }
+            }
+            else
+            {
+                delete file;
+                break;
+            }
+        }
+        beggarWorker = file->second;
+        std::vector<std::pair<int, size_t>> empty = {};
+        std::string empty_string = "";
+        std::set<std::pair<std::string, size_t>, CompareBySecond> spills;
+        spills.insert(file->first);
+        // merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true);
+        std::cout << "found beggar: " << beggarWorker << std::endl;
+        if (!merge(&hmap, &empty, comb_hash_size, &avg, memLimit, &diff, empty_string, &spills, &minio_client, &extra_mem, false))
+        {
+            // blacklist.push_back(file->first.first);
+            hmap.clear();
+            manaFile mana = getLockedMana(&minio_client, 0);
+            for (auto &worker : mana.workers)
+            {
+                if (worker.id == beggarWorker && !worker.locked)
+                {
+                    for (auto &w_file : worker.files)
+                    {
+                        if (std::get<0>(w_file) == uName)
+                        {
+                            std::get<2>(w_file) = 0;
+                        }
+                    }
+                    break;
+                }
+            }
+            writeMana(&minio_client, mana, true);
+            beggarWorker = 0;
+            continue;
+        }
+        std::cout << "merged hmap size: " << hmap.size() << std::endl;
+        size_t phy = getPhyValue() * 1024;
+
+        if (counter != 0)
+        {
+            if (uName != "merge")
+            {
+                blacklist.push_back(uName);
+                minioSpiller.join();
+            }
+            std::string old_uName = uName;
+            uName = worker_id;
+            uName += "_merge_" + std::to_string(counter);
+            std::string empty_file = "";
+
+            std::pair<int, size_t> temp_spill_file = {-1, 0};
+            spillToFile(&hmap, &temp_spill_file, 0, pagesize * 20, uName);
+            minioSpiller = std::thread(spillHelpMerge, &hmap, uName, &minio_client, beggarWorker, file->first.first, old_uName);
+        }
+        counter++;
+        delete file;
+    }
+    if (uName != "merge")
+    {
+        minioSpiller.join();
+    }
+    finished = 2;
+    sizePrinter.join();
+}
+ */
 int main(int argc, char **argv)
 {
     Aws::SDKOptions options;
