@@ -739,19 +739,19 @@ def c_size_by_time():
     try:
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
-        f = open(os.path.join(directory, "times_11-29_12-24.csv"))
+        f = open(os.path.join(directory, "times_11-29_15-28.csv"))
     except:
         print("File not found.")
     df = pd.read_csv(f)
     # Step 2: Extract the columns you want to plot
     # Assuming the columns are named 'Column1' and 'Column2' (change these to match your CSV)
     x = df["time"]
-    mes_y = df["mes_size"]
-    hmap_y = df["hmap_size"]
-    base_y = df["base_size"]
-    map_y = df["map_size"]
-    bit_y = df["bit_size"]
-    calc_y = mes_y + hmap_y + base_y + map_y + bit_y
+    mes_y = df["mes_size"] / (2**30)
+    hmap_y = df["hmap_size"]/ (2**30)
+    base_y = df["base_size"]/ (2**30)
+    map_y = df["map_size"]/ (2**30)
+    bit_y = df["bit_size"]/ (2**30)
+    calc_y = hmap_y + base_y + map_y + bit_y
 
     # Step 3: Create the plot
     plt.figure()
