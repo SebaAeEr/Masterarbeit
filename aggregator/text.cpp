@@ -1182,7 +1182,8 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
     // memLimit -= 2ull << 10;
     while (finished == 0 || finished == 1)
     {
-        if(old_finish != finished)  {
+        if (old_finish != finished)
+        {
             phyMemBase = (getPhyValue()) * 1024 - comb_hash_size.load() * (*avg);
             old_finish = finished;
         }
@@ -1239,7 +1240,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             usleep(0);
         }
         old_size = size;
-        usleep(10);
+        usleep(0);
     }
     std::cout << "Max Size: " << maxSize << "B." << std::endl;
     output.close();
