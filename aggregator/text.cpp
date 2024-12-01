@@ -1469,6 +1469,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         if (hmap->size() > comb_hash_size.load())
                         {
                             comb_hash_size.fetch_add(1);
+                            if (comb_hash_size % 100 = 0)
+                            {
+                                *avg = (getPhyValue() - base_size) / comb_hash_size.load();
+                            }
                         }
                         *bit &= ~(0x01 << (head % 8));
                         // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
