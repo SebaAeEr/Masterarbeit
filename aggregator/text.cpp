@@ -1384,6 +1384,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             // std::cout << "Reading spill: " << (*set_it).first << std::endl;
             auto &spill = outcome.GetResult().GetBody();
+           // spill.rdbuf()->
             char *bitmap_mapping;
             std::vector<char> *bitmap_vector;
             bool spilled_bitmap = s3spillBitmaps[i].first != -1;
@@ -1414,7 +1415,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             unsigned long lower_index = 0;
             if (increase_size)
             {
-                *extra_mem += (getPhyValue() - size_after_init) * 1024;
+                auto increase = (getPhyValue() - size_after_init) * 1024;
+                std::cout << "Stream buffer: " << increase;
+                *extra_mem += increase;
                 increase_size = false;
             }
             while (spill.peek() != EOF)
