@@ -1249,7 +1249,6 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
           float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename, std::set<std::pair<std::string, size_t>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client, unsigned long *extra_mem, bool writeRes)
 {
-    std::cout << "Size start: " << getPhyValue() << std::endl;
     // Open the outputfile to write results
     int output_fd;
     if (writeRes)
@@ -1334,7 +1333,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     }
     *extra_mem = bitmap_size_sum;
     printProgressBar(0);
-    std::cout << "Size after Bitmaps: " << getPhyValue() << std::endl;
+    size_t size_after_init = getPhyValue();
+    bool increase_size = true;
 
     // std::cout << "comb_spill_size: " << comb_spill_size << std::endl;
 
@@ -1364,7 +1364,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         int i = s3spillFile_head;
         for (auto set_it = std::next(s3spillNames2->begin(), i); set_it != s3spillNames2->end(); set_it++)
         {
-            std::cout << "Size start of Iteration: " << getPhyValue() << std::endl;
             firsts3File = hmap->empty();
             // std::cout << "Start reading: " << (*set_it).first << std::endl;
             Aws::S3::Model::GetObjectRequest request;
@@ -1413,7 +1412,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
 
             unsigned long lower_index = 0;
-            std::cout << "Size after loading data: " << getPhyValue() << std::endl;
+            if (increase_size)
+            {
+                *extra_mem += (getPhyValue() - size_after_init) * 1024;
+                increase_size = false;
+            }
             while (spill.peek() != EOF)
             {
                 char *bit;
@@ -1473,10 +1476,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         if (hmap->size() > comb_hash_size.load())
                         {
                             comb_hash_size.fetch_add(1);
-                            if (comb_hash_size.load() % 100 == 0)
+                            /* if (comb_hash_size.load() % 100 == 0)
                             {
                                 *avg = (getPhyValue() - base_size) / comb_hash_size.load();
-                            }
+                            } */
                         }
                         *bit &= ~(0x01 << (head % 8));
                         // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
