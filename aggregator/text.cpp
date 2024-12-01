@@ -1469,7 +1469,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         if (hmap->size() > comb_hash_size.load())
                         {
                             comb_hash_size.fetch_add(1);
-                            if (comb_hash_size % 100 = 0)
+                            if (comb_hash_size.load() % 100 == 0)
                             {
                                 *avg = (getPhyValue() - base_size) / comb_hash_size.load();
                             }
