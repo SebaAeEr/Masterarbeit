@@ -850,8 +850,8 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             spill_mem_size_temp += spill_mem_size - max_s3_spill_size * (counter + 1);
             counter++;
         }
-        std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
-        // if(spill_mem_size_temp < )
+        // std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
+        //  if(spill_mem_size_temp < )
         sizes.push_back(spill_mem_size_temp);
         counter++;
         // Calc spill size
@@ -1428,10 +1428,12 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         int bit_i = bit_head;
         for (auto set_it = std::next(s3spillNames2->begin(), i); set_it != s3spillNames2->end(); set_it++)
         {
+            std::cout << "Reading " << get<0>(*set_it) << std::endl;
             firsts3File = hmap->empty();
             int sub_file_counter = 0;
             for (auto &sub_file : get<2>(*set_it))
             {
+                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << std::endl;
                 // std::cout << "Start reading: " << (*set_it).first << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
@@ -1495,7 +1497,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     size_t index = std::floor(head / 8);
                     if (!spilled_bitmap)
                     {
-                        std::cout << "New round: " << index << std::endl;
+                        // std::cout << "New round: " << index << std::endl;
                         bit = &(*bitmap_vector)[index];
                     }
                     else
@@ -1587,6 +1589,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                     }
                                     if (firsts3File)
                                     {
+                                        std::cout << "Breaking because first file: " << s3spillFile_head << ", " << s3spillStart_head << ", " << bit_head << std::endl;
                                         break;
                                     }
                                 }
