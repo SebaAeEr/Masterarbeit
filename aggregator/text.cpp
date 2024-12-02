@@ -2754,7 +2754,7 @@ int main(int argc, char **argv)
         key_number = 1;
     }
     }
-    max_s3_spill_size = (1ul << 20) - ((1ul << 20) % (key_number + value_number) * sizeof(unsigned long)); // memLimit / 8;
+    max_s3_spill_size = (500ul << 20) - ((500ul << 20) % (key_number + value_number) * sizeof(unsigned long)); // memLimit / 8;
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
     initManagFile(&minio_client);
