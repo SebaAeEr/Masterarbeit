@@ -1344,6 +1344,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     std::vector<size_t> bitmap_sizes;
     std::vector<std::pair<int, std::vector<char>>> s3spillBitmaps;
     int s3spillFile_head = 0;
+    int subfile_head = 0;
     int bit_head = 0;
     unsigned long s3spillStart_head = 0;
     unsigned long overall_s3spillsize = 0;
@@ -1442,12 +1443,13 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
         int number_of_longs = key_number + value_number;
         int i = s3spillFile_head;
+
         int bit_i = bit_head;
         for (auto set_it = std::next(s3spillNames2->begin(), i); set_it != s3spillNames2->end(); set_it++)
         {
             // std::cout << "Reading " << get<0>(*set_it) << std::endl;
             firsts3File = hmap->empty();
-            int sub_file_counter = 0;
+            int sub_file_counter = subfile_head;
             for (auto &sub_file : get<2>(*set_it))
             {
                 firsts3subFile = hmap->empty();
@@ -1603,6 +1605,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                         s3spillFile_head = i;
                                         s3spillStart_head = head;
                                         bit_head = bit_i;
+                                        subfile_head = sub_file_counter;
                                     }
                                     if (firsts3File)
                                     {
@@ -1623,6 +1626,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                     s3spillFile_head = i;
                                     s3spillStart_head = head;
                                     bit_head = bit_i;
+                                    subfile_head = sub_file_counter;
                                 }
                                 if (firsts3File)
                                 {
@@ -1654,7 +1658,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 if (firsts3File && locked)
                 {
                     bit_i += get<2>(*set_it).size() - sub_file_counter;
-                    std::cout << "Breaking because first file: " << s3spillFile_head << ", " << s3spillStart_head << ", " << bit_head << std::endl;
+                    std::cout << "Breaking because first file s3spillFile_head: " << s3spillFile_head << ",s3spillStart_head " << s3spillStart_head << ",bit_head " << bit_head << ", subfilehead: " << subfile_head std::endl;
                     break;
                 }
             }
