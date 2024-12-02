@@ -509,7 +509,7 @@ std::set<std::tuple<std::string, size_t, std::vector<size_t>>, CompareBySecond> 
 }
 
 void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
-                      char beggarWorker, size_t memLimit, float *avg, std::vector<std::string> *blacklist, std::pair<std::tuple<std::string, size_t, std::vector<size_t>>, char> *res, char thread_id)
+                      char beggarWorker, size_t memLimit, float *avg, std::vector<std::string> *blacklist, std::pair<std::tuple<std::string, size_t, std::vector<size_t>>, char> *res, char thread_id, size_t loaded_size = 0)
 {
     *res = {{"", 0, {}}, 0};
     char given_beggarWorker = beggarWorker;
@@ -562,7 +562,7 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
                     if (get<4>(file) == 0 && !std::count(blacklist->begin(), blacklist->end(), get<0>(file)))
                     {
                         size_t size_temp = get<2>(file);
-                        if (size_temp > max && (size_temp / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) + base_size < memLimit * 0.9)
+                        if (size_temp > max && ((size_temp + loaded_size) / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) + base_size < memLimit * 0.9)
                         {
                             max = size_temp;
                             m_file = {get<0>(file), size_temp, get<3>(file)};
@@ -1964,14 +1964,16 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
 
     while (true)
     {
+        size_t current_loaded_size = 0;
         while (true)
         {
-            getMergeFileName(hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, &file, 0);
+            getMergeFileName(hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, &file, 0, current_loaded_size);
             if (file.second == 0)
             {
                 break;
             }
             files.push_back(file);
+            current_loaded_size += get<1>(file.first);
             beggarWorker = file.second;
         }
         if (files.empty())
