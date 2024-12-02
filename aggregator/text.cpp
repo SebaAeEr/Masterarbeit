@@ -1449,7 +1449,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         {
             // std::cout << "Reading " << get<0>(*set_it) << std::endl;
             firsts3File = hmap->empty();
-            int sub_file_counter = subfile_head;
+            int sub_file_counter = 0;
+            if (firsts3File)
+            {
+                sub_file_counter = subfile_head;
+            }
             for (auto &sub_file : get<2>(*set_it))
             {
                 firsts3subFile = hmap->empty();
@@ -1465,7 +1469,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     outcome = minio_client->GetObject(request);
                     if (!outcome.IsSuccess())
                     {
-                        std::cout << "GetObject error " << get<0>(*set_it) << " " << outcome.GetError().GetMessage() << std::endl;
+                        std::cout << "GetObject error " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " " << outcome.GetError().GetMessage() << std::endl;
                     }
                     else
                     {
