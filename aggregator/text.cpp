@@ -863,6 +863,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     std::vector<size_t> sizes = {};
 
     size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
+    std::cout << "spill_mem_size: " << spill_mem_size << ", spill_mem_size_temp " << spill_mem_size_temp << std::endl;
     sizes.push_back(spill_mem_size_temp);
     std::string n;
 
@@ -878,6 +879,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         {
             if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
             {
+                std::cout << "spilling sub file" << std::endl;
                 n = uniqueName + "_" + std::to_string(counter);
                 // std::cout << "Calc size: " << spill_mem_size_temp << ", byte counter " << byte_counter << std::endl;
                 writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
