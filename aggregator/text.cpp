@@ -878,7 +878,8 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             {
                 n = uniqueName + "_" + std::to_string(counter);
                 writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
-                in_stream = Aws::MakeShared<Aws::StringStream>("");
+                // delete in_stream;
+                std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
 
                 counter++;
                 std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
