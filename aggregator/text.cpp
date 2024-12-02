@@ -1538,7 +1538,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         if (hmap->contains(keys))
                         {
                             read_lines++;
-                            std::cout << "contained" << std::endl;
 
                             std::array<unsigned long, max_size> temp = (*hmap)[keys];
 
@@ -1552,7 +1551,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         }
                         else if (!locked)
                         {
-                            std::cout << "added" << std::endl;
                             read_lines++;
                             // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
                             hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
