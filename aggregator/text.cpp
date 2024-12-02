@@ -845,6 +845,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         request.SetKey(uniqueName + "_" + std::to_string(counter));
 
         size_t spill_mem_size_temp = spill_mem_size - max_s3_spill_size * counter;
+        std::cout << spill_mem_size_temp << std::endl;
         // if(spill_mem_size_temp < )
         sizes.push_back(spill_mem_size_temp);
         counter++;
