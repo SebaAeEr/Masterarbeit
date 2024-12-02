@@ -869,7 +869,8 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     if (file == "")
     {
-        std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+        std::vector<std::shared_ptr<Aws::IOStream>> in_streams = std::vector<std::shared_ptr<Aws::IOStream>>(std::ceil(spill_mem_size / max_s3_spill_size), Aws::MakeShared<Aws::StringStream>(""));
+        std::shared_ptr<Aws::IOStream> in_stream = in_streams[0];
         unsigned long temp_counter = 0;
         // Write int to Mapping
         for (auto &it : *hmap)
@@ -879,9 +880,8 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 n = uniqueName + "_" + std::to_string(counter);
                 writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
                 // delete in_stream;
-                std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-
                 counter++;
+                in_stream = in_streams[counter];
                 std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
                 spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
                 /* if (spill_mem_size - max_s3_spill_size * (counter + 1) < 2048)
