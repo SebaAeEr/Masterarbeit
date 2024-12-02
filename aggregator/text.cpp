@@ -846,7 +846,7 @@ void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOS
 
         if (!outcome.IsSuccess())
         {
-            std::cout << "Error: " << outcome.GetError().GetMessage() << " Spill size: " << size << std::endl;
+            std::cout << "Error writing " << name << ": " << outcome.GetError().GetMessage() << " Spill size: " << size << std::endl;
         }
         else
         {
