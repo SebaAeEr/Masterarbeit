@@ -1382,7 +1382,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     }
     else
     {
-        
+
         // not spilling bitmaps
         for (auto &name : *s3spillNames2)
         {
@@ -1392,7 +1392,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 s3spillBitmaps.push_back({-1, bitmap});
             }
         }
-        std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() <<  std::endl;
+        std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() << std::endl;
     }
     *extra_mem = bitmap_size_sum;
     printProgressBar(0);
@@ -1421,6 +1421,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         freed_mem = 0;
         // std::cout << "write: " << emHashmap[{221877}][0] << std::endl;
         bool firsts3File = false;
+        bool firsts3subFile = false;
         // std::cout << "s3spillFile: " << s3spillFile_head << std::endl;
         // std::cout << "s3spillStart: " << s3spillStart_head << std::endl;
 
@@ -1434,6 +1435,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             int sub_file_counter = 0;
             for (auto &sub_file : get<2>(*set_it))
             {
+                firsts3subFile = hmap->empty();
                 std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << std::endl;
                 // std::cout << "Start reading: " << (*set_it).first << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
@@ -1476,7 +1478,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
                 // std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector->size() << std::endl;
                 unsigned long head = 0;
-                if (firsts3File)
+                if (firsts3File && firsts3subFile)
                 {
                     head = s3spillStart_head;
                     // std::cout << "First File" << std::endl;
@@ -1492,6 +1494,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     *extra_mem += increase;
                     increase_size = false;
                 }
+                std::cout << "head: " << head  << std::endl;
                 while (spill.peek() != EOF)
                 {
                     char *bit;
@@ -1627,6 +1630,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     head++;
                 }
+                std::cout << "head: " << head << ", spillsize: " << sub_file << std::endl;
                 if (spilled_bitmap)
                 {
                     if (munmap(&bitmap_mapping[lower_index], std::ceil((float)(get<1>(*set_it)) / 8) - lower_index) == -1)
