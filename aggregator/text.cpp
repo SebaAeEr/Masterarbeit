@@ -1609,7 +1609,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                         s3spillFile_head = i;
                                         s3spillStart_head = head;
                                         bit_head = bit_i;
-                                        subfile_head = sub_file_counter;
+                                        subfile_head = sub_file_counter - 1;
                                     }
                                     if (firsts3File)
                                     {
@@ -1630,7 +1630,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                     s3spillFile_head = i;
                                     s3spillStart_head = head;
                                     bit_head = bit_i;
-                                    subfile_head = sub_file_counter;
+                                    subfile_head = sub_file_counter - 1;
                                 }
                                 if (firsts3File)
                                 {
