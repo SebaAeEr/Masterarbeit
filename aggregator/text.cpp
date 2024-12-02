@@ -1517,7 +1517,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         std::memcpy(buf, &char_buf, sizeof(unsigned long) * number_of_longs);
                         if (!spill)
                         {
-                            std::cout << "breaking !spill start" << std::endl;
                             break;
                         }
 
@@ -1592,7 +1591,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                     }
                                     if (firsts3File)
                                     {
-                                        std::cout << "breaking firsts3File" << std::endl;
                                         break;
                                     }
                                 }
@@ -1613,7 +1611,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                 }
                                 if (firsts3File)
                                 {
-                                    std::cout << "breaking firsts3File" << std::endl;
                                     break;
                                 }
                             }
@@ -1621,17 +1618,16 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     else
                     {
-
+                        std::cout << "ignoring" << std::endl;
                         spill.ignore(sizeof(unsigned long) * number_of_longs);
                         if (!spill)
                         {
-                            std::cout << "breaking !spill end" << std::endl;
                             break;
                         }
                     }
                     head++;
                 }
-                std::cout << "head: " << head << ", spillsize: " << sub_file << std::endl;
+                std::cout << "head: " << head * sizeof(unsigned long) * number_of_longs << ", spillsize: " << sub_file << std::endl;
                 if (spilled_bitmap)
                 {
                     if (munmap(&bitmap_mapping[lower_index], std::ceil((float)(get<1>(*set_it)) / 8) - lower_index) == -1)
