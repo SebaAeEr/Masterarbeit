@@ -1494,7 +1494,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     *extra_mem += increase;
                     increase_size = false;
                 }
-                std::cout << "head: " << head  << std::endl;
+                std::cout << "head: " << head << std::endl;
                 while (spill.peek() != EOF)
                 {
                     char *bit;
@@ -1517,7 +1517,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         std::memcpy(buf, &char_buf, sizeof(unsigned long) * number_of_longs);
                         if (!spill)
                         {
-                            // std::cout << "breaking" << std::endl;
+                            std::cout << "breaking !spill start" << std::endl;
                             break;
                         }
 
@@ -1592,7 +1592,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                     }
                                     if (firsts3File)
                                     {
-
+                                        std::cout << "breaking firsts3File" << std::endl;
                                         break;
                                     }
                                 }
@@ -1613,6 +1613,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                 }
                                 if (firsts3File)
                                 {
+                                    std::cout << "breaking firsts3File" << std::endl;
                                     break;
                                 }
                             }
@@ -1624,7 +1625,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         spill.ignore(sizeof(unsigned long) * number_of_longs);
                         if (!spill)
                         {
-                            // std::cout << "breaking" << std::endl;
+                            std::cout << "breaking !spill end" << std::endl;
                             break;
                         }
                     }
