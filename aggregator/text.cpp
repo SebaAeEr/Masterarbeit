@@ -838,80 +838,84 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     size_t spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
     int counter = 0;
     std::vector<size_t> sizes = {};
-    while (max_s3_spill_size * counter <= spill_mem_size)
+    Aws::S3::Model::PutObjectRequest request;
+    request.SetBucket(bucketName);
+    size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
+
+    // Calc spill size
+
+    if (file == "")
     {
-        Aws::S3::Model::PutObjectRequest request;
-        request.SetBucket(bucketName);
-        request.SetKey(uniqueName + "_" + std::to_string(counter));
-
-        size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
-        if (spill_mem_size - max_s3_spill_size * (counter + 1) < 2048)
+        std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+        unsigned long temp_counter = 0;
+        // Write int to Mapping
+        for (auto &it : *hmap)
         {
-            spill_mem_size_temp += spill_mem_size - max_s3_spill_size * (counter + 1);
-            counter++;
-        }
-        // std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
-        //  if(spill_mem_size_temp < )
-        sizes.push_back(spill_mem_size_temp);
-        counter++;
-        // Calc spill size
-
-        if (file == "")
-        {
-            const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-            unsigned long temp_counter = 0;
-            // Write int to Mapping
-            for (auto &it : *hmap)
+            if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
             {
-                if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
+                request.SetKey(uniqueName + "_" + std::to_string(counter));
+                request.SetBody(in_stream);
+                request.SetContentLength(spill_mem_size_temp);
+
+                while (true)
+                {
+                    auto outcome = minio_client->PutObject(request);
+
+                    if (!outcome.IsSuccess())
+                    {
+                        std::cout << "Error: " << outcome.GetError().GetMessage() << " Spill size: " << spill_mem_size_temp << std::endl;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                in_stream = Aws::MakeShared<Aws::StringStream>("");
+
+                counter++;
+                if (spill_mem_size < max_s3_spill_size * counter)
                 {
                     break;
                 }
-                temp_counter++;
-                char byteArray[sizeof(long int)];
-                for (int i = 0; i < key_number; i++)
+                spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
+                /* if (spill_mem_size - max_s3_spill_size * (counter + 1) < 2048)
                 {
-                    // std::cout << it.first[i];
-                    std::memcpy(byteArray, &it.first[i], sizeof(long int));
-                    for (int k = 0; k < sizeof(unsigned long); k++)
-                    {
-                        *in_stream << byteArray[k];
-                    }
-                }
-                for (int i = 0; i < value_number; i++)
+                    spill_mem_size_temp += spill_mem_size - max_s3_spill_size * (counter + 1);
+                    counter++;
+                } */
+                // std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
+                //  if(spill_mem_size_temp < )
+                sizes.push_back(spill_mem_size_temp);
+            }
+            temp_counter++;
+            char byteArray[sizeof(long int)];
+            for (int i = 0; i < key_number; i++)
+            {
+                // std::cout << it.first[i];
+                std::memcpy(byteArray, &it.first[i], sizeof(long int));
+                for (int k = 0; k < sizeof(unsigned long); k++)
                 {
-                    std::memcpy(byteArray, &it.second[i], sizeof(long int));
-                    for (int k = 0; k < sizeof(unsigned long); k++)
-                        *in_stream << byteArray[k];
+                    *in_stream << byteArray[k];
                 }
             }
-            request.SetBody(in_stream);
-        }
-        else
-        {
-            struct stat stats;
-            stat(file.c_str(), &stats);
-            spill_mem_size = stats.st_size;
-            const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::FStream>("", file.c_str(), std::ios_base::in | std::ios_base::binary);
-            // const std::shared_ptr<Aws::IOStream> inputData = temp;
-            request.SetBody(inputData);
-        }
-        request.SetContentLength(spill_mem_size_temp);
-
-        while (true)
-        {
-            auto outcome = minio_client->PutObject(request);
-
-            if (!outcome.IsSuccess())
+            for (int i = 0; i < value_number; i++)
             {
-                std::cout << "Error: " << outcome.GetError().GetMessage() << " Spill size: " << spill_mem_size_temp << std::endl;
-            }
-            else
-            {
-                break;
+                std::memcpy(byteArray, &it.second[i], sizeof(long int));
+                for (int k = 0; k < sizeof(unsigned long); k++)
+                    *in_stream << byteArray[k];
             }
         }
     }
+    else
+    {
+        struct stat stats;
+        stat(file.c_str(), &stats);
+        spill_mem_size = stats.st_size;
+        const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::FStream>("", file.c_str(), std::ios_base::in | std::ios_base::binary);
+        // const std::shared_ptr<Aws::IOStream> inputData = temp;
+        request.SetBody(inputData);
+    }
+
     return addFileToManag(minio_client, uniqueName, sizes, spill_mem_size, write_to_id, fileStatus, thread_id);
 }
 
