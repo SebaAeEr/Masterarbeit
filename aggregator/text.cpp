@@ -1459,8 +1459,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             {
                 auto sub_file = get<2>(*set_it)[sub_file_k];
                 firsts3subFile = hmap->empty();
-                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
-                //  std::cout << "Start reading: " << (*set_it).first << std::endl;
+                // std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
+                //   std::cout << "Start reading: " << (*set_it).first << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
@@ -1484,7 +1484,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 //   spill.rdbuf()->
                 char *bitmap_mapping;
                 std::vector<char> *bitmap_vector;
-                std::cout << "first: " << s3spillBitmaps[bit_i].first << std::endl;
+                // std::cout << "first: " << s3spillBitmaps[bit_i].first << std::endl;
                 bool spilled_bitmap = s3spillBitmaps[bit_i].first != -1;
                 if (!spilled_bitmap)
                 {
@@ -1664,7 +1664,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 if (firsts3File && locked)
                 {
                     bit_i += get<2>(*set_it).size() - sub_file_counter;
-                    std::cout << "Breaking because first file s3spillFile_head: " << s3spillFile_head << ",s3spillStart_head " << s3spillStart_head << ",bit_head " << bit_head << ", subfilehead: " << subfile_head << std::endl;
+                    // std::cout << "Breaking because first file s3spillFile_head: " << s3spillFile_head << ",s3spillStart_head " << s3spillStart_head << ",bit_head " << bit_head << ", subfilehead: " << subfile_head << std::endl;
                     break;
                 }
             }
