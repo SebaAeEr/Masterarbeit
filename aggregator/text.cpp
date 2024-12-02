@@ -893,6 +893,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 } */
                 //  if(spill_mem_size_temp < )
                 sizes.push_back(spill_mem_size_temp);
+                temp_counter = 0;
             }
             temp_counter++;
             char byteArray[sizeof(long int)];
@@ -911,7 +912,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 std::memcpy(byteArray, &it.second[i], sizeof(long int));
                 for (int k = 0; k < sizeof(unsigned long); k++)
                     *in_stream << byteArray[k];
-                byte_counter+=sizeof(unsigned long);
+                byte_counter += sizeof(unsigned long);
             }
         }
         n = uniqueName + "_" + std::to_string(counter);
