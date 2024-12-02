@@ -1434,14 +1434,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         int bit_i = bit_head;
         for (auto set_it = std::next(s3spillNames2->begin(), i); set_it != s3spillNames2->end(); set_it++)
         {
-            std::cout << "Reading " << get<0>(*set_it) << std::endl;
+            // std::cout << "Reading " << get<0>(*set_it) << std::endl;
             firsts3File = hmap->empty();
             int sub_file_counter = 0;
             for (auto &sub_file : get<2>(*set_it))
             {
                 firsts3subFile = hmap->empty();
-                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
-                // std::cout << "Start reading: " << (*set_it).first << std::endl;
+                // std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
+                //  std::cout << "Start reading: " << (*set_it).first << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
@@ -1498,7 +1498,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     *extra_mem += increase;
                     increase_size = false;
                 }
-                std::cout << "head: " << head << std::endl;
                 while (spill.peek() != EOF)
                 {
                     char *bit;
@@ -1630,7 +1629,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     head++;
                 }
-                std::cout << "head: " << head * sizeof(unsigned long) * number_of_longs << ", spillsize: " << sub_file << std::endl;
+                // std::cout << "head: " << head * sizeof(unsigned long) * number_of_longs << ", spillsize: " << sub_file << std::endl;
                 if (spilled_bitmap)
                 {
                     if (munmap(&bitmap_mapping[lower_index], std::ceil((float)(get<1>(*set_it)) / 8) - lower_index) == -1)
