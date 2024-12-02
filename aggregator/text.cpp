@@ -1322,6 +1322,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     std::vector<size_t> bitmap_sizes;
     std::vector<std::pair<int, std::vector<char>>> s3spillBitmaps;
     int s3spillFile_head = 0;
+    int bit_head = 0;
     unsigned long s3spillStart_head = 0;
     unsigned long overall_s3spillsize = 0;
 
@@ -1417,6 +1418,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
         int number_of_longs = key_number + value_number;
         int i = s3spillFile_head;
+        int bit_i = bit_head;
         for (auto set_it = std::next(s3spillNames2->begin(), i); set_it != s3spillNames2->end(); set_it++)
         {
             firsts3File = hmap->empty();
@@ -1427,6 +1429,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
+                sub_file_counter++;
                 Aws::S3::Model::GetObjectOutcome outcome;
                 while (true)
                 {
@@ -1446,14 +1449,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 //   spill.rdbuf()->
                 char *bitmap_mapping;
                 std::vector<char> *bitmap_vector;
-                bool spilled_bitmap = s3spillBitmaps[i].first != -1;
+                bool spilled_bitmap = s3spillBitmaps[bit_i].first != -1;
                 if (!spilled_bitmap)
                 {
-                    bitmap_vector = &s3spillBitmaps[i].second;
+                    bitmap_vector = &s3spillBitmaps[bit_i].second;
                 }
                 else
                 {
-                    bitmap_mapping = static_cast<char *>(mmap(nullptr, std::ceil((float)(sub_file) / 8), PROT_WRITE | PROT_READ, MAP_SHARED, s3spillBitmaps[i].first, 0));
+                    bitmap_mapping = static_cast<char *>(mmap(nullptr, std::ceil((float)(sub_file) / 8), PROT_WRITE | PROT_READ, MAP_SHARED, s3spillBitmaps[bit_i].first, 0));
                     if (bitmap_mapping == MAP_FAILED)
                     {
                         perror("Error mmapping the file");
@@ -1572,6 +1575,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                         locked = true;
                                         s3spillFile_head = i;
                                         s3spillStart_head = head;
+                                        bit_head = bit_i;
                                     }
                                     if (firsts3File)
                                     {
@@ -1591,6 +1595,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                     locked = true;
                                     s3spillFile_head = i;
                                     s3spillStart_head = head;
+                                    bit_head = bit_i;
                                 }
                                 if (firsts3File)
                                 {
@@ -1618,8 +1623,13 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         perror("Could not free memory of bitmap 2!");
                     }
                 }
-                i++;
+                if (firsts3File)
+                {
+                    break;
+                }
+                bit_i++;
             }
+            i++;
         }
 
         // std::cout << "New round" << std::endl;
@@ -2647,7 +2657,7 @@ int main(int argc, char **argv)
     threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
     size_t memLimit = (std::stof(memLimit_string) - 0.01) * (1ul << 30);
-    max_s3_spill_size = memLimit / 8;
+    max_s3_spill_size = (1ul << 10); // memLimit / 8;
     // memLimit -= 1ull << 20;
     size_t memLimitMain = std::stof(memLimitMain_string) * (1ul << 30);
     pagesize = sysconf(_SC_PAGE_SIZE);
