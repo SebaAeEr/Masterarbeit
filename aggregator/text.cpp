@@ -857,7 +857,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             // Write int to Mapping
             for (auto &it : *hmap)
             {
-                if (temp_counter * sizeof(unsigned long) * (key_number + value_number) > spill_mem_size_temp)
+                if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
                 {
                     break;
                 }
@@ -2658,7 +2658,7 @@ int main(int argc, char **argv)
     threadNumber = std::stoi(threadNumber_string);
     int tpc_query = std::stoi(tpc_query_string);
     size_t memLimit = (std::stof(memLimit_string) - 0.01) * (1ul << 30);
-    max_s3_spill_size = (1ul << 10); // memLimit / 8;
+
     // memLimit -= 1ull << 20;
     size_t memLimitMain = std::stof(memLimitMain_string) * (1ul << 30);
     pagesize = sysconf(_SC_PAGE_SIZE);
@@ -2715,6 +2715,7 @@ int main(int argc, char **argv)
         key_number = 1;
     }
     }
+    max_s3_spill_size = (1ul << 10) - ((1ul << 10) % (key_number + value_number) * sizeof(unsigned long)); // memLimit / 8;
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
     initManagFile(&minio_client);
