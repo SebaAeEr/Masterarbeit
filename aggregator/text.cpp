@@ -869,8 +869,8 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     if (file == "")
     {
-        std::vector<std::shared_ptr<Aws::IOStream>> in_streams = std::vector<std::shared_ptr<Aws::IOStream>>(std::ceil(spill_mem_size / max_s3_spill_size), Aws::MakeShared<Aws::StringStream>(""));
-        std::shared_ptr<Aws::IOStream> in_stream = in_streams[0];
+        // std::vector<std::shared_ptr<Aws::IOStream>> in_streams = std::vector<std::shared_ptr<Aws::IOStream>>(std::ceil(spill_mem_size / max_s3_spill_size), Aws::MakeShared<Aws::StringStream>(""));
+        std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>(""); // in_streams[0];
         unsigned long temp_counter = 0;
         unsigned long byte_counter = 0;
         // Write int to Mapping
@@ -879,11 +879,12 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
             {
                 n = uniqueName + "_" + std::to_string(counter);
-                std::cout << "Calc size: " << spill_mem_size_temp << ", byte counter " << byte_counter << std::endl;
+                // std::cout << "Calc size: " << spill_mem_size_temp << ", byte counter " << byte_counter << std::endl;
                 writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
                 // delete in_stream;
                 counter++;
-                in_stream = in_streams[counter];
+                // in_stream = in_streams[counter];
+                in_stream = Aws::MakeShared<Aws::StringStream>("");
                 std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
                 spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
                 /* if (spill_mem_size - max_s3_spill_size * (counter + 1) < 2048)
@@ -894,6 +895,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 //  if(spill_mem_size_temp < )
                 sizes.push_back(spill_mem_size_temp);
                 temp_counter = 0;
+                byte_counter = 0;
             }
             temp_counter++;
             char byteArray[sizeof(long int)];
