@@ -872,12 +872,14 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         std::vector<std::shared_ptr<Aws::IOStream>> in_streams = std::vector<std::shared_ptr<Aws::IOStream>>(std::ceil(spill_mem_size / max_s3_spill_size), Aws::MakeShared<Aws::StringStream>(""));
         std::shared_ptr<Aws::IOStream> in_stream = in_streams[0];
         unsigned long temp_counter = 0;
+        unsigned long byte_counter = 0;
         // Write int to Mapping
         for (auto &it : *hmap)
         {
             if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
             {
                 n = uniqueName + "_" + std::to_string(counter);
+                std::cout << "Calc size: " << spill_mem_size_temp << ", byte counter " << byte_counter << std::endl;
                 writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
                 // delete in_stream;
                 counter++;
@@ -901,6 +903,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 for (int k = 0; k < sizeof(unsigned long); k++)
                 {
                     *in_stream << byteArray[k];
+                    byte_counter++;
                 }
             }
             for (int i = 0; i < value_number; i++)
@@ -908,6 +911,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 std::memcpy(byteArray, &it.second[i], sizeof(long int));
                 for (int k = 0; k < sizeof(unsigned long); k++)
                     *in_stream << byteArray[k];
+                byte_counter+=sizeof(unsigned long);
             }
         }
         n = uniqueName + "_" + std::to_string(counter);
