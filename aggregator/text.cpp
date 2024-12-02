@@ -1495,6 +1495,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     size_t index = std::floor(head / 8);
                     if (!spilled_bitmap)
                     {
+                        std::cout << "New round: " << index << std::endl;
                         bit = &(*bitmap_vector)[index];
                     }
                     else
@@ -1630,11 +1631,12 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         perror("Could not free memory of bitmap 2!");
                     }
                 }
+                bit_i++;
                 if (firsts3File)
                 {
+                    bit_i += get<2>(*set_it).size() - sub_file_counter;
                     break;
                 }
-                bit_i++;
             }
             i++;
         }
