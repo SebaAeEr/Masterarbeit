@@ -1433,7 +1433,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             int sub_file_counter = 0;
             for (auto &sub_file : get<2>(*set_it))
             {
-                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << std::endl;
+                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << std::endl;
                 // std::cout << "Start reading: " << (*set_it).first << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
@@ -1497,10 +1497,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     size_t index = std::floor(head / 8);
                     if (!spilled_bitmap)
                     {
-                        // std::cout << "New round: " << index << std::endl;
-
                         bit = &(*bitmap_vector)[index];
-                        std::cout << std::bitset<8>(*bit) << std::endl;
                     }
                     else
                     {
