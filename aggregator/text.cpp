@@ -874,10 +874,6 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
                 counter++;
                 std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
-                if (spill_mem_size < max_s3_spill_size * counter)
-                {
-                    break;
-                }
                 spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
                 /* if (spill_mem_size - max_s3_spill_size * (counter + 1) < 2048)
                 {
@@ -905,6 +901,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                     *in_stream << byteArray[k];
             }
         }
+        request.SetBody(in_stream);
     }
     else
     {
@@ -914,6 +911,23 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::FStream>("", file.c_str(), std::ios_base::in | std::ios_base::binary);
         // const std::shared_ptr<Aws::IOStream> inputData = temp;
         request.SetBody(inputData);
+    }
+
+    request.SetKey(uniqueName + "_" + std::to_string(counter));
+    request.SetContentLength(spill_mem_size_temp);
+
+    while (true)
+    {
+        auto outcome = minio_client->PutObject(request);
+
+        if (!outcome.IsSuccess())
+        {
+            std::cout << "Error: " << outcome.GetError().GetMessage() << " Spill size: " << spill_mem_size_temp << std::endl;
+        }
+        else
+        {
+            break;
+        }
     }
 
     return addFileToManag(minio_client, uniqueName, sizes, spill_mem_size, write_to_id, fileStatus, thread_id);
