@@ -1454,8 +1454,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             {
                 sub_file_counter = subfile_head;
             }
-            for (auto &sub_file : get<2>(*set_it))
+            for (int sub_file_k = sub_file_counter; sub_file_k < get<2>(*set_it).size(); sub_file_k++)
             {
+                auto sub_file = get<2>(*set_it)[sub_file_k];
                 firsts3subFile = hmap->empty();
                 std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
                 //  std::cout << "Start reading: " << (*set_it).first << std::endl;
