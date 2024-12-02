@@ -1498,6 +1498,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     if (!spilled_bitmap)
                     {
                         // std::cout << "New round: " << index << std::endl;
+                        std::cout << std::bitset<8>(*bit) << std::endl;
                         bit = &(*bitmap_vector)[index];
                     }
                     else
@@ -1617,6 +1618,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     else
                     {
+
                         spill.ignore(sizeof(unsigned long) * number_of_longs);
                         if (!spill)
                         {
