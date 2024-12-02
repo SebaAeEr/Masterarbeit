@@ -846,7 +846,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     if (file == "")
     {
-        std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+        const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         unsigned long temp_counter = 0;
         // Write int to Mapping
         for (auto &it : *hmap)
@@ -870,7 +870,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                         break;
                     }
                 }
-                in_stream = Aws::MakeShared<Aws::StringStream>("");
+                in_stream.reset();
 
                 counter++;
                 std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
