@@ -869,8 +869,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     if (file == "")
     {
-        // std::vector<std::shared_ptr<Aws::IOStream>> in_streams = std::vector<std::shared_ptr<Aws::IOStream>>(std::ceil(spill_mem_size / max_s3_spill_size), Aws::MakeShared<Aws::StringStream>(""));
-        std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>(""); // in_streams[0];
+        std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         unsigned long temp_counter = 0;
         unsigned long byte_counter = 0;
         // Write int to Mapping
@@ -881,11 +880,9 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 n = uniqueName + "_" + std::to_string(counter);
                 // std::cout << "Calc size: " << spill_mem_size_temp << ", byte counter " << byte_counter << std::endl;
                 writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
-                // delete in_stream;
                 counter++;
-                // in_stream = in_streams[counter];
                 in_stream = Aws::MakeShared<Aws::StringStream>("");
-                std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
+                // std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
                 spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
                 /* if (spill_mem_size - max_s3_spill_size * (counter + 1) < 2048)
                 {
@@ -1454,7 +1451,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             for (auto &sub_file : get<2>(*set_it))
             {
                 firsts3subFile = hmap->empty();
-                // std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
+                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
                 //  std::cout << "Start reading: " << (*set_it).first << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
@@ -1479,6 +1476,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 //   spill.rdbuf()->
                 char *bitmap_mapping;
                 std::vector<char> *bitmap_vector;
+                std::cout << "first: " << s3spillBitmaps[bit_i].first << std::endl;
                 bool spilled_bitmap = s3spillBitmaps[bit_i].first != -1;
                 if (!spilled_bitmap)
                 {
