@@ -1589,7 +1589,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                     }
                                     if (firsts3File)
                                     {
-                                        std::cout << "Breaking because first file: " << s3spillFile_head << ", " << s3spillStart_head << ", " << bit_head << std::endl;
+                                        
                                         break;
                                     }
                                 }
@@ -1638,6 +1638,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 if (firsts3File)
                 {
                     bit_i += get<2>(*set_it).size() - sub_file_counter;
+                    std::cout << "Breaking because first file: " << s3spillFile_head << ", " << s3spillStart_head << ", " << bit_head << std::endl;
                     break;
                 }
             }
@@ -1805,7 +1806,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             finished_rows += s3spillStart_head * number_of_longs * sizeof(unsigned long);
             printProgressBar((finished_rows + input_head_base * sizeof(unsigned long)) / (float)(overall_s3spillsize + comb_spill_size));
-            // std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
+            std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
             /*
                         if (hmap->size() > maxHashsize)
@@ -1813,6 +1814,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                             maxHashsize = hmap->size();
                         } */
             hmap->clear();
+            std::cout << "locked: " << locked  << std::endl;
             // comb_hash_size = maxHashsize;
         }
         else if (locked)
