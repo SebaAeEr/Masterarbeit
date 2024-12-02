@@ -870,7 +870,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                         break;
                     }
                 }
-                in_stream.reset();
+                in_stream.clear();
 
                 counter++;
                 std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
