@@ -1382,7 +1382,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     }
     else
     {
-        std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << std::endl;
+        
         // not spilling bitmaps
         for (auto &name : *s3spillNames2)
         {
@@ -1392,6 +1392,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 s3spillBitmaps.push_back({-1, bitmap});
             }
         }
+        std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() <<  std::endl;
     }
     *extra_mem = bitmap_size_sum;
     printProgressBar(0);
