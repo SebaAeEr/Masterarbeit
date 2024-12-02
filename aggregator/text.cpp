@@ -832,45 +832,53 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
 
+void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOStream> body, size_t size, std::string &name)
+{
+    Aws::S3::Model::PutObjectRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(name);
+    request.SetBody(body);
+    request.SetContentLength(size);
+
+    while (true)
+    {
+        auto outcome = minio_client->PutObject(request);
+
+        if (!outcome.IsSuccess())
+        {
+            std::cout << "Error: " << outcome.GetError().GetMessage() << " Spill size: " << size << std::endl;
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
 int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string &file, std::string uniqueName,
                  Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus, char thread_id)
 {
     size_t spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
     int counter = 0;
     std::vector<size_t> sizes = {};
-    Aws::S3::Model::PutObjectRequest request;
-    request.SetBucket(bucketName);
+
     size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
+    std::string n;
 
     // Calc spill size
 
     if (file == "")
     {
-        const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+        std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         unsigned long temp_counter = 0;
         // Write int to Mapping
         for (auto &it : *hmap)
         {
             if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
             {
-                request.SetKey(uniqueName + "_" + std::to_string(counter));
-                request.SetBody(in_stream);
-                request.SetContentLength(spill_mem_size_temp);
-
-                while (true)
-                {
-                    auto outcome = minio_client->PutObject(request);
-
-                    if (!outcome.IsSuccess())
-                    {
-                        std::cout << "Error: " << outcome.GetError().GetMessage() << " Spill size: " << spill_mem_size_temp << std::endl;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                (*in_stream).clear();
+                n = uniqueName + "_" + std::to_string(counter);
+                writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
+                in_stream = Aws::MakeShared<Aws::StringStream>("");
 
                 counter++;
                 std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
@@ -901,7 +909,8 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                     *in_stream << byteArray[k];
             }
         }
-        request.SetBody(in_stream);
+        n = uniqueName + "_" + std::to_string(counter);
+        writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
     }
     else
     {
@@ -910,24 +919,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         spill_mem_size = stats.st_size;
         const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::FStream>("", file.c_str(), std::ios_base::in | std::ios_base::binary);
         // const std::shared_ptr<Aws::IOStream> inputData = temp;
-        request.SetBody(inputData);
-    }
-
-    request.SetKey(uniqueName + "_" + std::to_string(counter));
-    request.SetContentLength(spill_mem_size_temp);
-
-    while (true)
-    {
-        auto outcome = minio_client->PutObject(request);
-
-        if (!outcome.IsSuccess())
-        {
-            std::cout << "Error: " << outcome.GetError().GetMessage() << " Spill size: " << spill_mem_size_temp << std::endl;
-        }
-        else
-        {
-            break;
-        }
+        // request.SetBody(inputData);
     }
 
     return addFileToManag(minio_client, uniqueName, sizes, spill_mem_size, write_to_id, fileStatus, thread_id);
