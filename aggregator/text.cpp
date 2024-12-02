@@ -873,6 +873,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 in_stream = Aws::MakeShared<Aws::StringStream>("");
 
                 counter++;
+                std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
                 if (spill_mem_size < max_s3_spill_size * counter)
                 {
                     break;
@@ -883,7 +884,6 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                     spill_mem_size_temp += spill_mem_size - max_s3_spill_size * (counter + 1);
                     counter++;
                 } */
-                // std::cout << spill_mem_size_temp << ", " << spill_mem_size << ", " << spill_mem_size - max_s3_spill_size * counter << std::endl;
                 //  if(spill_mem_size_temp < )
                 sizes.push_back(spill_mem_size_temp);
             }
