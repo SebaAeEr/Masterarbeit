@@ -838,7 +838,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     size_t spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
     int counter = 0;
     std::vector<size_t> sizes = {};
-    while (spill_mem_size - max_s3_spill_size * counter > 0)
+    while (max_s3_spill_size * counter <= spill_mem_size)
     {
         Aws::S3::Model::PutObjectRequest request;
         request.SetBucket(bucketName);
