@@ -1956,6 +1956,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     std::thread minioSpiller;
     std::string first_fileName;
     std::string local_spillName = "helpMergeSpill";
+    bool b_minioSpiller = false;
 
     if (init)
     {
@@ -2017,6 +2018,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 std::cout << "beggar: " << file.second << std::endl;
                 if (files.empty())
                 {
+                    std::cout << "finish" << std::endl;
                     break;
                 }
             }
@@ -2061,7 +2063,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         size_t phy = getPhyValue() * 1024;
         if (memMainLimit > hmap->size() * sizeof(unsigned long) * (key_number + value_number))
         {
-            if (uName != "merge")
+            if (b_minioSpiller)
             {
                 blacklist.push_back(uName);
                 minioSpiller.join();
@@ -2079,6 +2081,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 temp_names.push_back(get<0>(it.first));
             }
             minioSpiller = std::thread(spillHelpMerge, hmap, uName, std::ref(local_spillName), &minio_client, beggarWorker, old_uName, temp_names);
+            b_minioSpiller = true;
         }
         else
         {
@@ -2117,12 +2120,15 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             writeMana(&minio_client, mana, true);
         }
     }
-    if (uName != "merge")
+    if (b_minioSpiller)
     {
         minioSpiller.join();
     }
     finished = 2;
-    sizePrinter.join();
+    if (init)
+    {
+        sizePrinter.join();
+    }
 }
 
 // aggregate inputfilename and write results into outpufilename
