@@ -1969,6 +1969,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     while (true)
     {
         size_t current_loaded_size = 0;
+        files.clear();
         while (true)
         {
             getMergeFileName(hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, &file, 0, current_loaded_size);
