@@ -1920,9 +1920,9 @@ void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::a
         {
             for (auto &w_file : worker.files)
             {
-                if (files.size() > 0)
+                if (files->size() > 0)
                 {
-                    for (auto &f_name : files)
+                    for (auto &f_name : *files)
                     {
                         if (std::get<0>(w_file) == get<0>(f_name.first))
                         {
