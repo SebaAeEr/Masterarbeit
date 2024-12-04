@@ -1902,7 +1902,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     return 1;
 }
 
-void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uName, std::string &local_spillName, Aws::S3::S3Client *minio_client, char beggarWorker, std::string filename, std::string old_uName)
+void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uName, std::string &local_spillName, Aws::S3::S3Client *minio_client, char beggarWorker, std::string filename, std::string old_uName, std::vector<std::pair<std::tuple<std::string, size_t, std::vector<size_t>>, char>> files *files = {})
 {
     // std::cout << "spilling to: " << uName << std::endl;
     std::string empty = "";
@@ -1920,9 +1920,23 @@ void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::a
         {
             for (auto &w_file : worker.files)
             {
-                if (std::get<0>(w_file) == filename)
+                if (files.size() > 0)
                 {
-                    std::get<4>(w_file) = 255;
+                    for (auto &f_name : files)
+                    {
+                        if (std::get<0>(w_file) == get<0>(f_name.first))
+                        {
+                            std::get<4>(w_file) = 255;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    if (std::get<0>(w_file) == filename)
+                    {
+                        std::get<4>(w_file) = 255;
+                    }
                 }
                 if (std::get<0>(w_file) == old_uName)
                 {
@@ -2054,62 +2068,58 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         }
         std::cout << "merged hmap size: " << hmap->size() << std::endl;
         size_t phy = getPhyValue() * 1024;
-
-        if (counter > 0)
+        if (memMainLimit > hmap->size() * sizeof(unsigned long) * (key_number + value_number))
         {
-            if (memMainLimit > hmap->size() * sizeof(unsigned long) * (key_number + value_number))
+            if (uName != "merge")
             {
-                if (uName != "merge")
-                {
-                    blacklist.push_back(uName);
-                    minioSpiller.join();
-                }
-                std::string old_uName = counter == 1 ? first_fileName : uName;
-                uName = worker_id;
-                uName += "_merge_" + std::to_string(counter);
-                std::string empty_file = "";
+                blacklist.push_back(uName);
+                minioSpiller.join();
+            }
+            std::string old_uName = counter == 1 ? first_fileName : uName;
+            uName = worker_id;
+            uName += "_merge_" + std::to_string(counter);
+            std::string empty_file = "";
 
-                std::pair<int, size_t> temp_spill_file = {-1, 0};
-                spillToFile(hmap, &temp_spill_file, 0, pagesize * 20, local_spillName);
-                minioSpiller = std::thread(spillHelpMerge, hmap, uName, std::ref(local_spillName), &minio_client, beggarWorker, get<0>(file.first), old_uName);
-            }
-            else
-            {
-                std::string old_uName = counter == 1 ? first_fileName : uName;
-                uName = worker_id;
-                uName += "_merge_" + std::to_string(counter);
-                if (!spillToMinio(hmap, local_spillName, uName, &minio_client, beggarWorker, worker_id, 1))
-                {
-                    return;
-                }
-                std::cout << "spilled" << std::endl;
-                manaFile mana = getLockedMana(&minio_client, 1);
-                for (auto &worker : mana.workers)
-                {
-                    if (worker.id == beggarWorker && !worker.locked)
-                    {
-                        for (auto &w_file : worker.files)
-                        {
-                            if (std::get<0>(w_file) == get<0>(file.first))
-                            {
-                                std::get<4>(w_file) = 255;
-                            }
-                            if (std::get<0>(w_file) == old_uName)
-                            {
-                                std::get<4>(w_file) = 255;
-                            }
-                        }
-                        break;
-                    }
-                }
-                writeMana(&minio_client, mana, true);
-            }
+            std::pair<int, size_t> temp_spill_file = {-1, 0};
+            spillToFile(hmap, &temp_spill_file, 0, pagesize * 20, local_spillName);
+            minioSpiller = std::thread(spillHelpMerge, hmap, uName, std::ref(local_spillName), &minio_client, beggarWorker, get<0>(file.first), old_uName, &files);
         }
         else
         {
-            first_fileName = get<0>(file.first);
+            std::string old_uName = counter == 1 ? first_fileName : uName;
+            uName = worker_id;
+            uName += "_merge_" + std::to_string(counter);
+            if (!spillToMinio(hmap, local_spillName, uName, &minio_client, beggarWorker, worker_id, 1))
+            {
+                return;
+            }
+            std::cout << "spilled" << std::endl;
+            manaFile mana = getLockedMana(&minio_client, 1);
+            for (auto &worker : mana.workers)
+            {
+                if (worker.id == beggarWorker && !worker.locked)
+                {
+                    for (auto &w_file : worker.files)
+                    {
+                        for (auto &f_name : files)
+                        {
+                            if (std::get<0>(w_file) == get<0>(f_name.first))
+                            {
+                                std::get<4>(w_file) = 255;
+                                break;
+                            }
+                        }
+
+                        if (std::get<0>(w_file) == old_uName)
+                        {
+                            std::get<4>(w_file) = 255;
+                        }
+                    }
+                    break;
+                }
+            }
+            writeMana(&minio_client, mana, true);
         }
-        counter++;
     }
     if (uName != "merge")
     {
