@@ -2077,7 +2077,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             {
                 temp_names.push_back(get<0>(it.first));
             }
-            minioSpiller = std::thread(spillHelpMerge, hmap, uName, std::ref(local_spillName), &minio_client, beggarWorker, get<0>(file.first), old_uName, temp_names);
+            minioSpiller = std::thread(spillHelpMerge, hmap, uName, std::ref(local_spillName), &minio_client, beggarWorker, old_uName, temp_names);
         }
         else
         {
