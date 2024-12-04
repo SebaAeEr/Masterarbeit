@@ -1902,7 +1902,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     return 1;
 }
 
-void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uName, std::string &local_spillName, Aws::S3::S3Client *minio_client, char beggarWorker, std::string filename, std::string old_uName, std::vector<std::string> files = {})
+void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uName, std::string &local_spillName, Aws::S3::S3Client *minio_client, char beggarWorker, std::string old_uName, std::vector<std::string> files)
 {
     // std::cout << "spilling to: " << uName << std::endl;
     std::string empty = "";
@@ -1920,22 +1920,12 @@ void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::a
         {
             for (auto &w_file : worker.files)
             {
-                if (files.size() > 0)
+                for (auto &f_name : files)
                 {
-                    for (auto &f_name : files)
-                    {
-                        if (std::get<0>(w_file) == f_name)
-                        {
-                            std::get<4>(w_file) = 255;
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    if (std::get<0>(w_file) == filename)
+                    if (std::get<0>(w_file) == f_name)
                     {
                         std::get<4>(w_file) = 255;
+                        break;
                     }
                 }
                 if (std::get<0>(w_file) == old_uName)
@@ -2637,7 +2627,8 @@ void helpMerge(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client minio_cli
 
                 std::pair<int, size_t> temp_spill_file = {-1, 0};
                 spillToFile(&hmap, &temp_spill_file, 0, pagesize * 20, local_spillName);
-                minioSpiller = std::thread(spillHelpMerge, &hmap, uName, std::ref(local_spillName), &minio_client, beggarWorker, get<0>(file.first), old_uName);
+                std::vector<std::string> temp_name(1, get<0>(file.first));
+                minioSpiller = std::thread(spillHelpMerge, &hmap, uName, std::ref(local_spillName), &minio_client, beggarWorker, old_uName, temp_name);
             }
             else
             {
