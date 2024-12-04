@@ -1902,7 +1902,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     return 1;
 }
 
-void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uName, std::string &local_spillName, Aws::S3::S3Client *minio_client, char beggarWorker, std::string filename, std::string old_uName, std::vector<std::pair<std::tuple<std::string, size_t, std::vector<size_t>>, char>> *files = {})
+void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uName, std::string &local_spillName, Aws::S3::S3Client *minio_client, char beggarWorker, std::string filename, std::string old_uName, std::vector<std::string> files = {})
 {
     // std::cout << "spilling to: " << uName << std::endl;
     std::string empty = "";
@@ -1920,11 +1920,11 @@ void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::a
         {
             for (auto &w_file : worker.files)
             {
-                if (files->size() > 0)
+                if (files.size() > 0)
                 {
-                    for (auto &f_name : *files)
+                    for (auto &f_name : files)
                     {
-                        if (std::get<0>(w_file) == get<0>(f_name.first))
+                        if (std::get<0>(w_file) == f_name)
                         {
                             std::get<4>(w_file) = 255;
                             break;
@@ -2082,7 +2082,12 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
 
             std::pair<int, size_t> temp_spill_file = {-1, 0};
             spillToFile(hmap, &temp_spill_file, 0, pagesize * 20, local_spillName);
-            minioSpiller = std::thread(spillHelpMerge, hmap, uName, std::ref(local_spillName), &minio_client, beggarWorker, get<0>(file.first), old_uName, &files);
+            std::vector<std::string> temp_names = {};
+            for (autp &it : files)
+            {
+                temp_names.push_back(get<0>(it.first));
+            }
+            minioSpiller = std::thread(spillHelpMerge, hmap, uName, std::ref(local_spillName), &minio_client, beggarWorker, get<0>(file.first), old_uName, temp_names);
         }
         else
         {
