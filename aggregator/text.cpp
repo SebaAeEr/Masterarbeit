@@ -2083,7 +2083,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             std::pair<int, size_t> temp_spill_file = {-1, 0};
             spillToFile(hmap, &temp_spill_file, 0, pagesize * 20, local_spillName);
             std::vector<std::string> temp_names = {};
-            for (autp &it : files)
+            for (auto &it : files)
             {
                 temp_names.push_back(get<0>(it.first));
             }
