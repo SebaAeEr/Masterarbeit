@@ -1902,7 +1902,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     return 1;
 }
 
-void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uName, std::string &local_spillName, Aws::S3::S3Client *minio_client, char beggarWorker, std::string filename, std::string old_uName, std::vector<std::pair<std::tuple<std::string, size_t, std::vector<size_t>>, char>> files *files = {})
+void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string uName, std::string &local_spillName, Aws::S3::S3Client *minio_client, char beggarWorker, std::string filename, std::string old_uName, std::vector<std::pair<std::tuple<std::string, size_t, std::vector<size_t>>, char>> *files = {})
 {
     // std::cout << "spilling to: " << uName << std::endl;
     std::string empty = "";
