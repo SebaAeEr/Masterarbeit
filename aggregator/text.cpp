@@ -2006,6 +2006,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 }
                 writeMana(&minio_client, mana, true);
                 beggarWorker = 0;
+                blacklist.push_back(uName);
                 while (true)
                 {
                     getMergeFileName(hmap, &minio_client, beggarWorker, memLimit, &avg, &blacklist, &file, 0);
@@ -2093,7 +2094,9 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             {
                 return;
             }
+            printMana(&minio_client);
             std::cout << "spilled" << std::endl;
+            
             manaFile mana = getLockedMana(&minio_client, 1);
             for (auto &worker : mana.workers)
             {
@@ -2119,6 +2122,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 }
             }
             writeMana(&minio_client, mana, true);
+            printMana(&minio_client);
             counter++;
         }
     }
