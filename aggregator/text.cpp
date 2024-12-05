@@ -2060,7 +2060,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                             {
                                 std::get<4>(w_file) = 255;
                             }
-                            if (file.second != 0  && std::get<0>(w_file) == get<0>(file.first))
+                            if (file.second != 0 && std::get<0>(w_file) == get<0>(file.first))
                             {
                                 std::get<4>(w_file) = 0;
                             }
@@ -2092,6 +2092,25 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             }
             else
             {
+                if (file.second != 0)
+                {
+                    manaFile mana = getLockedMana(&minio_client, 1);
+                    for (auto &worker : mana.workers)
+                    {
+                        if (worker.id == beggarWorker && !worker.locked)
+                        {
+                            for (auto &w_file : worker.files)
+                            {
+                                if (std::get<0>(w_file) == get<0>(file.first))
+                                {
+                                    std::get<4>(w_file) = 0;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                writeMana(&minio_client, mana, true);
                 break;
             }
         }
