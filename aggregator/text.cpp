@@ -1105,7 +1105,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             if (hmap->size() > maxHmapSize)
             {
                 comb_hash_size.fetch_add(1);
-                maxHmapSize = hmap.size();
+                maxHmapSize = hmap->size();
             }
         }
 
