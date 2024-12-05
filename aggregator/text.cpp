@@ -1856,7 +1856,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         }
         else
         {
-            if (!locked && write_counter == 0)
+            if (locked || write_counter > 0)
             {
                 std::shared_ptr<Aws::IOStream> stream = Aws::MakeShared<Aws::StringStream>("");
                 size_t stream_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
@@ -1891,6 +1891,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 {
                     addFileToManag(minio_client, uName, write_sizes, write_size, beggarWorker, 0, 0);
                 }
+            }
+            else
+            {
+                return true;
             }
         }
     }
