@@ -855,5 +855,5 @@ def c_size_by_time():
 
 # TPC()
 # analyse_Query("8")
-# c_size_by_time()
-analyse_1_6_13()
+c_size_by_time()
+# analyse_1_6_13()

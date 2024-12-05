@@ -70,6 +70,7 @@ unsigned long base_size = 1;
 int threadNumber;
 std::string lock_file_name = "lock";
 size_t max_s3_spill_size = 0;
+unsigned long extra_mem = 0;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -876,12 +877,14 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         unsigned long temp_counter = 0;
         unsigned long byte_counter = 0;
+        std::cout << "phy: " << getPhyValue() << std::endl;
         // Write int to Mapping
         for (auto &it : *hmap)
         {
             if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
             {
                 std::cout << "spilling sub file" << std::endl;
+                std::cout << "phy: " << getPhyValue() << std::endl;
                 n = uniqueName + "_" + std::to_string(counter);
                 // std::cout << "Calc size: " << spill_mem_size_temp << ", byte counter " << byte_counter << std::endl;
                 writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
@@ -1231,7 +1234,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     }
 }
 
-void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> *diff, float *avg, unsigned long *extra_mem)
+void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> *diff, float *avg)
 {
     std::ofstream output;
     if (log_size)
@@ -1274,14 +1277,14 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             {
                 oldduration = duration;
                 // std::string concat_string = std::to_string(newsize) + "," + std::to_string((unsigned long)((*avg) * comb_hash_size.load())) + "," + std::to_string(phyMemBase) + "," + std::to_string(reservedMem) + "," + std::to_string(*extra_mem) + "," + std::to_string(duration);
-                output << std::to_string(newsize) << "," << std::to_string((*avg) * comb_hash_size.load()) << "," << std::to_string(phyMemBase) << "," << std::to_string(reservedMem) << "," << std::to_string(*extra_mem) << "," << std::to_string(*avg) << "," << std::to_string(duration);
+                output << std::to_string(newsize) << "," << std::to_string((*avg) * comb_hash_size.load()) << "," << std::to_string(phyMemBase) << "," << std::to_string(reservedMem) << "," << std::to_string(extra_mem) << "," << std::to_string(*avg) << "," << std::to_string(duration);
                 // output << concat_string;
                 output << std::endl;
                 // std::cout << concat_string << std::endl;
             }
         }
         size = newsize;
-        base_size = phyMemBase + reservedMem + (*extra_mem);
+        base_size = phyMemBase + reservedMem + extra_mem;
         // std::cout << "phy: " << size << std::endl;
 
         if (size > old_size)
@@ -1320,7 +1323,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
 }
 
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
-          float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename, std::set<std::tuple<std::string, size_t, std::vector<size_t>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client, unsigned long *extra_mem, bool writeRes)
+          float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename, std::set<std::tuple<std::string, size_t, std::vector<size_t>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client, bool writeRes)
 {
     // Open the outputfile to write results
     int output_fd;
@@ -1415,7 +1418,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         }
         std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() << std::endl;
     }
-    *extra_mem = bitmap_size_sum;
+    extra_mem = bitmap_size_sum;
     printProgressBar(0);
     size_t size_after_init = getPhyValue();
     bool increase_size = true;
@@ -1519,7 +1522,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 {
                     auto increase = (getPhyValue() - size_after_init) * 1024;
                     std::cout << "Stream buffer: " << increase << std::endl;
-                    *extra_mem += increase;
+                    extra_mem += increase;
                     increase_size = false;
                 }
                 while (spill.peek() != EOF)
@@ -1942,7 +1945,7 @@ void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::a
 }
 
 void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client minio_client, bool init, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap,
-                    std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> &diff, float avg = 1, unsigned long extra_mem = 0)
+                    std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> &diff, float avg = 1)
 {
     int finished = 0;
     std::thread sizePrinter;
@@ -1967,7 +1970,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         diff.exchange(0);
         *hmap = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
         log_size = false;
-        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), &diff, &avg, &extra_mem);
+        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), &diff, &avg);
     }
 
     while (true)
@@ -2040,7 +2043,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         }
         // merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true);
         std::cout << "found beggar: " << beggarWorker << std::endl;
-        if (!merge(hmap, &empty, comb_hash_size, &avg, memLimit, &diff, empty_string, &spills, &minio_client, &extra_mem, false))
+        if (!merge(hmap, &empty, comb_hash_size, &avg, memLimit, &diff, empty_string, &spills, &minio_client, false))
         {
             // blacklist.push_back(file.first.first);
             hmap->clear();
@@ -2181,10 +2184,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     int readingMode = -1;
     int finished = 0;
     std::thread sizePrinter;
-    unsigned long extra_mem = 0;
     if (measure_mem)
     {
-        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, threadNumber, std::ref(comb_hash_size), &diff, &avg, &extra_mem);
+        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, threadNumber, std::ref(comb_hash_size), &diff, &avg);
     }
 
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -2275,7 +2277,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     if (true)
     {
         start_time = std::chrono::high_resolution_clock::now();
-        helpMergePhase(memLimit, memLimitMain, minio_client, false, &emHashmap, comb_hash_size, diff, avg, extra_mem);
+        helpMergePhase(memLimit, memLimitMain, minio_client, false, &emHashmap, comb_hash_size, diff, avg);
         std::cout << "Checking if spills are being worked on." << std::endl;
         bool isWorkedOn = true;
         while (isWorkedOn)
@@ -2356,7 +2358,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         }
         std::cout << std::endl;
         std::cout << files->size() << std::endl; */
-        merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, &extra_mem, true);
+        merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true);
         delete files;
     }
     else
@@ -2542,7 +2544,7 @@ void helpMerge(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client minio_cli
     unsigned long extra_mem = 0;
     log_size = false;
 
-    sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), &diff, &avg, &extra_mem);
+    sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), &diff, &avg);
 
     char beggarWorker = 0;
     unsigned long phyMemBase = getPhyValue() * 1024;
@@ -2599,7 +2601,7 @@ void helpMerge(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client minio_cli
         spills.insert(file.first);
         // merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true);
         std::cout << "found beggar: " << beggarWorker << std::endl;
-        if (!merge(&hmap, &empty, comb_hash_size, &avg, memLimit, &diff, empty_string, &spills, &minio_client, &extra_mem, false))
+        if (!merge(&hmap, &empty, comb_hash_size, &avg, memLimit, &diff, empty_string, &spills, &minio_client, false))
         {
             // blacklist.push_back(file.first.first);
             hmap.clear();
