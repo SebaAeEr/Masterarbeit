@@ -2109,8 +2109,9 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                             break;
                         }
                     }
+                    writeMana(&minio_client, mana, true);
                 }
-                writeMana(&minio_client, mana, true);
+
                 break;
             }
         }
