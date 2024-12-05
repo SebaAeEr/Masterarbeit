@@ -866,7 +866,6 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     std::vector<size_t> sizes = {};
 
     size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
-    std::cout << "spill_mem_size: " << spill_mem_size << ", spill_mem_size_temp " << spill_mem_size_temp << std::endl;
     sizes.push_back(spill_mem_size_temp);
     std::string n;
 
@@ -922,6 +921,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 byte_counter += sizeof(unsigned long);
             }
         }
+        std::cout << "phy: " << getPhyValue() << std::endl;
         n = uniqueName + "_" + std::to_string(counter);
         writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
     }
@@ -2206,7 +2206,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     while ((float)(readBytes.load()) / size < 0.99)
     {
         // std::cout << readBytes.load() << std::endl;
-       // printProgressBar((float)(readBytes.load()) / size);
+        // printProgressBar((float)(readBytes.load()) / size);
         usleep(100);
     }
     printProgressBar(1);
