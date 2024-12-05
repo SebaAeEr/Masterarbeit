@@ -562,7 +562,7 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
                     if (get<4>(file) == 0 && !std::count(blacklist->begin(), blacklist->end(), get<0>(file)))
                     {
                         size_t size_temp = get<2>(file);
-                        if (size_temp > max && ((size_temp + loaded_size) / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) + base_size < memLimit * 0.9)
+                        if (size_temp > max && ((size_temp + loaded_size) / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) + base_size < memLimit * 0.5)
                         {
                             max = size_temp;
                             m_file = {get<0>(file), size_temp, get<3>(file)};
@@ -606,6 +606,7 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
         }
     }
     writeMana(minio_client, mana, true);
+    std::cout << "Calc size: " << ((get<1>(m_file) + loaded_size) / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) + base_size << std::endl;
     *res = {m_file, beggarWorker};
     return;
 }
