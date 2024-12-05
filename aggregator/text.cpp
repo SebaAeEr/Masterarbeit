@@ -544,6 +544,7 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
         }
         if (beggarWorker == 0)
         {
+            std::cout << "Calc size: " << ((loaded_size) / (sizeof(unsigned long) * (key_number + value_number)) + hmap->size()) * (*avg) + base_size << " memLImit: " << memLimit * 0.5 << std::endl;
             writeMana(minio_client, mana, true);
             return;
         }
