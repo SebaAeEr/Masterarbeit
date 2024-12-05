@@ -2010,9 +2010,6 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
 
     if (init)
     {
-        comb_hash_size.exchange(0);
-        diff.exchange(0);
-        *hmap = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
         log_size = false;
         sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), &diff, &avg);
     }
@@ -2879,7 +2876,10 @@ int main(int argc, char **argv)
     {
         test(agg_output, tpc_sup);
     }
-    helpMerge(memLimit, memLimitMain, minio_client);
+    std::atomic_ulong comb_hash_size = 0;
+    std::atomic_ulong diff = 0;
+    emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
+    helpMergePhase(memLimit, memLimitMain, minio_client, true, &hmap, comb_hash_size, diff);
     Aws::ShutdownAPI(options);
     std::cout << "Finished!" << std::endl;
     return 1;
