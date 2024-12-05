@@ -2000,6 +2000,8 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     std::string empty_string = "";
     int counter = 0;
     std::pair<std::tuple<std::string, size_t, std::vector<size_t>>, char> file;
+    std::pair<std::tuple<std::string, size_t, std::vector<size_t>>, char> file2;
+    bool second_loaded = false;
     std::vector<std::string> file_names;
     std::thread minioSpiller;
     std::string first_fileName;
@@ -2018,9 +2020,19 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     while (true)
     {
         getMergeFileName(hmap, &minio_client, beggarWorker, &blacklist, &file, 0);
-        if (file.second == 0)
+        if (file_names.size() == 0 && file.second != 0)
         {
-            if (beggarWorker != 0)
+            beggarWorker = file.second;
+            getMergeFileName(hmap, &minio_client, beggarWorker, &blacklist, &file2, 0);
+            second_loaded = true;
+        }
+        else
+        {
+            second_loaded = false;
+        }
+        if (file.second == 0 || (second_loaded && file2.second == 0))
+        {
+            if (hmap->size() > 0)
             {
                 std::string old_uName = uName;
                 uName = worker_id;
@@ -2049,6 +2061,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                                 std::get<4>(w_file) = 255;
                             }
                         }
+                        file_names.clear();
                         break;
                     }
                 }
@@ -2062,6 +2075,16 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                     std::cout << "finish" << std::endl;
                     break;
                 }
+                if (file_names.size() == 0 && file.second != 0)
+                {
+                    beggarWorker = file.second;
+                    getMergeFileName(hmap, &minio_client, beggarWorker, &blacklist, &file2, 0);
+                    second_loaded = true;
+                }
+                else
+                {
+                    second_loaded = false;
+                }
             }
             else
             {
@@ -2070,10 +2093,18 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         }
         beggarWorker = file.second;
         file_names.push_back(get<0>(file.first));
+        if (second_loaded)
+        {
+            file_names.push_back(get<0>(file2.first));
+        }
         std::vector<std::pair<int, size_t>> empty;
 
         std::set<std::tuple<std::string, size_t, std::vector<size_t>>, CompareBySecond> spills;
         spills.insert(file.first);
+        if (second_loaded)
+        {
+            spills.insert(file2.first);
+        }
         // merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true);
         std::cout << "merging file: " << get<0>(file.first) << std::endl;
         std::string old_uName = uName;
@@ -2103,6 +2134,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                             std::get<4>(w_file) = 255;
                         }
                     }
+                    file_names.clear();
                     break;
                 }
             }
