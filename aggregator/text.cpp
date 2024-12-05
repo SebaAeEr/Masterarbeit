@@ -2119,6 +2119,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 }
             }
             writeMana(&minio_client, mana, true);
+            counter++;
         }
     }
     if (b_minioSpiller)
