@@ -2017,7 +2017,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                     beggarWorker = file.second;
                 }
                 std::cout << "beggar: " << file.second << std::endl;
-                if (files.empty())
+                if (files.size() < 2)
                 {
                     std::cout << "finish" << std::endl;
                     break;
