@@ -2075,7 +2075,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         std::set<std::tuple<std::string, size_t, std::vector<size_t>>, CompareBySecond> spills;
         spills.insert(file.first);
         // merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true);
-        std::cout << "found beggar: " << beggarWorker << std::endl;
+        std::cout << "merging file: " << get<0>(file.first) << std::endl;
         std::string old_uName = uName;
         uName = worker_id;
         uName += "_merge_" + std::to_string(counter);
