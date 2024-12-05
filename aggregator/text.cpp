@@ -422,7 +422,7 @@ void printMana(Aws::S3::S3Client *minio_client)
         std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
         for (auto &file : worker.files)
         {
-            std::cout << "  " << std::get<0>(file) << "size: " << std::get<2>(file) << " worked on by: " << std::bitset<8>(std::get<4>(file)) << " subfiles:" << std::endl;
+            std::cout << "  " << std::get<0>(file) << ": size: " << std::get<2>(file) << " worked on by: " << std::bitset<8>(std::get<4>(file)) << " subfiles:" << std::endl;
             for (auto &sub_files : std::get<3>(file))
             {
                 std::cout << "    size: " << sub_files << std::endl;
@@ -2059,6 +2059,10 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                             if (std::get<0>(w_file) == old_uName)
                             {
                                 std::get<4>(w_file) = 255;
+                            }
+                            if (file.second != 0  && std::get<0>(w_file) == get<0>(file.first))
+                            {
+                                std::get<4>(w_file) = 0;
                             }
                         }
                         file_names.clear();
