@@ -1111,7 +1111,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
         // Check if Estimations exceed memlimit
         // if (hashmap.size() * avg + phyMemBase > memLimit * (1ull << 20))
-        std::cout << "maxHmapSize: " << maxHmapSize << std::endl;
+        // std::cout << "maxHmapSize: " << maxHmapSize << std::endl;
         if (maxHmapSize * avg + base_size / threadNumber >= memLimit * 0.9)
         {
             // std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + base_size / threadNumber << " size: " << hmap->size() << " avg: " << avg << " base_size / threadNumber: " << base_size / threadNumber << std::endl;
