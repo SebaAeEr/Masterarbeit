@@ -2070,7 +2070,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 blacklist.push_back(uName);
                 minioSpiller.join();
             }
-            std::string old_uName = counter == 1 ? first_fileName : uName;
+            std::string old_uName = uName;
             uName = worker_id;
             uName += "_merge_" + std::to_string(counter);
             std::string empty_file = "";
@@ -2087,7 +2087,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         }
         else
         {
-            std::string old_uName = counter == 1 ? first_fileName : uName;
+            std::string old_uName = uName;
             uName = worker_id;
             uName += "_merge_" + std::to_string(counter);
             if (!spillToMinio(hmap, empty_string, uName, &minio_client, beggarWorker, worker_id, 1))
@@ -2096,7 +2096,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             }
             printMana(&minio_client);
             std::cout << "spilled" << std::endl;
-            
+
             manaFile mana = getLockedMana(&minio_client, 1);
             for (auto &worker : mana.workers)
             {
