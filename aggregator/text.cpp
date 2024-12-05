@@ -1950,6 +1950,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
 
     char beggarWorker = 0;
     std::string uName = "merge";
+    std::string empty_string = "";
     int counter = 0;
     std::pair<std::tuple<std::string, size_t, std::vector<size_t>>, char> file;
     std::vector<std::pair<std::tuple<std::string, size_t, std::vector<size_t>>, char>> files;
@@ -2028,7 +2029,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             }
         }
         std::vector<std::pair<int, size_t>> empty;
-        std::string empty_string = "";
+
         std::set<std::tuple<std::string, size_t, std::vector<size_t>>, CompareBySecond> spills;
         for (auto &it : files)
         {
@@ -2088,7 +2089,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             std::string old_uName = counter == 1 ? first_fileName : uName;
             uName = worker_id;
             uName += "_merge_" + std::to_string(counter);
-            if (!spillToMinio(hmap, local_spillName, uName, &minio_client, beggarWorker, worker_id, 1))
+            if (!spillToMinio(hmap, empty_string, uName, &minio_client, beggarWorker, worker_id, 1))
             {
                 return;
             }

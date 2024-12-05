@@ -333,15 +333,16 @@ def TPC():
                 name = "tpc_" + str(k) + "_6_1000.json"
                 f = open(os.path.join(directory, name))
             except:
+                print("File " + name + " not found.")
                 # continue
                 try:
-                    name = "tpc_" + str(k) + "(failed).json"
+                    name = "tpc_" + str(k) + "_9_1000.json"
                     f = open(os.path.join(directory, name))
                 except:
                     print("failed to open failed!")
                     continue
 
-        query_names.append("Query " + str(k))
+        query_names.append(str(k))
         data = json.load(f)
 
         qTime = transTimes(data["queryStats"]["executionTime"])
@@ -429,12 +430,14 @@ def TPC():
         spilledData,
         np.add(np.add(query_agg_spills, query_join_spills), query_hash_spills),
     )
-    spills = {
-        "Join": np.array(query_join_spills)[filter],
-        "Aggregation": np.array(query_agg_spills)[filter],
-        "Hash": np.array(query_hash_spills)[filter],
-        "Other": np.array(other)[filter],
-    }
+    spills = [
+        {
+            "Join": np.array(query_join_spills)[filter],
+            "Aggregation": np.array(query_agg_spills)[filter],
+            "Hash": np.array(query_hash_spills)[filter],
+            # "Other": np.array(other)[filter],
+        }
+    ]
     makeBarFig(spills, np.array(query_names)[filter], "Spilled Data in GB")
     makeScatterFig(
         query_times,
@@ -463,13 +466,15 @@ def TPC():
             query_times_hash,
         ),
     )
-    times = {
-        "Join": query_times_cpu_join,
-        "Aggregation": query_times_cpu_agg,
-        # "Exchange": query_times_ex,
-        "Hash": query_times_cpu_hash,
-        # "Other": all_time,
-    }
+    times = [
+        {
+            "Join": query_times_cpu_join,
+            "Aggregation": query_times_cpu_agg,
+            # "Exchange": query_times_ex,
+            "Hash": query_times_cpu_hash,
+            # "Other": all_time,
+        }
+    ]
     makeBarFig(times, query_names, "Wall time in min", show_bar_label=False)
 
     fig, ax = plt.subplots(1, 2)
@@ -588,9 +593,9 @@ def analyse_Query(number):
 def analyse_1_6_13():
     memcounter = 0
     tabs = 0
-    query_ids = [1, 6, 13]  # [4, 17, 20]  # [1, 6, 13]
-    data_scale = [100, 300, 1000]  # [300, 1000]  # [100, 300, 1000]
-    worker_size = [4, 5, 6]  # [8, 9, 10]  # [4, 5, 6]
+    query_ids = [13]  # [4, 17, 20]  # [1, 6, 13]
+    data_scale = [1000]  # [300, 1000]  # [100, 300, 1000]
+    worker_size = [4, 45, 5, 6, 10]  # [8, 9, 10]  # [4, 5, 6]
     query_names = []
     query_times = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
     spilledData = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
@@ -674,7 +679,8 @@ def analyse_1_6_13():
                 f.close()
         tabs -= 1
 
-    labels = ["100GB", "300GB", "1000GB"]
+    # labels = ["100GB", "300GB", "1000GB"]
+    labels = ["1000GB"]
     # for h in range(2):
     #     data = query_times if h == 0 else spilledData
     #     for k in range(3):
@@ -690,49 +696,120 @@ def analyse_1_6_13():
     #     str(worker_size[1]) + "GB Heapspace",
     #     str(worker_size[2]) + "GB Heapspace",
     # ]
-    for k in range(3):
-        times = [
+
+    makeBarFig(
+        [
             {
-                "Join": np.array(wall_time_join[k][0]),
-                "Aggregation": np.array(wall_time_agg[k][0]),
-                "Hash": np.array(wall_time_hash[k][0]),
-                #   "Exchange": np.array(wall_time_exc[k][0]),
+                "Join": np.array(spill_join[0][0]),
+                "Aggregation": np.array(spill_agg[0][0]),
+                "Hash": np.array(spill_hash[0][0]),
             },
             {
-                "Join": np.array(wall_time_join[k][1]),
-                "Aggregation": np.array(wall_time_agg[k][1]),
-                "Hash": np.array(wall_time_hash[k][1]),
-                #   "Exchange": np.array(wall_time_exc[k][0]),
+                "Join": np.array(spill_join[0][1]),
+                "Aggregation": np.array(spill_agg[0][1]),
+                "Hash": np.array(spill_hash[0][1]),
             },
             {
-                "Join": np.array(wall_time_join[k][2]),
-                "Aggregation": np.array(wall_time_agg[k][2]),
-                "Hash": np.array(wall_time_hash[k][2]),
-                #   "Exchange": np.array(wall_time_exc[k][0]),
+                "Join": np.array(spill_join[0][2]),
+                "Aggregation": np.array(spill_agg[0][2]),
+                "Hash": np.array(spill_hash[0][2]),
             },
-        ]
-        makeBarFig(times, np.array(labels), "Wall time in min")
-        makeBarFig(
-            [
-                {
-                    "Join": np.array(spill_join[k][0]),
-                    "Aggregation": np.array(spill_agg[k][0]),
-                    "Hash": np.array(spill_hash[k][0]),
-                },
-                {
-                    "Join": np.array(spill_join[k][1]),
-                    "Aggregation": np.array(spill_agg[k][1]),
-                    "Hash": np.array(spill_hash[k][1]),
-                },
-                {
-                    "Join": np.array(spill_join[k][2]),
-                    "Aggregation": np.array(spill_agg[k][2]),
-                    "Hash": np.array(spill_hash[k][2]),
-                },
-            ],
-            labels,
-            "Spilled data in GB",
-        )
+            {
+                "Join": np.array(spill_join[0][3]),
+                "Aggregation": np.array(spill_agg[0][3]),
+                "Hash": np.array(spill_hash[0][3]),
+            },
+        ],
+        labels,
+        "Spilled data in GB",
+    )
+
+    data = [
+        {
+            "Join": np.array(wall_time_join.squeeze()),
+            "Aggregation": np.array(wall_time_agg.squeeze()),
+            "Hash": np.array(wall_time_hash.squeeze()),
+        }
+    ]
+    x_positions = spilledData.squeeze()
+
+    fig, ax = plt.subplots()
+    width = 0.1
+    space = 0.05
+    colors = plt.cm.viridis.colors
+    nth = int(len(colors) / len(list(data[0].keys())))
+    colors = colors[nth - 1 :: nth]
+    for i in range(len(data)):
+        bottom = np.zeros(len(x_positions))
+        counter = 0
+        for label, datum in data[i].items():
+            rects = ax.bar(
+                x_positions,
+                datum,
+                width,
+                bottom=bottom,
+                color=colors[counter],
+                label=label,
+            )
+            bottom += datum
+            counter += 1
+            ax.bar_label(rects, padding=2, fontsize=20)
+
+    ax.set_xlabel("Spilled data in GB", fontsize=20)
+    ax.legend(list(data[0].keys()), loc="upper right", fontsize=20)
+    ax.set_ylabel("Wall time in min", fontsize=20)
+    ax.grid(visible=True, linestyle="dashed")
+    ax.set_axisbelow(True)
+    plt.show()
+    # for k in range(3):
+    #     times = [
+    #         {
+    #             "Join": np.array(wall_time_join[k][0]),
+    #             "Aggregation": np.array(wall_time_agg[k][0]),
+    #             "Hash": np.array(wall_time_hash[k][0]),
+    #             #   "Exchange": np.array(wall_time_exc[k][0]),
+    #         },
+    #         {
+    #             "Join": np.array(wall_time_join[k][1]),
+    #             "Aggregation": np.array(wall_time_agg[k][1]),
+    #             "Hash": np.array(wall_time_hash[k][1]),
+    #             #   "Exchange": np.array(wall_time_exc[k][0]),
+    #         },
+    #         {
+    #             "Join": np.array(wall_time_join[k][2]),
+    #             "Aggregation": np.array(wall_time_agg[k][2]),
+    #             "Hash": np.array(wall_time_hash[k][2]),
+    #             #   "Exchange": np.array(wall_time_exc[k][0]),
+    #         },
+    #         {
+    #             "Join": np.array(wall_time_join[k][3]),
+    #             "Aggregation": np.array(wall_time_agg[k][3]),
+    #             "Hash": np.array(wall_time_hash[k][3]),
+    #             #   "Exchange": np.array(wall_time_exc[k][0]),
+    #         },
+    #     ]
+    #     makeBarFig(times, np.array(labels), "Wall time in min")
+    #     makeBarFig(
+    #         [
+    #             {
+    #                 "Join": np.array(spill_join[k][0]),
+    #                 "Aggregation": np.array(spill_agg[k][0]),
+    #                 "Hash": np.array(spill_hash[k][0]),
+    #             },
+    #             {
+    #                 "Join": np.array(spill_join[k][1]),
+    #                 "Aggregation": np.array(spill_agg[k][1]),
+    #                 "Hash": np.array(spill_hash[k][1]),
+    #             },
+    #             {
+    #                 "Join": np.array(spill_join[k][2]),
+    #                 "Aggregation": np.array(spill_agg[k][2]),
+    #                 "Hash": np.array(spill_hash[k][2]),
+    #             },
+    #         ],
+    #         labels,
+    #         "Spilled data in GB",
+    #     )
 
 
 def c_size_by_time():
@@ -778,4 +855,5 @@ def c_size_by_time():
 
 # TPC()
 # analyse_Query("8")
-c_size_by_time()
+# c_size_by_time()
+analyse_1_6_13()
