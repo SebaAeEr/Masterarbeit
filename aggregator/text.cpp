@@ -2098,7 +2098,6 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
 
     if (init)
     {
-        log_size = false;
         sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), &diff, avg);
     }
 
@@ -2369,7 +2368,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     while ((float)(readBytes.load()) / size < 0.99)
     {
         // std::cout << readBytes.load() << std::endl;
-        // printProgressBar((float)(readBytes.load()) / size);
+        printProgressBar((float)(readBytes.load()) / size);
         usleep(100);
     }
     printProgressBar(1);
@@ -2965,6 +2964,8 @@ int main(int argc, char **argv)
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
         std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
+        log_size = false;
+        log_time = false;
     }
     if (tpc_sup != "-")
     {
