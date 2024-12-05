@@ -1137,7 +1137,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             }
 
             // compare estimation again to memLimit
-            if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(unsigned long) > pagesize && maxHmapSize == hmap->size())
+            if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(unsigned long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
             {
                 // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;
                 //    Reset freed_space and update numHashRows so that Estimation stay correct
