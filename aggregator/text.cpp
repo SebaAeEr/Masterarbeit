@@ -916,9 +916,7 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
     struct stat stats;
     stat(file.c_str(), &stats);
     size_t spill_mem_size = stats.st_size;
-    std::cout << "Trying to open, spill_mem_size: " << spill_mem_size << std::endl;
-    int fd = open(file.c_str(), O_RDWR, 0777);
-    std::cout << "Trying to create mapping" << std::endl;
+    int fd = open(file.c_str(), O_RDONLY);
     unsigned long *spill_map = static_cast<unsigned long *>(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0));
     if (spill_map == MAP_FAILED)
     {
@@ -926,12 +924,10 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
         perror("Error mmapping the file");
         exit(EXIT_FAILURE);
     }
-    std::cout << "Trying madvise" << std::endl;
     madvise(spill_map, spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
 
     int counter = 0;
     size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
-    std::cout << "spill_mem_size_temp: " << spill_mem_size_temp << std::endl;
     sizes->push_back(spill_mem_size_temp);
     std::string n;
 
@@ -939,14 +935,12 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
     unsigned long temp_counter = 0;
     unsigned long i_head = 0;
 
-    std::cout << "starting loop" << std::endl;
     // Write int to Mapping
     for (unsigned long i = 0; i < spill_mem_size; i++)
     {
         if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
         {
             n = uniqueName + "_" + std::to_string(*start_counter);
-            std::cout << "Writing: " << n << std::endl;
             (*start_counter)++;
             writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
             counter++;
@@ -957,14 +951,12 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
         }
         temp_counter++;
         char byteArray[sizeof(unsigned long)];
-        std::cout << "Trying to memcpy: " << spill_map[i] << std::endl;
         std::memcpy(byteArray, &spill_map[i], sizeof(unsigned long));
 
         for (int k = 0; k < sizeof(unsigned long); k++)
         {
             *in_stream << byteArray[k];
         }
-        std::cout << "Written long" << std::endl;
         unsigned long i_diff = (i - i_head) * sizeof(unsigned long);
         if (i_diff > pagesize * 10)
         {
@@ -2450,7 +2442,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     while ((float)(readBytes.load()) / size < 0.99)
     {
         // std::cout << readBytes.load() << std::endl;
-        // printProgressBar((float)(readBytes.load()) / size);
+        printProgressBar((float)(readBytes.load()) / size);
         usleep(100);
     }
     printProgressBar(1);
