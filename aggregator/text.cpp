@@ -1947,6 +1947,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         {
             if (locked || write_counter > 0)
             {
+                std::cout << "Clearing hmap and spilling" << std::endl;
                 spillS3Hmap(hmap, minio_client, &write_sizes, uName, write_counter);
                 /* std::shared_ptr<Aws::IOStream> stream = Aws::MakeShared<Aws::StringStream>("");
                 size_t stream_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
@@ -2097,6 +2098,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     std::string first_fileName;
     std::string local_spillName = "helpMergeSpill";
     bool b_minioSpiller = false;
+    std::set<std::tuple<std::string, size_t, std::vector<size_t>>, CompareBySecond> spills = {};
 
     if (init)
     {
@@ -2106,6 +2108,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     while (true)
     {
         std::cout << "Hmap size: " << hmap->size() << std::endl;
+        spills.clear();
         getMergeFileName(hmap, &minio_client, beggarWorker, &blacklist, &file, 0);
         if (file_names.size() == 0 && file.second != 0)
         {
@@ -2124,9 +2127,10 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 std::string old_uName = uName;
                 uName = worker_id;
                 uName += "_merge_" + std::to_string(counter);
-                
+
                 spillToMinio(hmap, empty_string, uName, &minio_client, beggarWorker, 0, 1);
                 // Try to change beggar worker or load in new files
+                std::cout << "Clearing hmap because no file found" << std::endl;
                 hmap->clear();
                 manaFile mana = getLockedMana(&minio_client, 1);
                 for (auto &worker : mana.workers)
@@ -2212,7 +2216,6 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         }
         std::vector<std::pair<int, size_t>> empty;
 
-        std::set<std::tuple<std::string, size_t, std::vector<size_t>>, CompareBySecond> spills;
         spills.insert(file.first);
         if (second_loaded)
         {
@@ -2228,7 +2231,10 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         std::string old_uName = uName;
         uName = worker_id;
         uName += "_merge_" + std::to_string(counter);
+        std::cout << "Hmap size before merge: " << hmap->size() << std::endl;
+
         merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, beggarWorker);
+        std::cout << "Hmap size after merge: " << hmap->size() << std::endl;
         if (hmap->size() == 0)
         {
             manaFile mana = getLockedMana(&minio_client, 1);
@@ -2252,11 +2258,12 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                             std::get<4>(w_file) = 255;
                         }
                     }
-                    file_names.clear();
+
                     break;
                 }
             }
             writeMana(&minio_client, mana, true);
+            file_names.clear();
             beggarWorker = 0;
         }
         counter++;
