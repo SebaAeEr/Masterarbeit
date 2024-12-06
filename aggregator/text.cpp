@@ -888,11 +888,11 @@ int spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array
             temp_counter = 0;
         }
         temp_counter++;
-        char byteArray[sizeof(long int)];
+        char byteArray[sizeof(unsigned long)];
         for (int i = 0; i < key_number; i++)
         {
             // std::cout << it.first[i];
-            std::memcpy(byteArray, &it.first[i], sizeof(long int));
+            std::memcpy(byteArray, &it.first[i], sizeof(unsigned long));
             for (int k = 0; k < sizeof(unsigned long); k++)
             {
                 *in_stream << byteArray[k];
@@ -900,7 +900,7 @@ int spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array
         }
         for (int i = 0; i < value_number; i++)
         {
-            std::memcpy(byteArray, &it.second[i], sizeof(long int));
+            std::memcpy(byteArray, &it.second[i], sizeof(unsigned long));
             for (int k = 0; k < sizeof(unsigned long); k++)
                 *in_stream << byteArray[k];
         }
@@ -938,12 +938,11 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
     std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
     unsigned long temp_counter = 0;
     unsigned long i_head = 0;
-    char byteArray[sizeof(long int)];
+
     std::cout << "starting loop" << std::endl;
     // Write int to Mapping
     for (unsigned long i = 0; i < spill_mem_size; i++)
     {
-        std::cout << "i: " << i << std::endl;
         if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
         {
             n = uniqueName + "_" + std::to_string(*start_counter);
@@ -957,12 +956,15 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
             temp_counter = 0;
         }
         temp_counter++;
+        char byteArray[sizeof(unsigned long)];
+        std::cout << "Trying to memcpy: " << spill_map[i] << std::endl;
+        std::memcpy(byteArray, &spill_map[i], sizeof(unsigned long));
 
-        std::memcpy(byteArray, &spill_map[i], sizeof(long int));
         for (int k = 0; k < sizeof(unsigned long); k++)
         {
             *in_stream << byteArray[k];
         }
+        std::cout << "Written long" << std::endl;
         unsigned long i_diff = (i - i_head) * sizeof(unsigned long);
         if (i_diff > pagesize * 10)
         {
