@@ -2108,7 +2108,6 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
 
     while (true)
     {
-        std::cout << "Hmap size: " << hmap->size() << std::endl;
         spills.clear();
         getMergeFileName(hmap, &minio_client, beggarWorker, &blacklist, &file, 0);
         if (file_names.size() == 0 && file.second != 0)
@@ -2131,7 +2130,6 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
 
                 spillToMinio(hmap, empty_string, uName, &minio_client, beggarWorker, 0, 1);
                 // Try to change beggar worker or load in new files
-                std::cout << "Clearing hmap because no file found" << std::endl;
                 hmap->clear();
                 manaFile mana = getLockedMana(&minio_client, 1);
                 for (auto &worker : mana.workers)
@@ -2167,8 +2165,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 beggarWorker = 0;
                 getMergeFileName(hmap, &minio_client, beggarWorker, &blacklist, &file, 0);
                 beggarWorker = file.second;
-                std::cout << "beggar: " << file.second << std::endl;
-                if (beggarWorker = 0)
+                if (beggarWorker == 0)
                 {
                     std::cout << "finish" << std::endl;
                     break;
@@ -2223,7 +2220,6 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             spills.insert(file2.first);
         }
         // merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true);
-        std::cout << "merging file(s): " << get<0>(file.first);
         if (second_loaded)
         {
             std::cout << ", " << get<0>(file2.first);
@@ -2232,10 +2228,8 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         std::string old_uName = uName;
         uName = worker_id;
         uName += "_merge_" + std::to_string(counter);
-        std::cout << "Hmap size before merge: " << hmap->size() << std::endl;
 
         merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, beggarWorker);
-        std::cout << "Hmap size after merge: " << hmap->size() << std::endl;
         if (hmap->size() == 0)
         {
             manaFile mana = getLockedMana(&minio_client, 1);
