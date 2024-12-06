@@ -2105,6 +2105,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
 
     while (true)
     {
+        std::cout << "Hmap size: " << hmap->size() << std::endl;
         getMergeFileName(hmap, &minio_client, beggarWorker, &blacklist, &file, 0);
         if (file_names.size() == 0 && file.second != 0)
         {
@@ -2123,7 +2124,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 std::string old_uName = uName;
                 uName = worker_id;
                 uName += "_merge_" + std::to_string(counter);
-                std::cout << "Hmap size: " << hmap->size() << std::endl;
+                
                 spillToMinio(hmap, empty_string, uName, &minio_client, beggarWorker, 0, 1);
                 // Try to change beggar worker or load in new files
                 hmap->clear();
