@@ -905,7 +905,7 @@ int spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array
     }
     n = uniqueName + "_" + std::to_string(counter);
     writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
-    return counter;
+    return counter + 1;
 }
 
 int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string &file, std::string uniqueName,
