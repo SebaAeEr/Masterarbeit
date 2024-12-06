@@ -940,7 +940,6 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
     {
         if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
         {
-            std::cout << "spilling: " << *start_counter << std::endl;
             n = uniqueName + "_" + std::to_string(*start_counter);
             (*start_counter)++;
             writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
@@ -959,9 +958,8 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
         }
         if (i - i_head > pagesize * 10)
         {
-            
+
             unsigned long freed_space_temp = (i - i_head) - ((i - i_head) % pagesize);
-            std::cout << "head: " << i_head << " freed_space_temp: " << freed_space_temp << std::endl;
             if (munmap(&spill_map[i_head], freed_space_temp) == -1)
             {
                 std::cout << "head: " << i_head << " freed_space_temp: " << freed_space_temp << std::endl;
@@ -998,6 +996,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     }
     else
     {
+        std::cout << "Spilling to s3 from file" << std::endl;
         spillS3File(file, minio_client, &sizes, uniqueName, &counter);
         /* size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
         sizes.push_back(spill_mem_size_temp);
@@ -1282,12 +1281,13 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 spilltoS3 = memLimitMain < mainMem_usage + temp_spill_size * 2;
 
                 std::pair<int, size_t> spill_file(-1, 0);
-                // std::cout << spill_file_name << ", " << hmap->size() << std::endl;
+                std::cout << spill_file_name << ", " << hmap->size() << " spilltoS3: " << spilltoS3 << std::endl;
 
                 if (spilltoS3)
                 {
                     if (memLimitMain > mainMem_usage + temp_spill_size)
                     {
+                        std::cout << "Spilling to local to s3" << std::endl;
                         mainMem_usage += temp_spill_size - temp_local_spill_size;
                         if (spillS3Thread)
                         {
