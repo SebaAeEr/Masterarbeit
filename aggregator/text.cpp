@@ -943,6 +943,7 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
     // Write int to Mapping
     for (unsigned long i = 0; i < spill_mem_size; i++)
     {
+        std::cout << "i: " << i << std::endl;
         if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
         {
             n = uniqueName + "_" + std::to_string(*start_counter);
