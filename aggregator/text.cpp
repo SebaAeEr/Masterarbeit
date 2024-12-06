@@ -966,12 +966,12 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
                 std::cout << "head: " << i_head << " freed_space_temp: " << freed_space_temp << std::endl;
                 perror("Could not free memory!");
             }
-            i_head += freed_space_temp;
+            i_head += freed_space_temp / sizeof(unsigned long);
         }
     }
-    if (munmap(&spill_map[i_head], spill_mem_size - i_head) == -1)
+    if (munmap(&spill_map[i_head], spill_mem_size - i_head * sizeof(unsigned long)) == -1)
     {
-        std::cout << "head: " << i_head << " freed_space_temp: " << spill_mem_size - i_head << std::endl;
+        std::cout << "head: " << i_head << " freed_space_temp: " << spill_mem_size - i_head * sizeof(unsigned long) << std::endl;
         perror("Could not free memory!");
     }
     close(fd);
