@@ -910,6 +910,75 @@ int spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array
     return start_counter + 1;
 }
 
+void spillS3File(std::string file, Aws::S3::S3Client *minio_client,
+                 std::vector<size_t> *sizes, std::string uniqueName, int *start_counter)
+{
+
+    struct stat stats;
+    stat(file.c_str(), &stats);
+    size_t spill_mem_size = stats.st_size;
+    int fd = open(file.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+    unsigned long *spill_map = static_cast<unsigned long *>(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0));
+    if (spill_map == MAP_FAILED)
+    {
+        close(fd);
+        perror("Error mmapping the file");
+        exit(EXIT_FAILURE);
+    }
+    madvise(spill_map, spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
+
+    int counter = 0;
+    size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
+    sizes->push_back(spill_mem_size_temp);
+    std::string n;
+
+    std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+    unsigned long temp_counter = 0;
+    unsigned long i_head = 0;
+    char byteArray[sizeof(long int)];
+    // Write int to Mapping
+    for (unsigned long i = 0; i < spill_mem_size; i++)
+    {
+        if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
+        {
+            n = uniqueName + "_" + std::to_string(*start_counter);
+            (*start_counter)++;
+            writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
+            counter++;
+            in_stream = Aws::MakeShared<Aws::StringStream>("");
+            spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
+            sizes->push_back(spill_mem_size_temp);
+            temp_counter = 0;
+        }
+        temp_counter++;
+
+        std::memcpy(byteArray, &spill_map[i], sizeof(long int));
+        for (int k = 0; k < sizeof(unsigned long); k++)
+        {
+            *in_stream << byteArray[k];
+        }
+        if (i - i_head > pagesize * 10)
+        {
+            unsigned long freed_space_temp = (i - i_head) - ((i - i_head) % pagesize);
+            if (munmap(&spill_map[i_head], freed_space_temp) == -1)
+            {
+                std::cout << "head: " << i_head << " freed_space_temp: " << freed_space_temp << std::endl;
+                perror("Could not free memory!");
+            }
+            i_head += freed_space_temp;
+        }
+    }
+    if (munmap(&spill_map[i_head], spill_mem_size - i_head) == -1)
+    {
+        std::cout << "head: " << i_head << " freed_space_temp: " << spill_mem_size - i_head << std::endl;
+        perror("Could not free memory!");
+    }
+    close(fd);
+    n = uniqueName + "_" + std::to_string(*start_counter);
+    (*start_counter)++;
+    writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
+}
+
 int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string &file, std::string uniqueName,
                  Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus, char thread_id)
 {
@@ -924,45 +993,11 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     if (file == "")
     {
         spillS3Hmap(hmap, minio_client, &sizes, uniqueName, 0);
-        /*std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-        unsigned long temp_counter = 0;
-        // Write int to Mapping
-        for (auto &it : *hmap)
-        {
-            if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
-            {
-                n = uniqueName + "_" + std::to_string(counter);
-                writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
-                counter++;
-                in_stream = Aws::MakeShared<Aws::StringStream>("");
-                spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
-                sizes.push_back(spill_mem_size_temp);
-                temp_counter = 0;
-            }
-            temp_counter++;
-            char byteArray[sizeof(long int)];
-            for (int i = 0; i < key_number; i++)
-            {
-                // std::cout << it.first[i];
-                std::memcpy(byteArray, &it.first[i], sizeof(long int));
-                for (int k = 0; k < sizeof(unsigned long); k++)
-                {
-                    *in_stream << byteArray[k];
-                }
-            }
-            for (int i = 0; i < value_number; i++)
-            {
-                std::memcpy(byteArray, &it.second[i], sizeof(long int));
-                for (int k = 0; k < sizeof(unsigned long); k++)
-                    *in_stream << byteArray[k];
-            }
-        }
-        n = uniqueName + "_" + std::to_string(counter);
-        writeS3File(minio_client, in_stream, spill_mem_size_temp, n); */
     }
     else
     {
-        size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
+        spillS3File(file, minio_client, &sizes, uniqueName, 0);
+        /* size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
         sizes.push_back(spill_mem_size_temp);
         struct stat stats;
         stat(file.c_str(), &stats);
@@ -1019,7 +1054,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         }
         close(fd);
         n = uniqueName + "_" + std::to_string(counter);
-        writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
+        writeS3File(minio_client, in_stream, spill_mem_size_temp, n); */
 
         // const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::FStream>("", file.c_str(), std::ios_base::in | std::ios_base::binary);
         //  const std::shared_ptr<Aws::IOStream> inputData = temp;
@@ -1143,6 +1178,8 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     bool thread_finishFlag = false;
     std::string uName;
     std::string spill_file_name;
+    size_t comb_local_spill_size = 0;
+    size_t temp_local_spill_size = 0;
 
     // loop through entire mapping
     for (unsigned long i = 0; i < size + offset; i++)
@@ -1240,15 +1277,16 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 unsigned long temp_spill_size = hmap->size() * (key_number + value_number) * sizeof(unsigned long);
                 spill_size += temp_spill_size;
                 comb_spill_size.fetch_add(temp_spill_size);
-                spilltoS3 = memLimitMain < spill_size + temp_spill_size * 2;
+                spilltoS3 = memLimitMain < mainMem_usage + temp_spill_size * 2;
 
                 std::pair<int, size_t> spill_file(-1, 0);
                 // std::cout << spill_file_name << ", " << hmap->size() << std::endl;
 
                 if (spilltoS3)
                 {
-                    if (memLimitMain > spill_size + temp_spill_size)
+                    if (memLimitMain > mainMem_usage + temp_spill_size)
                     {
+                        mainMem_usage += temp_spill_size - temp_local_spill_size;
                         if (spillS3Thread)
                         {
                             minioSpiller.join();
@@ -1259,6 +1297,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                         spill_file_name += std::to_string((int)(id));
                         spill_file_name += "_";
                         spill_file_name += "temp_spill";
+
                         spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
                         uName = "";
                         uName += worker_id;
@@ -1293,6 +1332,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     spill_file_name += std::to_string(spill_number);
                     spill_file_name += "_";
                     spill_file_name += "spill";
+                    mainMem_usage += temp_spill_size;
                     spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
                     spill_files->push_back(spill_file);
                 }
@@ -1416,7 +1456,8 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
 }
 
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
-          float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename, std::set<std::tuple<std::string, size_t, std::vector<size_t>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client, bool writeRes, std::string &uName, char beggarWorker = 0)
+          float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename, std::set<std::tuple<std::string, size_t, std::vector<size_t>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client,
+          bool writeRes, std::string &uName, size_t memMainLimit, char beggarWorker = 0)
 {
     // Open the outputfile to write results
     int output_fd;
@@ -1449,6 +1490,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     int bit_head = 0;
     unsigned long s3spillStart_head = 0;
     unsigned long overall_s3spillsize = 0;
+    std::vector<std::tuple<std::thread, size_t, char>> spillThreads;
+    char id_counter = 0;
 
     for (auto &it : *spills)
         comb_spill_size += it.second;
@@ -1950,38 +1993,60 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         {
             if (locked || write_counter > 0)
             {
-                write_counter = spillS3Hmap(hmap, minio_client, &write_sizes, uName, write_counter);
-                /* std::shared_ptr<Aws::IOStream> stream = Aws::MakeShared<Aws::StringStream>("");
-                size_t stream_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
-                write_sizes.push_back(stream_size);
-                write_size += stream_size;
-
-                char byteArray[sizeof(long int)];
-                for (auto &it : *hmap)
+                size_t spill_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
+                size_t comb_spill_size = 0;
+                std::string local_spill_name = "local_mergeSpill_";
+                for (auto &ls : spillThreads)
                 {
-                    for (int i = 0; i < key_number; i++)
+                    comb_spill_size += get<1>(ls);
+                }
+                if (memMainLimit < mainMem_usage + spill_size + comb_spill_size)
+                {
+                    if (memMainLimit <= mainMem_usage + spill_size)
                     {
-                        // std::cout << it.first[i];
-                        std::memcpy(byteArray, &it.first[i], sizeof(long int));
-                        for (int k = 0; k < sizeof(unsigned long); k++)
-                        {
-                            *stream << byteArray[k];
-                        }
+                        write_counter = spillS3Hmap(hmap, minio_client, &write_sizes, uName, write_counter);
                     }
-                    for (int i = 0; i < value_number; i++)
+                    else
                     {
-                        std::memcpy(byteArray, &it.second[i], sizeof(long int));
-                        for (int k = 0; k < sizeof(unsigned long); k++)
-                            *stream << byteArray[k];
+                        size_t removed_mem = 0;
+                        while (spill_size > removed_mem)
+                        {
+                            get<0>(spillThreads[0]).join();
+                            char id = get<2>(spillThreads[0]);
+
+                            removed_mem += get<1>(spillThreads[0]);
+                            remove((local_spill_name + std::to_string((int)(id))).c_str());
+
+                            spillThreads.erase(spillThreads.begin());
+                        }
+                        std::pair<int, size_t> spill_file(-1, 0);
+                        std::string temp_local_name = local_spill_name + std::to_string((int)(id_counter));
+                        spillToFile(hmap, &spill_file, 0, pagesize * 10, temp_local_name);
+                        spillThreads.push_back({std::thread(spillS3File, temp_local_name, minio_client, &write_sizes, uName, &write_counter), spill_size, id_counter});
+                        id_counter++;
                     }
                 }
-                std::string uName_temp = uName + "_" + std::to_string(write_counter);
-                write_counter++;
-
-                writeS3File(minio_client, stream, stream_size, uName_temp); */
+                else
+                {
+                    std::pair<int, size_t> spill_file(-1, 0);
+                    std::string temp_local_name = local_spill_name + std::to_string((int)(id_counter));
+                    spillToFile(hmap, &spill_file, 0, pagesize * 10, temp_local_name);
+                    spillThreads.push_back({std::thread(spillS3File, temp_local_name, minio_client, &write_sizes, uName, &write_counter), spill_size, id_counter});
+                    id_counter++;
+                }
                 hmap->clear();
                 if (!locked)
                 {
+                    for (auto &thread : spillThreads)
+                    {
+                        get<0>(thread).join();
+                        remove((local_spill_name + std::to_string((int)(get<2>(thread)))).c_str());
+                    }
+                    write_size = 0;
+                    for (auto &w_size : write_sizes)
+                    {
+                        write_size += w_size;
+                    }
                     addFileToManag(minio_client, uName, write_sizes, write_size, beggarWorker, 0, 0);
                 }
             }
@@ -2229,7 +2294,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         uName = worker_id;
         uName += "_merge_" + std::to_string(counter);
 
-        merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, beggarWorker);
+        merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, memMainLimit, beggarWorker);
         if (hmap->size() == 0)
         {
             manaFile mana = getLockedMana(&minio_client, 1);
@@ -2364,12 +2429,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, id, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber,
-                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitMain / threadNumber, std::ref(comb_spill_size)));
+                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitMain, std::ref(comb_spill_size)));
         id++;
     }
     emHashmaps[threadNumber - 1] = {};
     threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber,
-                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitMain / threadNumber, std::ref(comb_spill_size)));
+                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitMain, std::ref(comb_spill_size)));
 
     while ((float)(readBytes.load()) / size < 0.99)
     {
@@ -2527,7 +2592,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         std::cout << std::endl;
         std::cout << files->size() << std::endl; */
         std::string empty = "";
-        merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true, empty);
+        merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true, empty, memLimitMain);
         delete files;
     }
     else
@@ -2697,169 +2762,6 @@ int test(std::string file1name, std::string file2name)
         std::cout << "Files different! Not contained keys: " << not_contained_keys << ", different values: " << different_values << std::endl;
     }
     return 1;
-}
-
-void helpMerge(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client minio_client)
-{
-    emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
-    std::vector<std::pair<int, size_t>> spills = std::vector<std::pair<int, size_t>>();
-    std::atomic<unsigned long> comb_hash_size = 0;
-    std::atomic<unsigned long> diff = 0;
-    std::vector<std::string> blacklist;
-
-    float avg = 1;
-    int finished = 0;
-    std::thread sizePrinter;
-    unsigned long extra_mem = 0;
-    log_size = false;
-
-    sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), &diff, &avg);
-
-    char beggarWorker = 0;
-    unsigned long phyMemBase = getPhyValue() * 1024;
-    std::string uName = "merge";
-    int counter = 0;
-    std::pair<std::tuple<std::string, size_t, std::vector<size_t>>, char> file;
-    std::thread minioSpiller;
-    std::string first_fileName;
-    std::string local_spillName = "helpMergeSpill";
-    std::string empty_string = "";
-
-    while (true)
-    {
-        getMergeFileName(&hmap, &minio_client, beggarWorker, &blacklist, &file, 0);
-        if (file.second == 0)
-        {
-            if (beggarWorker != 0)
-            {
-                // Try to change beggar worker or load in new files
-                hmap.clear();
-                manaFile mana = getLockedMana(&minio_client, 0);
-                for (auto &worker : mana.workers)
-                {
-                    if (worker.id == beggarWorker && !worker.locked)
-                    {
-                        for (auto &w_file : worker.files)
-                        {
-                            if (std::get<0>(w_file) == uName)
-                            {
-                                std::get<4>(w_file) = 0;
-                            }
-                        }
-                        break;
-                    }
-                }
-                writeMana(&minio_client, mana, true);
-                beggarWorker = 0;
-                getMergeFileName(&hmap, &minio_client, beggarWorker, &blacklist, &file, 0);
-                std::cout << "beggar: " << file.second << std::endl;
-                if (file.second == 0)
-                {
-                    break;
-                }
-            }
-            else
-            {
-                break;
-            }
-        }
-        beggarWorker = file.second;
-        std::vector<std::pair<int, size_t>> empty = {};
-
-        std::set<std::tuple<std::string, size_t, std::vector<size_t>>, CompareBySecond> spills;
-        spills.insert(file.first);
-        // merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true);
-        std::cout << "found beggar: " << beggarWorker << std::endl;
-        if (!merge(&hmap, &empty, comb_hash_size, &avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, beggarWorker))
-        {
-            // blacklist.push_back(file.first.first);
-            hmap.clear();
-            manaFile mana = getLockedMana(&minio_client, 0);
-            for (auto &worker : mana.workers)
-            {
-                if (worker.id == beggarWorker && !worker.locked)
-                {
-                    for (auto &w_file : worker.files)
-                    {
-                        if (std::get<0>(w_file) == uName)
-                        {
-                            std::get<4>(w_file) = 0;
-                        }
-                    }
-                    break;
-                }
-            }
-            writeMana(&minio_client, mana, true);
-            beggarWorker = 0;
-            continue;
-        }
-        std::cout << "merged hmap size: " << hmap.size() << std::endl;
-        size_t phy = getPhyValue() * 1024;
-
-        if (counter > 0)
-        {
-            avg = (getPhyValue() * 1024 - base_size) / hmap.size();
-            if (memMainLimit > hmap.size() * sizeof(unsigned long) * (key_number + value_number))
-            {
-                if (uName != "merge")
-                {
-                    blacklist.push_back(uName);
-                    minioSpiller.join();
-                }
-                std::string old_uName = counter == 1 ? first_fileName : uName;
-                uName = worker_id;
-                uName += "_merge_" + std::to_string(counter);
-                std::string empty_file = "";
-
-                std::pair<int, size_t> temp_spill_file = {-1, 0};
-                spillToFile(&hmap, &temp_spill_file, 0, pagesize * 20, local_spillName);
-                std::vector<std::string> temp_name(1, get<0>(file.first));
-                minioSpiller = std::thread(spillHelpMerge, &hmap, uName, std::ref(local_spillName), &minio_client, beggarWorker, old_uName, temp_name);
-            }
-            else
-            {
-                std::string old_uName = counter == 1 ? first_fileName : uName;
-                uName = worker_id;
-                uName += "_merge_" + std::to_string(counter);
-                if (!spillToMinio(&hmap, empty_string, uName, &minio_client, beggarWorker, worker_id, 1))
-                {
-                    return;
-                }
-                std::cout << "spilled" << std::endl;
-                manaFile mana = getLockedMana(&minio_client, 1);
-                for (auto &worker : mana.workers)
-                {
-                    if (worker.id == beggarWorker && !worker.locked)
-                    {
-                        for (auto &w_file : worker.files)
-                        {
-                            if (std::get<0>(w_file) == get<0>(file.first))
-                            {
-                                std::get<4>(w_file) = 255;
-                            }
-                            if (std::get<0>(w_file) == old_uName)
-                            {
-                                std::get<4>(w_file) = 255;
-                            }
-                        }
-                        break;
-                    }
-                }
-                writeMana(&minio_client, mana, true);
-            }
-        }
-        else
-        {
-            first_fileName = get<0>(file.first);
-        }
-        counter++;
-    }
-    if (uName != "merge")
-    {
-        minioSpiller.join();
-    }
-    finished = 2;
-    sizePrinter.join();
 }
 
 int main(int argc, char **argv)
