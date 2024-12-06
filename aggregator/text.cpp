@@ -2083,7 +2083,6 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     int finished = 0;
     std::thread sizePrinter;
 
-    std::vector<std::pair<int, size_t>> spills = std::vector<std::pair<int, size_t>>();
     std::vector<std::string> blacklist;
 
     char beggarWorker = 0;
