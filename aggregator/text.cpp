@@ -910,8 +910,7 @@ int spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array
     return start_counter + 1;
 }
 
-void spillS3File(std::string file, Aws::S3::S3Client *minio_client,
-                 std::vector<size_t> *sizes, std::string uniqueName, int *start_counter)
+void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<size_t> *sizes, std::string uniqueName, int *start_counter)
 {
 
     struct stat stats;
@@ -941,6 +940,7 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client,
     {
         if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
         {
+            std::cout << "spilling: " << *start_counter << std::endl;
             n = uniqueName + "_" + std::to_string(*start_counter);
             (*start_counter)++;
             writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
@@ -959,7 +959,9 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client,
         }
         if (i - i_head > pagesize * 10)
         {
+            
             unsigned long freed_space_temp = (i - i_head) - ((i - i_head) % pagesize);
+            std::cout << "head: " << i_head << " freed_space_temp: " << freed_space_temp << std::endl;
             if (munmap(&spill_map[i_head], freed_space_temp) == -1)
             {
                 std::cout << "head: " << i_head << " freed_space_temp: " << freed_space_temp << std::endl;
