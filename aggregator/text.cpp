@@ -916,7 +916,7 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
     struct stat stats;
     stat(file.c_str(), &stats);
     size_t spill_mem_size = stats.st_size;
-    std::cout << "Trying to open, spill_mem_size: " <<spill_mem_size  << std::endl;
+    std::cout << "Trying to open, spill_mem_size: " << spill_mem_size << std::endl;
     int fd = open(file.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     std::cout << "Trying to create mapping" << std::endl;
     unsigned long *spill_map = static_cast<unsigned long *>(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0));
@@ -931,6 +931,7 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
 
     int counter = 0;
     size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
+    std::cout << "spill_mem_size_temp: " << spill_mem_size_temp << std::endl;
     sizes->push_back(spill_mem_size_temp);
     std::string n;
 
@@ -938,6 +939,7 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
     unsigned long temp_counter = 0;
     unsigned long i_head = 0;
     char byteArray[sizeof(long int)];
+    std::cout << "starting loop" << std::endl;
     // Write int to Mapping
     for (unsigned long i = 0; i < spill_mem_size; i++)
     {
@@ -965,7 +967,6 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
         {
 
             unsigned long freed_space_temp = i_diff - (i_diff % pagesize);
-            std::cout << "head: " << i_head << " freed_space_temp: " << freed_space_temp << std::endl;
             if (munmap(&spill_map[i_head], freed_space_temp) == -1)
             {
                 std::cout << "head: " << i_head << " freed_space_temp: " << freed_space_temp << std::endl;
@@ -974,7 +975,6 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
             i_head += freed_space_temp / sizeof(unsigned long);
         }
     }
-    std::cout << "finished i_head: " << i_head << " freed_space_temp: " << spill_mem_size - i_head * sizeof(unsigned long) << std::endl;
     if (munmap(&spill_map[i_head], spill_mem_size - i_head * sizeof(unsigned long)) == -1)
     {
         std::cout << "head: " << i_head << " freed_space_temp: " << spill_mem_size - i_head * sizeof(unsigned long) << std::endl;
