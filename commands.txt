@@ -53,7 +53,4 @@ WITH (
 ) 
 AS SELECT * FROM tpch.sf300.customer; 
 
-
-
-
 export CMAKE_PREFIX_PATH=/hddSpace/erasmus/Masterarbeit/aggregator/aws

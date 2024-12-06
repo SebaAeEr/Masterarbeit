@@ -913,8 +913,6 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     int counter = 0;
     std::vector<size_t> sizes = {};
 
-    size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
-    sizes.push_back(spill_mem_size_temp);
     std::string n;
 
     // Calc spill size
@@ -960,6 +958,8 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     }
     else
     {
+        size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
+        sizes.push_back(spill_mem_size_temp);
         struct stat stats;
         stat(file.c_str(), &stats);
         spill_mem_size = stats.st_size;
@@ -976,6 +976,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         unsigned long temp_counter = 0;
         unsigned long i_head = 0;
+        char byteArray[sizeof(long int)];
         // Write int to Mapping
         for (unsigned long i = 0; i < spill_mem_size; i++)
         {
@@ -990,7 +991,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 temp_counter = 0;
             }
             temp_counter++;
-            char byteArray[sizeof(long int)];
+
             std::memcpy(byteArray, &spill_map[i], sizeof(long int));
             for (int k = 0; k < sizeof(unsigned long); k++)
             {
