@@ -1216,10 +1216,11 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
                 std::pair<int, size_t> spill_file(-1, 0);
 
-                if (spilltoS3)
+                if (memLimitMain > mainMem_usage + temp_spill_size - temp_local_spill_size)
                 {
-                    if (memLimitMain > mainMem_usage + temp_spill_size - temp_local_spill_size)
+                    if (memLimitMain < mainMem_usage + temp_spill_size * threadNumber)
                     {
+                        std::cout << "local + s3: " << (int)(id) << std::endl;
                         mainMem_usage += temp_spill_size - temp_local_spill_size;
                         if (spillS3Thread)
                         {
@@ -1244,31 +1245,33 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     }
                     else
                     {
-                        uName = "";
-                        uName += worker_id;
-                        uName += "_";
-                        uName += std::to_string((int)(id));
-                        uName += "_" + std::to_string(spill_number);
-                        std::string empty = "";
-                        if (!spillToMinio(hmap, spill_file, uName, minio_client, worker_id, 0, id))
-                        {
-                            std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
-                        }
+                        std::cout << "local: " << (int)(id) << std::endl;
+                        spill_file_name = "";
+                        spill_file_name += worker_id;
+                        spill_file_name += "_";
+                        spill_file_name += std::to_string((int)(id));
+                        spill_file_name += "_";
+                        spill_file_name += std::to_string(spill_number);
+                        spill_file_name += "_";
+                        spill_file_name += "spill";
+                        mainMem_usage += temp_spill_size;
+                        spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
+                        spill_files->push_back(spill_file);
                     }
                 }
                 else
                 {
-                    spill_file_name = "";
-                    spill_file_name += worker_id;
-                    spill_file_name += "_";
-                    spill_file_name += std::to_string((int)(id));
-                    spill_file_name += "_";
-                    spill_file_name += std::to_string(spill_number);
-                    spill_file_name += "_";
-                    spill_file_name += "spill";
-                    mainMem_usage += temp_spill_size;
-                    spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
-                    spill_files->push_back(spill_file);
+                    std::cout << "s3: " << (int)(id) << std::endl;
+                    uName = "";
+                    uName += worker_id;
+                    uName += "_";
+                    uName += std::to_string((int)(id));
+                    uName += "_" + std::to_string(spill_number);
+                    std::string empty = "";
+                    if (!spillToMinio(hmap, spill_file, uName, minio_client, worker_id, 0, id))
+                    {
+                        std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
+                    }
                 }
                 spill_number++;
 
