@@ -992,7 +992,7 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     if (file == "")
     {
-        spillS3Hmap(hmap, minio_client, &sizes, uniqueName, &counter);
+        spillS3Hmap(hmap, minio_client, &sizes, uniqueName, 0);
     }
     else
     {
