@@ -937,9 +937,11 @@ void spillS3File(std::pair<int, size_t> spill_file, Aws::S3::S3Client *minio_cli
         if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
         {
             n = uniqueName + "_" + std::to_string(*start_counter);
-            std::cout << "writing: " << n << std::endl;
             (*start_counter)++;
+            std::cout << "writing: " << n << std::endl;
+            
             writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
+            std::cout << "written: " << n << std::endl;
             counter++;
             in_stream = Aws::MakeShared<Aws::StringStream>("");
             spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
