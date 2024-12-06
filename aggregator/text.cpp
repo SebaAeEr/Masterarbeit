@@ -941,6 +941,7 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
         if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
         {
             n = uniqueName + "_" + std::to_string(*start_counter);
+            std::cout << "Writing: " << n << std::endl;
             (*start_counter)++;
             writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
             counter++;
@@ -959,8 +960,9 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
         unsigned long i_diff = (i - i_head) * sizeof(unsigned long);
         if (i_diff > pagesize * 10)
         {
-
+            
             unsigned long freed_space_temp = i_diff - (i_diff % pagesize);
+            std::cout << "head: " << i_head << " freed_space_temp: " << freed_space_temp << std::endl;
             if (munmap(&spill_map[i_head], freed_space_temp) == -1)
             {
                 std::cout << "head: " << i_head << " freed_space_temp: " << freed_space_temp << std::endl;
@@ -969,6 +971,7 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
             i_head += freed_space_temp / sizeof(unsigned long);
         }
     }
+    std::cout << "finished i_head: " << i_head << " freed_space_temp: " << spill_mem_size - i_head * sizeof(unsigned long) << std::endl;
     if (munmap(&spill_map[i_head], spill_mem_size - i_head * sizeof(unsigned long)) == -1)
     {
         std::cout << "head: " << i_head << " freed_space_temp: " << spill_mem_size - i_head * sizeof(unsigned long) << std::endl;
