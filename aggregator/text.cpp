@@ -2123,6 +2123,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 std::string old_uName = uName;
                 uName = worker_id;
                 uName += "_merge_" + std::to_string(counter);
+                std::cout << "Hmap size: " << hmap->size() << std::endl;
                 spillToMinio(hmap, empty_string, uName, &minio_client, beggarWorker, 0, 1);
                 // Try to change beggar worker or load in new files
                 hmap->clear();
@@ -2217,10 +2218,10 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             spills.insert(file2.first);
         }
         // merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true);
-        std::cout << "merging file: " << get<0>(file.first);
+        std::cout << "merging file(s): " << get<0>(file.first);
         if (second_loaded)
         {
-            std::cout << " second merging file: " << get<0>(file2.first);
+            std::cout << ", " << get<0>(file2.first);
         }
         std::cout << std::endl;
         std::string old_uName = uName;
