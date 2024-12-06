@@ -934,12 +934,11 @@ void spillS3File(std::pair<int, size_t> spill_file, Aws::S3::S3Client *minio_cli
     // Write int to Mapping
     for (unsigned long i = 0; i < spill_mem_size; i++)
     {
-        if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
+        if (temp_counter * sizeof(unsigned long) == spill_mem_size_temp)
         {
             n = uniqueName + "_" + std::to_string(*start_counter);
             (*start_counter)++;
             std::cout << "writing: " << n << std::endl;
-            
             writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
             std::cout << "written: " << n << std::endl;
             counter++;
