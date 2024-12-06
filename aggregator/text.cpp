@@ -937,6 +937,7 @@ void spillS3File(std::pair<int, size_t> spill_file, Aws::S3::S3Client *minio_cli
         if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
         {
             n = uniqueName + "_" + std::to_string(*start_counter);
+            std::cout << "writing: " << n << std::endl;
             (*start_counter)++;
             writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
             counter++;
@@ -972,6 +973,7 @@ void spillS3File(std::pair<int, size_t> spill_file, Aws::S3::S3Client *minio_cli
         perror("Could not free memory!");
     }
     n = uniqueName + "_" + std::to_string(*start_counter);
+    std::cout << "writing: " << n << std::endl;
     (*start_counter)++;
     writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
 }
@@ -993,7 +995,9 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     }
     else
     {
+        std::cout << "spillS3File: " << (int)(thread_id) << std::endl;
         spillS3File(spill_file, minio_client, &sizes, uniqueName, &counter);
+        std::cout << "finished spillS3File: " << (int)(thread_id) << std::endl;
     }
 
     return addFileToManag(minio_client, uniqueName, sizes, spill_mem_size, write_to_id, fileStatus, thread_id);
@@ -1295,6 +1299,16 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     if (spillS3Thread)
     {
         minioSpiller.join();
+        spill_file_name = "";
+        spill_file_name += worker_id;
+        spill_file_name += "_";
+        spill_file_name += std::to_string((int)(id));
+        spill_file_name += "_";
+        spill_file_name += "temp_spill";
+        struct stat stats;
+        stat(inputfilename.c_str(), &stats);
+        mainMem_usage -= stats.st_size;
+        remove(spill_file_name.c_str());
     }
     try
     {
