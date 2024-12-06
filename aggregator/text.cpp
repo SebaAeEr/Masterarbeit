@@ -1306,7 +1306,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         spill_file_name += "_";
         spill_file_name += "temp_spill";
         struct stat stats;
-        stat(inputfilename.c_str(), &stats);
+        stat(spill_file_name.c_str(), &stats);
         mainMem_usage -= stats.st_size;
         remove(spill_file_name.c_str());
     }
