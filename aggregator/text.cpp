@@ -938,6 +938,7 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
     // Write int to Mapping
     for (unsigned long i = 0; i < spill_mem_size; i++)
     {
+        std::cout << i;
         if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
         {
             n = uniqueName + "_" + std::to_string(*start_counter);
@@ -960,7 +961,7 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
         unsigned long i_diff = (i - i_head) * sizeof(unsigned long);
         if (i_diff > pagesize * 10)
         {
-            
+
             unsigned long freed_space_temp = i_diff - (i_diff % pagesize);
             std::cout << "head: " << i_head << " freed_space_temp: " << freed_space_temp << std::endl;
             if (munmap(&spill_map[i_head], freed_space_temp) == -1)
@@ -2445,7 +2446,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     while ((float)(readBytes.load()) / size < 0.99)
     {
         // std::cout << readBytes.load() << std::endl;
-        printProgressBar((float)(readBytes.load()) / size);
+        // printProgressBar((float)(readBytes.load()) / size);
         usleep(100);
     }
     printProgressBar(1);
