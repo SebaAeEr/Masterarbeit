@@ -992,11 +992,11 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     if (file == "")
     {
-        spillS3Hmap(hmap, minio_client, &sizes, uniqueName, 0);
+        spillS3Hmap(hmap, minio_client, &sizes, uniqueName, &counter);
     }
     else
     {
-        spillS3File(file, minio_client, &sizes, uniqueName, 0);
+        spillS3File(file, minio_client, &sizes, uniqueName, &counter);
         /* size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
         sizes.push_back(spill_mem_size_temp);
         struct stat stats;
