@@ -912,12 +912,12 @@ int spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array
 
 void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<size_t> *sizes, std::string uniqueName, int *start_counter)
 {
-    std::cout << "SpillS3File" << std::endl;
+    std::cout << "SpillS3File: " << file << std::endl;
     struct stat stats;
     stat(file.c_str(), &stats);
     size_t spill_mem_size = stats.st_size;
     std::cout << "Trying to open, spill_mem_size: " << spill_mem_size << std::endl;
-    int fd = open(file.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+    int fd = open(file.c_str(), O_RDWR, 0777);
     std::cout << "Trying to create mapping" << std::endl;
     unsigned long *spill_map = static_cast<unsigned long *>(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0));
     if (spill_map == MAP_FAILED)
