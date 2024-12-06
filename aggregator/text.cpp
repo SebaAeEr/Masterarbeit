@@ -71,6 +71,7 @@ int threadNumber;
 std::string lock_file_name = "lock";
 size_t max_s3_spill_size = 0;
 unsigned long extra_mem = 0;
+unsigned long mainMem_usage = 0;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -1947,7 +1948,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             if (locked || write_counter > 0)
             {
                 spillS3Hmap(hmap, minio_client, &write_sizes, uName, write_counter);
-                std::shared_ptr<Aws::IOStream> stream = Aws::MakeShared<Aws::StringStream>("");
+                /* std::shared_ptr<Aws::IOStream> stream = Aws::MakeShared<Aws::StringStream>("");
                 size_t stream_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
                 write_sizes.push_back(stream_size);
                 write_size += stream_size;
@@ -1974,7 +1975,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 std::string uName_temp = uName + "_" + std::to_string(write_counter);
                 write_counter++;
 
-                writeS3File(minio_client, stream, stream_size, uName_temp);
+                writeS3File(minio_client, stream, stream_size, uName_temp); */
                 hmap->clear();
                 if (!locked)
                 {
