@@ -1222,6 +1222,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     {
                         std::cout << "local + s3: " << (int)(id) << std::endl;
                         mainMem_usage += temp_spill_size - temp_local_spill_size;
+                        temp_local_spill_size = temp_spill_size;
                         if (spillS3Thread)
                         {
                             minioSpiller.join();
@@ -1283,11 +1284,13 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         numLines.fetch_add(1);
         numLinesLocal++;
     }
-
-    if (munmap(&mappedFile[head], size - head) == -1)
+    if (size - head > 0)
     {
-        std::cout << "head: " << head << " freed_space_temp: " << size - head << std::endl;
-        perror("Could not free memory in end of thread!");
+        if (munmap(&mappedFile[head], size - head) == -1)
+        {
+            std::cout << "head: " << head << " freed_space_temp: " << size - head << std::endl;
+            perror("Could not free memory in end of thread!");
+        }
     }
     if (spillS3Thread)
     {
