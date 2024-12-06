@@ -864,9 +864,10 @@ void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOS
 }
 
 int spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
-                std::vector<size_t> *sizes, std::string uniqueName, int counter)
+                std::vector<size_t> *sizes, std::string uniqueName, int start_counter)
 {
     size_t spill_mem_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
+    int counter = 0;
 
     size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
     sizes->push_back(spill_mem_size_temp);
@@ -877,9 +878,10 @@ int spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array
     {
         if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
         {
-            n = uniqueName + "_" + std::to_string(counter);
+            n = uniqueName + "_" + std::to_string(start_counter);
             writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
             counter++;
+            start_counter++;
             in_stream = Aws::MakeShared<Aws::StringStream>("");
             spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
             sizes->push_back(spill_mem_size_temp);
@@ -903,9 +905,9 @@ int spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array
                 *in_stream << byteArray[k];
         }
     }
-    n = uniqueName + "_" + std::to_string(counter);
+    n = uniqueName + "_" + std::to_string(start_counter);
     writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
-    return counter + 1;
+    return start_counter + 1;
 }
 
 int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::string &file, std::string uniqueName,
@@ -1948,9 +1950,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         {
             if (locked || write_counter > 0)
             {
-                std::cout << "Clearing hmap and spilling. write_counter before: " << write_counter << std::endl;
                 write_counter = spillS3Hmap(hmap, minio_client, &write_sizes, uName, write_counter);
-                std::cout << "write_counter after: " << write_counter << std::endl;
                 /* std::shared_ptr<Aws::IOStream> stream = Aws::MakeShared<Aws::StringStream>("");
                 size_t stream_size = hmap->size() * sizeof(unsigned long) * (key_number + value_number);
                 write_sizes.push_back(stream_size);
