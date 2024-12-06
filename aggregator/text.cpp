@@ -912,11 +912,13 @@ int spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array
 
 void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<size_t> *sizes, std::string uniqueName, int *start_counter)
 {
-
+    std::cout << "SpillS3File" << std::endl;
     struct stat stats;
     stat(file.c_str(), &stats);
     size_t spill_mem_size = stats.st_size;
+    std::cout << "Trying to open, spill_mem_size: " <<spill_mem_size  << std::endl;
     int fd = open(file.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+    std::cout << "Trying to create mapping" << std::endl;
     unsigned long *spill_map = static_cast<unsigned long *>(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0));
     if (spill_map == MAP_FAILED)
     {
@@ -924,6 +926,7 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
         perror("Error mmapping the file");
         exit(EXIT_FAILURE);
     }
+    std::cout << "Trying madvise" << std::endl;
     madvise(spill_map, spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
 
     int counter = 0;
@@ -938,7 +941,6 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
     // Write int to Mapping
     for (unsigned long i = 0; i < spill_mem_size; i++)
     {
-        std::cout << i;
         if (temp_counter * sizeof(unsigned long) * (key_number + value_number) == spill_mem_size_temp)
         {
             n = uniqueName + "_" + std::to_string(*start_counter);
@@ -1001,7 +1003,6 @@ int spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     }
     else
     {
-        std::cout << "Spilling to s3 from file" << std::endl;
         spillS3File(file, minio_client, &sizes, uniqueName, &counter);
         /* size_t spill_mem_size_temp = std::min(max_s3_spill_size, spill_mem_size - max_s3_spill_size * counter);
         sizes.push_back(spill_mem_size_temp);
