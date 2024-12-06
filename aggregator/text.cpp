@@ -956,10 +956,11 @@ void spillS3File(std::string file, Aws::S3::S3Client *minio_client, std::vector<
         {
             *in_stream << byteArray[k];
         }
-        if (i - i_head > pagesize * 10)
+        unsigned long i_diff = (i - i_head) * sizeof(unsigned long);
+        if (i_diff > pagesize * 10)
         {
 
-            unsigned long freed_space_temp = (i - i_head) - ((i - i_head) % pagesize);
+            unsigned long freed_space_temp = i_diff - (i_diff % pagesize);
             if (munmap(&spill_map[i_head], freed_space_temp) == -1)
             {
                 std::cout << "head: " << i_head << " freed_space_temp: " << freed_space_temp << std::endl;
