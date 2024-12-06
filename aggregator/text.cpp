@@ -1214,8 +1214,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 comb_spill_size.fetch_add(temp_spill_size);
                 spilltoS3 = memLimitMain < mainMem_usage + temp_spill_size * 2;
 
-                std::pair<int, size_t> spill_file(-1, 0);
-
                 if (memLimitMain > mainMem_usage + temp_spill_size - temp_local_spill_size)
                 {
                     if (memLimitMain < mainMem_usage + temp_spill_size * threadNumber)
@@ -1233,7 +1231,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                         spill_file_name += std::to_string((int)(id));
                         spill_file_name += "_";
                         spill_file_name += "temp_spill";
-
+                        std::pair<int, size_t> spill_file(-1, 0);
                         spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
                         uName = "";
                         uName += worker_id;
@@ -1256,6 +1254,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                         spill_file_name += "_";
                         spill_file_name += "spill";
                         mainMem_usage += temp_spill_size;
+                        std::pair<int, size_t> spill_file(-1, 0);
                         spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
                         spill_files->push_back(spill_file);
                     }
@@ -1269,6 +1268,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     uName += std::to_string((int)(id));
                     uName += "_" + std::to_string(spill_number);
                     std::string empty = "";
+                    std::pair<int, size_t> spill_file(-1, 0);
                     if (!spillToMinio(hmap, spill_file, uName, minio_client, worker_id, 0, id))
                     {
                         std::cout << "Spilling to Minio failed because worker is locked!" << std::endl;
