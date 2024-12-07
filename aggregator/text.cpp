@@ -1520,8 +1520,8 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
                 if (first)
                 {
                     max_s3_spill_size = comb_hash_size.load();
-                    std::cout << "max_s3_spill_size: " <<  max_s3_spill_size << std::endl;
-                    first = false
+                    std::cout << "max_s3_spill_size: " << max_s3_spill_size << std::endl;
+                    first = false;
                 }
                 //*avg *= 1.2;
                 // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " avg: " << *avg << " reservedMem: " << reservedMem << " (*extra_mem): " << (*extra_mem) << std::endl;
