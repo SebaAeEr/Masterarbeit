@@ -1820,7 +1820,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         }
 
                         // static_cast<unsigned long *>(static_cast<void *>(buf));
-                        // std::cout << buf[0] << ", " << buf[1] << std::endl;
+                        std::cout << buf[0] << ", " << buf[1] << std::endl;
                         for (int k = 0; k < key_number; k++)
                         {
                             keys[k] = buf[k];
