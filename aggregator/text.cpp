@@ -2770,6 +2770,7 @@ int test(std::string file1name, std::string file2name)
     {
         coloumns[i] = key_names[i];
     }
+    std::cout << "files opened" << std::endl;
     coloumns[key_number] = "_col1";
     std::unordered_map<std::string, std::string> lineObjects;
     std::string ckey;
