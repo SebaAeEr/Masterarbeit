@@ -776,7 +776,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
             mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0] / (float)(it.second[1])));
             // temp_line += ",\"_col1\":" + std::to_string(it.second[0] / (float)(it.second[1])) + "}";
         }
-        mapped_count += writeString(&mappedoutputFile[mapped_count], "}");
+        mapped_count += writeString(&mappedoutputFile[mapped_count], "},\n");
         // std::cout << temp_line << std::endl;
         // for (auto &itt : temp_line)
         //{
@@ -2770,7 +2770,6 @@ int test(std::string file1name, std::string file2name)
     {
         coloumns[i] = key_names[i];
     }
-    std::cout << "files opened" << std::endl;
     coloumns[key_number] = "_col1";
     std::unordered_map<std::string, std::string> lineObjects;
     std::string ckey;
@@ -2807,6 +2806,8 @@ int test(std::string file1name, std::string file2name)
     }
     munmap(mappedFile, size);
     close(fd);
+
+    std::cout << "first file scanned" << std::endl;
 
     int fd2 = open(file2name.c_str(), O_RDONLY);
     if (fd2 == -1)
