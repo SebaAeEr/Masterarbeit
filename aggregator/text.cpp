@@ -2896,11 +2896,6 @@ int test(std::string file1name, std::string file2name)
 
 int main(int argc, char **argv)
 {
-    std::vector<char> t;
-    encode(123456579, &t);
-    auto tt = decode(&t);
-    std::cout << tt << std::endl;
-    return 1;
     Aws::SDKOptions options;
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
