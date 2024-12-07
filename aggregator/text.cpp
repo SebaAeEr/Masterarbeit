@@ -1583,6 +1583,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     int subfile_head = 0;
     int bit_head = 0;
     unsigned long s3spillStart_head = 0;
+    unsigned long s3spillStart_head_chars = 0;
     unsigned long overall_s3spillsize = 0;
     std::vector<std::tuple<std::thread, size_t, char>> spillThreads;
     char id_counter = 0;
@@ -1694,6 +1695,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             // std::cout << "Reading " << get<0>(*set_it) << std::endl;
             firsts3File = hmap->empty();
             int sub_file_counter = 0;
+            unsigned long s3spillStart_head_chars_counter = 0;
             if (firsts3File)
             {
                 sub_file_counter = subfile_head;
@@ -1749,7 +1751,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 {
                     head = s3spillStart_head;
                     // std::cout << "First File" << std::endl;
-                    spill.ignore(s3spillStart_head * sizeof(unsigned long) * number_of_longs);
+                    if (deencode)
+                    {
+                        spill.ignore(s3spillStart_head_chars);
+                    }
+                    else
+                    {
+                        spill.ignore(s3spillStart_head * sizeof(unsigned long) * number_of_longs);
+                    }
                     // std::cout << "Load bitmap: " << i << " at index: " << head << std::endl;
                 }
 
@@ -1790,6 +1799,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                     char_buf[counter] = spill.get();
                                     counter++;
                                 }
+                                s3spillStart_head_chars_counter += l_bytes + 1;
                                 /* for (auto &it : char_buf)
                                 {
                                     std::cout << std::bitset<8>(it) << ", ";
@@ -1886,6 +1896,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                         locked = true;
                                         s3spillFile_head = i;
                                         s3spillStart_head = head;
+                                        s3spillStart_head_chars = s3spillStart_head_chars_counter;
                                         bit_head = bit_i;
                                         subfile_head = sub_file_counter - 1;
                                     }
@@ -1907,6 +1918,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                     locked = true;
                                     s3spillFile_head = i;
                                     s3spillStart_head = head;
+                                    s3spillStart_head_chars = s3spillStart_head_chars_counter;
                                     bit_head = bit_i;
                                     subfile_head = sub_file_counter - 1;
                                 }
@@ -1919,10 +1931,26 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     else
                     {
-                        spill.ignore(sizeof(unsigned long) * number_of_longs);
-                        if (!spill)
+                        if (deencode)
                         {
-                            break;
+                            for (int i = 0; i < key_number + value_number; i++)
+                            {
+                                char skip_bytes = spill.get();
+                                spill.ignore(skip_bytes);
+                                s3spillStart_head_chars_counter += skip_bytes + 1;
+                            }
+                            if (!spill)
+                            {
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            spill.ignore(sizeof(unsigned long) * number_of_longs);
+                            if (!spill)
+                            {
+                                break;
+                            }
                         }
                     }
                     head++;
