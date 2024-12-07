@@ -72,7 +72,7 @@ std::string lock_file_name = "lock";
 size_t max_s3_spill_size = 0;
 unsigned long extra_mem = 0;
 unsigned long mainMem_usage = 0;
-bool deencode = true;
+bool deencode = false;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
