@@ -1695,7 +1695,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             // std::cout << "Reading " << get<0>(*set_it) << std::endl;
             firsts3File = hmap->empty();
             int sub_file_counter = 0;
-            unsigned long s3spillStart_head_chars_counter = 0;
+
             if (firsts3File)
             {
                 sub_file_counter = subfile_head;
@@ -1747,6 +1747,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
                 // std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector->size() << std::endl;
                 unsigned long head = 0;
+                unsigned long s3spillStart_head_chars_counter = 0;
                 if (firsts3File && firsts3subFile)
                 {
                     head = s3spillStart_head;
