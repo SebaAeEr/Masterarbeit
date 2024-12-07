@@ -948,6 +948,7 @@ int spillS3HmapEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, std
         if (temp_counter == max_s3_spill_size)
         {
             n = uniqueName + "_" + std::to_string(start_counter);
+            std::cout << "writing: " << n << " spill_mem_size_temp: " << spill_mem_size_temp << " temp_counter: " << temp_counter << std::endl;
             writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
             counter++;
             start_counter++;
