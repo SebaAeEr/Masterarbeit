@@ -469,6 +469,30 @@ void printProgressBar(float progress)
     std::cout.flush();
 }
 
+void encode(unsigned long l, std::vector<char> *res)
+{
+    char l_bytes = l == 0 ? 1 : (static_cast<int>(log2(l)) + 8) / 8;
+    std::cout << "long: " << l << ", " << std::bitset<64>(l) << " l_bytes: " << (int)(l_bytes) << std::endl;
+    res->push_back(l_bytes);
+
+    char byteArray[sizeof(unsigned long)];
+    std::memcpy(byteArray, &l, sizeof(unsigned long));
+    for (auto &it : byteArray)
+    {
+        std::cout << std::bitset<8>(it) << ", ";
+    }
+    std::cout << std::endl;
+    for (int i = 0; i < l_bytes; i++)
+    {
+        res->push_back(byteArray[i]);
+    }
+    for (auto &it : *res)
+    {
+        std::cout << std::bitset<8>(it) << ", ";
+    }
+    std::cout << std::endl;
+}
+
 int addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std::vector<size_t> file_size, size_t comb_file_size, char write_to_id, unsigned char fileStatus, char thread_id)
 {
     manaFile mana = getLockedMana(minio_client, thread_id);
@@ -938,7 +962,7 @@ void spillS3File(std::pair<int, size_t> spill_file, Aws::S3::S3Client *minio_cli
         {
             n = uniqueName + "_" + std::to_string(*start_counter);
             (*start_counter)++;
-            std::cout << "writing: " << n << " i: " << i << " spill_mem_size: " << spill_mem_size << " spill_mem_size_temp: " << spill_mem_size_temp<<  std::endl;
+            std::cout << "writing: " << n << " i: " << i << " spill_mem_size: " << spill_mem_size << " spill_mem_size_temp: " << spill_mem_size_temp << std::endl;
             writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
             std::cout << "written: " << n << std::endl;
             counter++;
@@ -2723,6 +2747,9 @@ int test(std::string file1name, std::string file2name)
 
 int main(int argc, char **argv)
 {
+    std::vector<char> t;
+    encode(123456579, &t);
+    return 1;
     Aws::SDKOptions options;
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
