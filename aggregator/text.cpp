@@ -479,7 +479,7 @@ void printProgressBar(float progress)
 void encode(unsigned long l, std::vector<char> *res)
 {
     char l_bytes = l == 0 ? 1 : (static_cast<int>(log2(l)) + 8) / 8;
-    std::cout << "long: " << l << ", " << std::bitset<64>(l) << " l_bytes: " << (int)(l_bytes) << std::endl;
+    // std::cout << "long: " << l << ", " << std::bitset<64>(l) << " l_bytes: " << (int)(l_bytes) << std::endl;
     res->push_back(l_bytes);
 
     char byteArray[sizeof(unsigned long)];
@@ -487,8 +487,8 @@ void encode(unsigned long l, std::vector<char> *res)
     /* for (auto &it : byteArray)
     {
         std::cout << std::bitset<8>(it) << ", ";
-    } */
-    std::cout << std::endl;
+    }
+    std::cout << std::endl;*/
     for (int i = 0; i < l_bytes; i++)
     {
         res->push_back(byteArray[i]);
@@ -496,8 +496,8 @@ void encode(unsigned long l, std::vector<char> *res)
     /* for (auto &it : *res)
     {
         std::cout << std::bitset<8>(it) << ", ";
-    } */
-    std::cout << std::endl;
+    }
+    std::cout << std::endl;*/
 }
 
 unsigned long decode(std::vector<char> *in_stream)
