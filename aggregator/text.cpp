@@ -971,7 +971,7 @@ int spillS3HmapEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, std
         for (int i = 0; i < value_number; i++)
         {
             char_longs.clear();
-            encode(it.first[i], &char_longs);
+            encode(it.second[i], &char_longs);
             spill_mem_size_temp += char_longs.size();
             for (int k = 0; k < char_longs.size(); k++)
             {
