@@ -717,7 +717,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
 
     // unsigned long output_size_test = strlen(("\"custkey\":,\"_col1\":}").c_str())
 
-    output_size += (strlen("\"_col1\":") + 2 + key_number) * hmap->size();
+    output_size += (strlen("\"_col1\":") + 4 + key_number) * hmap->size();
     // std::cout << "Output file size: " << output_size << std::endl;
 
     // Extend file file.
