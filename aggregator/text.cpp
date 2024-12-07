@@ -484,19 +484,19 @@ void encode(unsigned long l, std::vector<char> *res)
 
     char byteArray[sizeof(unsigned long)];
     std::memcpy(byteArray, &l, sizeof(unsigned long));
-    for (auto &it : byteArray)
+    /* for (auto &it : byteArray)
     {
         std::cout << std::bitset<8>(it) << ", ";
-    }
+    } */
     std::cout << std::endl;
     for (int i = 0; i < l_bytes; i++)
     {
         res->push_back(byteArray[i]);
     }
-    for (auto &it : *res)
+    /* for (auto &it : *res)
     {
         std::cout << std::bitset<8>(it) << ", ";
-    }
+    } */
     std::cout << std::endl;
 }
 
