@@ -1804,7 +1804,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         unsigned long buf[number_of_longs];
                         if (deencode)
                         {
-                            if(!locked) {
+                            if (!locked)
+                            {
                                 s3spillStart_head_chars = s3spillStart_head_chars_counter;
                             }
                             for (int i = 0; i < number_of_longs; i++)
@@ -2160,14 +2161,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             finished_rows += s3spillStart_head * number_of_longs * sizeof(unsigned long);
             printProgressBar((finished_rows + input_head_base * sizeof(unsigned long)) / (float)(overall_s3spillsize + comb_spill_size));
-            if (deencode)
+            /* if (deencode)
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
             }
             else
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
-            }
+            } */
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
             /*
                         if (hmap->size() > maxHashsize)
@@ -2193,7 +2194,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 {
                     if (memMainLimit <= mainMem_usage + spill_size)
                     {
-                        std::cout << "Writing hmap to " << uName << " with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
+                        // std::cout << "Writing hmap to " << uName << " with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
                         if (deencode)
                         {
                             write_counter = spillS3HmapEncoded(hmap, minio_client, &write_sizes, uName, write_counter);
