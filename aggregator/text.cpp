@@ -1763,12 +1763,12 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 unsigned long s3spillStart_head_chars_counter = 0;
                 if (firsts3File && firsts3subFile)
                 {
-                    // head = s3spillStart_head;
+                    head = s3spillStart_head;
                     // std::cout << "First File" << std::endl;
                     if (deencode)
                     {
-                        // spill.ignore(s3spillStart_head_chars);
-                        // s3spillStart_head_chars_counter = s3spillStart_head_chars;
+                        spill.ignore(s3spillStart_head_chars - (sizeof(unsigned long) * number_of_longs));
+                        s3spillStart_head_chars_counter = s3spillStart_head_chars - (sizeof(unsigned long) * number_of_longs);
                     }
                     else
                     {
