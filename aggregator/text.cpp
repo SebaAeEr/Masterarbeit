@@ -3004,7 +3004,7 @@ int test(std::string file1name, std::string file2name)
         if (std::abs(hashmap2[it.first] - it.second) > 0.001)
         {
             different_values++;
-            // std::cout << "File 2 has different value for key: " << it.first[0] << "; File 1: " << it.second << "; File 2: " << hashmap2[it.first] << std::endl;
+            std::cout << "File 2 has different value for key: " << it.first[0] << "; File 1: " << it.second << "; File 2: " << hashmap2[it.first] << std::endl;
             same = false;
         }
     }
