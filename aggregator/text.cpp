@@ -2994,7 +2994,7 @@ int test(std::string file1name, std::string file2name)
         if (!hashmap2.contains(it.first))
         {
             not_contained_keys++;
-            std::cout << "File 2 does not contain: " << it.first[0] << std::endl;
+            //std::cout << "File 2 does not contain: " << it.first[0] << std::endl;
             same = false;
             /*  if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
              {
@@ -3004,7 +3004,7 @@ int test(std::string file1name, std::string file2name)
         if (std::abs(hashmap2[it.first] - it.second) > 0.001)
         {
             different_values++;
-            std::cout << "File 2 has different value for key: " << it.first[0] << "; File 1: " << it.second << "; File 2: " << hashmap2[it.first] << std::endl;
+            //std::cout << "File 2 has different value for key: " << it.first[0] << "; File 1: " << it.second << "; File 2: " << hashmap2[it.first] << std::endl;
             same = false;
         }
     }
@@ -3013,7 +3013,7 @@ int test(std::string file1name, std::string file2name)
         if (!hashmap.contains(it.first))
         {
             not_contained_keys++;
-            std::cout << "File 1 does not contain: " << it.first[0] << std::endl;
+            //std::cout << "File 1 does not contain: " << it.first[0] << std::endl;
             same = false;
             /* if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
             {
