@@ -1767,8 +1767,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     // std::cout << "First File" << std::endl;
                     if (deencode)
                     {
-                        spill.ignore(s3spillStart_head_chars - (sizeof(unsigned long) * number_of_longs));
-                        s3spillStart_head_chars_counter = s3spillStart_head_chars - (sizeof(unsigned long) * number_of_longs);
+                        spill.ignore(s3spillStart_head_chars);
+                        s3spillStart_head_chars_counter = s3spillStart_head_chars;
                     }
                     else
                     {
@@ -1804,6 +1804,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         unsigned long buf[number_of_longs];
                         if (deencode)
                         {
+                            if(!locked) {
+                                s3spillStart_head_chars = s3spillStart_head_chars_counter;
+                            }
                             for (int i = 0; i < number_of_longs; i++)
                             {
                                 char l_bytes = spill.get();
@@ -1919,7 +1922,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                         locked = true;
                                         s3spillFile_head = i;
                                         s3spillStart_head = head;
-                                        s3spillStart_head_chars = s3spillStart_head_chars_counter;
                                         bit_head = bit_i;
                                         subfile_head = sub_file_counter - 1;
                                     }
@@ -1941,7 +1943,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                     locked = true;
                                     s3spillFile_head = i;
                                     s3spillStart_head = head;
-                                    s3spillStart_head_chars = s3spillStart_head_chars_counter;
                                     bit_head = bit_i;
                                     subfile_head = sub_file_counter - 1;
                                 }
