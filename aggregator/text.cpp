@@ -478,7 +478,7 @@ void printProgressBar(float progress)
 
 void encode(unsigned long l, std::vector<char> *res)
 {
-    char l_bytes = l == 0 ? 1 : (static_cast<int>(log2(l)) + 8) / 8;
+    char l_bytes = l == 0 ? 0 : (static_cast<int>(log2(l)) + 8) / 8;
     // std::cout << "long: " << l << ", " << std::bitset<64>(l) << " l_bytes: " << (int)(l_bytes) << std::endl;
     res->push_back(l_bytes);
 
@@ -1754,8 +1754,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     // std::cout << "First File" << std::endl;
                     if (deencode)
                     {
-                        // spill.ignore(s3spillStart_head_chars);
-                        // s3spillStart_head_chars_counter = s3spillStart_head_chars;
+                        spill.ignore(s3spillStart_head_chars);
+                        s3spillStart_head_chars_counter = s3spillStart_head_chars;
                     }
                     else
                     {
