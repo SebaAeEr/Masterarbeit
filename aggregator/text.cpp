@@ -1717,8 +1717,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             {
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = hmap->empty();
-                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
-                //   std::cout << "Start reading: " << (*set_it).first << std::endl;
+                // std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
+                //    std::cout << "Start reading: " << (*set_it).first << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
@@ -1781,7 +1781,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 if (increase_size)
                 {
                     auto increase = (getPhyValue() - size_after_init) * 1024;
-                    std::cout << "Stream buffer: " << increase << std::endl;
+                    // std::cout << "Stream buffer: " << increase << std::endl;
                     extra_mem += increase;
                     increase_size = false;
                 }
@@ -2192,7 +2192,15 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 {
                     if (memMainLimit <= mainMem_usage + spill_size)
                     {
-                        write_counter = spillS3Hmap(hmap, minio_client, &write_sizes, uName, write_counter);
+                        std::cout << "Writing hmap to " << uName << " with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
+                        if (deencode)
+                        {
+                            write_counter = spillS3HmapEncoded(hmap, minio_client, &write_sizes, uName, write_counter);
+                        }
+                        else
+                        {
+                            write_counter = spillS3Hmap(hmap, minio_client, &write_sizes, uName, write_counter);
+                        }
                     }
                     else
                     {
@@ -2476,9 +2484,12 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         // merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true);
         if (second_loaded)
         {
-            std::cout << ", " << get<0>(file2.first);
+            std::cout << "Merging files: " << get<0>(file.first) << ", " << get<0>(file2.first) << std::endl;
         }
-        std::cout << std::endl;
+        else
+        {
+            std::cout << "Merging file with hmap: " << get<0>(file.first) << std::endl;
+        }
         std::string old_uName = uName;
         uName = worker_id;
         uName += "_merge_" + std::to_string(counter);
