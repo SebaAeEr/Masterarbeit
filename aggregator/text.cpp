@@ -2333,14 +2333,14 @@ void spillHelpMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::a
 }
 
 void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client minio_client, bool init, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap,
-                    std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> &diff, float *avg)
+                    std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> &diff, float *avg, char startBeggarWorker = 0)
 {
     int finished = 0;
     std::thread sizePrinter;
 
     std::vector<std::string> blacklist;
 
-    char beggarWorker = 0;
+    char beggarWorker = startBeggarWorker;
     std::string uName = "merge";
     std::string empty_string = "";
     int counter = 0;
@@ -2382,7 +2382,6 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 uName += "_merge_" + std::to_string(counter);
                 std::pair<int, size_t> local_file = {-1, 0};
                 std::cout << "spilling to " << uName << " hmap size: " << hmap->size() << std::endl;
-
                 spillToMinio(hmap, local_file, uName, &minio_client, beggarWorker, 0, 1);
                 // Try to change beggar worker or load in new files
                 hmap->clear();
@@ -2702,7 +2701,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     if (true)
     {
         start_time = std::chrono::high_resolution_clock::now();
-        helpMergePhase(memLimit, memLimitMain, minio_client, false, &emHashmap, comb_hash_size, diff, &avg);
+        helpMergePhase(memLimit, memLimitMain, minio_client, false, &emHashmap, comb_hash_size, diff, &avg, worker_id);
         std::cout << "Checking if spills are being worked on." << std::endl;
         bool isWorkedOn = true;
         while (isWorkedOn)
@@ -2946,9 +2945,9 @@ int test(std::string file1name, std::string file2name)
         if (!hashmap.contains(it.first))
         {
             not_contained_keys++;
-            //std::cout << "File 1 does not contain: " << it.first[0] << std::endl;
+            // std::cout << "File 1 does not contain: " << it.first[0] << std::endl;
             same = false;
-             if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
+            if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
             {
                 std::cout << "File 1 does not contain: " << it.first[0] << std::endl;
             }
