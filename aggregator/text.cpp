@@ -1754,8 +1754,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     // std::cout << "First File" << std::endl;
                     if (deencode)
                     {
-                        spill.ignore(s3spillStart_head_chars);
-                        s3spillStart_head_chars_counter = s3spillStart_head_chars;
+                        // spill.ignore(s3spillStart_head_chars);
+                        // s3spillStart_head_chars_counter = s3spillStart_head_chars;
                     }
                     else
                     {
