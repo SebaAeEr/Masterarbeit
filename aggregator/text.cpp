@@ -2442,7 +2442,6 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         {
             if (hmap->size() > 0)
             {
-                std::string old_uName = uName;
                 uName = worker_id;
                 uName += "_merge_" + std::to_string(counter);
                 std::pair<int, size_t> local_file = {-1, 0};
@@ -2465,17 +2464,11 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                                     break;
                                 }
                             }
-
-                            if (std::get<0>(w_file) == old_uName)
-                            {
-                                std::get<4>(w_file) = 255;
-                            }
                             if (file.second != 0 && std::get<0>(w_file) == get<0>(file.first))
                             {
                                 std::get<4>(w_file) = 0;
                             }
                         }
-
                         break;
                     }
                 }
@@ -2547,7 +2540,6 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         {
             std::cout << "Merging file with hmap: " << get<0>(file.first) << std::endl;
         }
-        std::string old_uName = uName;
         uName = worker_id;
         uName += "_merge_" + std::to_string(counter);
 
@@ -2568,11 +2560,6 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                                 std::get<4>(w_file) = 255;
                                 break;
                             }
-                        }
-
-                        if (std::get<0>(w_file) == old_uName)
-                        {
-                            std::get<4>(w_file) = 255;
                         }
                     }
 
