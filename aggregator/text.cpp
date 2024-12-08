@@ -950,7 +950,7 @@ int spillS3HmapEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, std
         if (temp_counter == max_s3_spill_size)
         {
             n = uniqueName + "_" + std::to_string(start_counter);
-            std::cout << "writing: " << n << " spill_mem_size_temp: " << spill_mem_size_temp << " temp_counter: " << temp_counter << std::endl;
+            // std::cout << "writing: " << n << " spill_mem_size_temp: " << spill_mem_size_temp << " temp_counter: " << temp_counter << std::endl;
             writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
             counter++;
             start_counter++;
@@ -966,23 +966,42 @@ int spillS3HmapEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, std
         temp_counter++;
         for (int i = 0; i < key_number; i++)
         {
-            char_longs.clear();
-            encode(it.first[i], &char_longs);
-            spill_mem_size_temp += char_longs.size();
-            for (int k = 0; k < char_longs.size(); k++)
+            // char_longs.clear();
+            // encode(it.first[i], &char_longs);
+            char l_bytes = it.first[i] == 0 ? 0 : (static_cast<int>(log2(it.first[i])) + 8) / 8;
+            *in_stream << l_bytes;
+
+            char byteArray[sizeof(unsigned long)];
+            std::memcpy(byteArray, &it.first[i], sizeof(unsigned long));
+            for (int i = 0; i < l_bytes; i++)
+            {
+                *in_stream << byteArray;
+            }
+            spill_mem_size_temp += l_bytes + 1;
+            /* for (int k = 0; k < char_longs.size(); k++)
             {
                 *in_stream << char_longs[k];
-            }
+            } */
         }
         for (int i = 0; i < value_number; i++)
         {
-            char_longs.clear();
+            /* char_longs.clear();
             encode(it.second[i], &char_longs);
             spill_mem_size_temp += char_longs.size();
             for (int k = 0; k < char_longs.size(); k++)
             {
                 *in_stream << char_longs[k];
+            } */
+            char l_bytes = it.second[i] == 0 ? 0 : (static_cast<int>(log2(it.second[i])) + 8) / 8;
+            *in_stream << l_bytes;
+
+            char byteArray[sizeof(unsigned long)];
+            std::memcpy(byteArray, &it.second[i], sizeof(unsigned long));
+            for (int i = 0; i < l_bytes; i++)
+            {
+                *in_stream << byteArray;
             }
+            spill_mem_size_temp += l_bytes + 1;
         }
     }
     n = uniqueName + "_" + std::to_string(start_counter);
@@ -1056,13 +1075,18 @@ void spillS3File(std::pair<int, size_t> spill_file, Aws::S3::S3Client *minio_cli
     std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
     unsigned long temp_counter = 0;
     unsigned long i_head = 0;
+    size_t spill_mem_size_temp = 0;
+    std::vector<char> char_longs;
 
     // Write int to Mapping
     for (unsigned long i = 0; i < spill_mem_size / sizeof(unsigned long); i++)
     {
         if (temp_counter == max_s3_spill_size)
         {
-            size_t spill_mem_size_temp = temp_counter * sizeof(unsigned long) * (key_number + value_number);
+            if (!deencode)
+            {
+                spill_mem_size_temp = temp_counter * sizeof(unsigned long) * (key_number + value_number);
+            }
             n = uniqueName + "_" + std::to_string(*start_counter);
             (*start_counter)++;
             // std::cout << "writing: " << n << " i: " << i << " spill_mem_size: " << spill_mem_size << " spill_mem_size_temp: " << spill_mem_size_temp << std::endl;
@@ -1071,14 +1095,41 @@ void spillS3File(std::pair<int, size_t> spill_file, Aws::S3::S3Client *minio_cli
             counter++;
             in_stream = Aws::MakeShared<Aws::StringStream>("");
             temp_counter = 0;
+            spill_mem_size_temp = 0;
         }
-        temp_counter++;
-        char byteArray[sizeof(unsigned long)];
-        std::memcpy(byteArray, &spill_map[i], sizeof(unsigned long));
-
-        for (int k = 0; k < sizeof(unsigned long); k++)
+        if (i % (key_number + value_number) == 0)
         {
-            *in_stream << byteArray[k];
+            temp_counter++;
+        }
+        if (deencode)
+        {
+            /*  char_longs.clear();
+             encode(spill_map[i], &char_longs);
+             spill_mem_size_temp += char_longs.size();
+             for (int k = 0; k < char_longs.size(); k++)
+             {
+                 *in_stream << char_longs[k];
+             } */
+            char l_bytes = spill_map[i] == 0 ? 0 : (static_cast<int>(log2(spill_map[i])) + 8) / 8;
+            *in_stream << l_bytes;
+
+            char byteArray[sizeof(unsigned long)];
+            std::memcpy(byteArray, &spill_map[i], sizeof(unsigned long));
+            for (int i = 0; i < l_bytes; i++)
+            {
+                *in_stream << byteArray;
+            }
+            spill_mem_size_temp += l_bytes + 1;
+        }
+        else
+        {
+            char byteArray[sizeof(unsigned long)];
+            std::memcpy(byteArray, &spill_map[i], sizeof(unsigned long));
+
+            for (int k = 0; k < sizeof(unsigned long); k++)
+            {
+                *in_stream << byteArray[k];
+            }
         }
         unsigned long i_diff = (i - i_head) * sizeof(unsigned long);
         if (i_diff > pagesize * 10)
@@ -1101,7 +1152,10 @@ void spillS3File(std::pair<int, size_t> spill_file, Aws::S3::S3Client *minio_cli
     n = uniqueName + "_" + std::to_string(*start_counter);
     // std::cout << "writing: " << n << std::endl;
     (*start_counter)++;
-    size_t spill_mem_size_temp = temp_counter * sizeof(unsigned long) * (key_number + value_number);
+    if (!deencode)
+    {
+        spill_mem_size_temp = temp_counter * sizeof(unsigned long) * (key_number + value_number);
+    }
     writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
     sizes->push_back({spill_mem_size_temp, temp_counter});
 }
