@@ -975,7 +975,7 @@ int spillS3HmapEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, std
             std::memcpy(byteArray, &it.first[i], sizeof(unsigned long));
             for (int i = 0; i < l_bytes; i++)
             {
-                *in_stream << byteArray;
+                *in_stream << byteArray[i];
             }
             spill_mem_size_temp += l_bytes + 1;
             /* for (int k = 0; k < char_longs.size(); k++)
@@ -999,7 +999,7 @@ int spillS3HmapEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, std
             std::memcpy(byteArray, &it.second[i], sizeof(unsigned long));
             for (int i = 0; i < l_bytes; i++)
             {
-                *in_stream << byteArray;
+                *in_stream << byteArray[i];
             }
             spill_mem_size_temp += l_bytes + 1;
         }
@@ -1117,7 +1117,7 @@ void spillS3File(std::pair<int, size_t> spill_file, Aws::S3::S3Client *minio_cli
             std::memcpy(byteArray, &spill_map[i], sizeof(unsigned long));
             for (int i = 0; i < l_bytes; i++)
             {
-                *in_stream << byteArray;
+                *in_stream << byteArray[i];
             }
             spill_mem_size_temp += l_bytes + 1;
         }
