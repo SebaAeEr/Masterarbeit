@@ -20,3 +20,19 @@
   spill size: 4,55GB
   read lines: 812863563
   merged file: 1 with 5
+
+
+New:
+1 Worker, 4 threads, 4 Main, 0 Background:
+1320s
+  merge: 817s
+  scan: 451s
+  spillsize: 20016584904
+  read lines: 873739962
+
+1 Worker, 4 threads, 4 Main, 10 Background:
+1490s
+  merge: 669s
+  scan: 795s
+  spillsize: 19392983952
+  read lines: 874458493
