@@ -73,6 +73,7 @@ size_t max_s3_spill_size = 0;
 unsigned long extra_mem = 0;
 unsigned long mainMem_usage = 0;
 bool deencode = false;
+unsigned long test_values[5] = {1086984, 72518, 598743, 899674, 68093};
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -957,6 +958,10 @@ int spillS3HmapEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, std
             spill_mem_size_temp = 0;
             temp_counter = 0;
         }
+        if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
+        {
+            std::cout << "found key in hmap: " << it.first[0] << " value: " << it.second[0] << " spilling to: " << (uniqueName + "_" + std::to_string(start_counter)) << std::endl;
+        }
         temp_counter++;
         for (int i = 0; i < key_number; i++)
         {
@@ -1297,6 +1302,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             {
                 execOperation(&(*hmap)[keys], opValue);
             }
+            if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
+            {
+                std::cout << "hmap contains key: " << keys[0] << " value: " << (*hmap)[keys][0] << std::endl;
+            }
         }
         else
         {
@@ -1307,6 +1316,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             {
                 comb_hash_size.fetch_add(1);
                 maxHmapSize = hmap->size();
+            }
+            if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
+            {
+                std::cout << "Add key to hmap: " << keys[0] << " value: " << (*hmap)[keys][0] << std::endl;
             }
         }
 
@@ -1855,6 +1868,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                             (*hmap)[keys] = temp;
 
                             *bit &= ~(0x01 << (head % 8));
+                            if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
+                            {
+                                std::cout << "found key in Spill contained in hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
+                            }
                         }
                         else if (!locked)
                         {
@@ -1870,6 +1887,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                 } */
                             }
                             *bit &= ~(0x01 << (head % 8));
+                            if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
+                            {
+                                std::cout << "found key in Spill added to hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
+                            }
                             // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
                         }
                         if (spilled_bitmap)
@@ -2895,7 +2916,7 @@ int test(std::string file1name, std::string file2name)
     if (hashmap2.size() != hashmap.size())
     {
         std::cout << "Files have different number of keys." << " File1: " << hashmap.size() << " File2: " << hashmap2.size() << std::endl;
-        //return 0;
+        // return 0;
     }
     bool same = true;
     unsigned long not_contained_keys = 0;
