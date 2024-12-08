@@ -2895,7 +2895,7 @@ int test(std::string file1name, std::string file2name)
     if (hashmap2.size() != hashmap.size())
     {
         std::cout << "Files have different number of keys." << " File1: " << hashmap.size() << " File2: " << hashmap2.size() << std::endl;
-        return 0;
+        //return 0;
     }
     bool same = true;
     unsigned long not_contained_keys = 0;
