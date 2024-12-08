@@ -73,7 +73,7 @@ size_t max_s3_spill_size = 0;
 unsigned long extra_mem = 0;
 unsigned long mainMem_usage = 0;
 bool deencode = true;
-unsigned long test_values[5] = {1086984, 72518, 598743, 899674, 68093};
+unsigned long test_values[5];
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -958,10 +958,10 @@ int spillS3HmapEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, std
             spill_mem_size_temp = 0;
             temp_counter = 0;
         }
-        if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
+        /* if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
         {
             std::cout << "found key in hmap: " << it.first[0] << " value: " << it.second[0] << " spilling to: " << (uniqueName + "_" + std::to_string(start_counter)) << std::endl;
-        }
+        } */
         temp_counter++;
         for (int i = 0; i < key_number; i++)
         {
@@ -1302,10 +1302,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             {
                 execOperation(&(*hmap)[keys], opValue);
             }
-            if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
+            /* if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
             {
                 std::cout << "hmap contains key: " << keys[0] << " value: " << (*hmap)[keys][0] << std::endl;
-            }
+            } */
         }
         else
         {
@@ -1317,10 +1317,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 comb_hash_size.fetch_add(1);
                 maxHmapSize = hmap->size();
             }
-            if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
+            /* if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
             {
                 std::cout << "Add key to hmap: " << keys[0] << " value: " << (*hmap)[keys][0] << std::endl;
-            }
+            } */
         }
 
         // Check if Estimations exceed memlimit
@@ -1767,8 +1767,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     // std::cout << "First File" << std::endl;
                     if (deencode)
                     {
-                        spill.ignore(s3spillStart_head_chars);
-                        s3spillStart_head_chars_counter = s3spillStart_head_chars;
+                        // spill.ignore(s3spillStart_head_chars);
+                        // s3spillStart_head_chars_counter = s3spillStart_head_chars;
                     }
                     else
                     {
@@ -1868,10 +1868,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                             (*hmap)[keys] = temp;
 
                             *bit &= ~(0x01 << (head % 8));
-                            if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
-                            {
-                                std::cout << "found key in Spill contained in hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
-                            }
+                            /*  if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
+                             {
+                                 std::cout << "found key in Spill contained in hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
+                             } */
                         }
                         else if (!locked)
                         {
@@ -1887,10 +1887,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                 } */
                             }
                             *bit &= ~(0x01 << (head % 8));
-                            if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
+                            /* if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
                             {
                                 std::cout << "found key in Spill added to hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
-                            }
+                            } */
                             // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
                         }
                         if (spilled_bitmap)
@@ -2939,10 +2939,10 @@ int test(std::string file1name, std::string file2name)
             not_contained_keys++;
             std::cout << "File 2 does not contain: " << it.first[0] << std::endl;
             same = false;
-            if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
-            {
-                std::cout << "File 2 does not contain: " << it.first[0] << std::endl;
-            }
+            /*  if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
+             {
+                 std::cout << "File 2 does not contain: " << it.first[0] << std::endl;
+             } */
         }
         if (std::abs(hashmap2[it.first] - it.second) > 0.001)
         {
@@ -2958,10 +2958,10 @@ int test(std::string file1name, std::string file2name)
             not_contained_keys++;
             std::cout << "File 1 does not contain: " << it.first[0] << std::endl;
             same = false;
-            if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
+            /* if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
             {
                 std::cout << "File 1 does not contain: " << it.first[0] << std::endl;
-            }
+            } */
         }
     }
     if (same)
