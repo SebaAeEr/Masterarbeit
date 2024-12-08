@@ -72,7 +72,7 @@ std::string lock_file_name = "lock";
 size_t max_s3_spill_size = 0;
 unsigned long extra_mem = 0;
 unsigned long mainMem_usage = 0;
-bool deencode = false;
+bool deencode = true;
 unsigned long test_values[5] = {1086984, 72518, 598743, 899674, 68093};
 
 auto hash = [](const std::array<unsigned long, max_size> a)
@@ -2381,6 +2381,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 uName = worker_id;
                 uName += "_merge_" + std::to_string(counter);
                 std::pair<int, size_t> local_file = {-1, 0};
+                std::cout << "spilling to " << uName << " hmap size: " << hmap->size() << std::endl;
 
                 spillToMinio(hmap, local_file, uName, &minio_client, beggarWorker, 0, 1);
                 // Try to change beggar worker or load in new files
