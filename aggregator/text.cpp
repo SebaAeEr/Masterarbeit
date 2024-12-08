@@ -73,6 +73,7 @@ size_t max_s3_spill_size = 0;
 unsigned long extra_mem = 0;
 unsigned long mainMem_usage = 0;
 bool deencode = true;
+bool mergePhase = false;
 unsigned long test_values[5];
 
 auto hash = [](const std::array<unsigned long, max_size> a)
@@ -2711,7 +2712,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::cout << "Merging of hastables finished with time: " << duration << "s." << std::endl;
     finished++;
 
-    if (true)
+    if (mergePhase)
     {
         start_time = std::chrono::high_resolution_clock::now();
         helpMergePhase(memLimit, memLimitMain, minio_client, false, &emHashmap, comb_hash_size, diff, &avg, worker_id);
