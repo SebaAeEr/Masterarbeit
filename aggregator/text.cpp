@@ -37,12 +37,26 @@ enum Operation
     average
 };
 
+struct file
+{
+    std::string name;
+    size_t size;
+    std::vector<std::pair<size_t, size_t>> subfiles;
+    unsigned char status;
+}
+
+struct partition
+{
+    char id;
+    std::vector<file> files;
+};
+
 struct manaFileWorker
 {
     char id;
     int length;
     bool locked;
-    std::vector<std::tuple<std::string, char, size_t, std::vector<std::pair<size_t, size_t>>, unsigned char>> files;
+    std::vector<partition> partitions;
 };
 
 struct manaFile
@@ -216,7 +230,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         char workerid = out_stream.get();
         worker.id = workerid;
         worker.locked = out_stream.get() == 1;
-        std::vector<std::tuple<std::string, char, size_t, std::vector<std::pair<size_t, size_t>>, unsigned char>> files = {};
+        std::vector<partition> partitions = {};
         int length;
         char length_buf[sizeof(int)];
         out_stream.read(length_buf, sizeof(int));
@@ -225,38 +239,55 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         int head = 0;
         while (head < length)
         {
-            char temp = out_stream.get();
-            std::string filename = "";
-            while (temp != ',')
+            partition part;
+            part.id = out_stream.get();
+            int part_length;
+            char part_length_buf[sizeof(int)];
+            out_stream.read(part_length_buf, sizeof(int));
+            std::memcpy(&part_length, &part_length_buf, sizeof(int));
+
+            std::vector<file> files = {};
+            for (int k = 0; k < part_length; k++)
             {
-                filename += temp;
-                temp = out_stream.get();
-            }
+                file file;
+                char temp = out_stream.get();
+                std::string filename = "";
+                while (temp != ',')
+                {
+                    filename += temp;
+                    temp = out_stream.get();
+                }
+                file.name = filename;
 
-            char number = out_stream.get();
+                int number;
+                out_stream.read(part_length_buf, sizeof(int));
+                std::memcpy(&number, &part_length_buf, sizeof(int));
 
-            size_t file_length;
-            char length_buf[sizeof(size_t)];
-            out_stream.read(length_buf, sizeof(size_t));
-            std::memcpy(&file_length, &length_buf, sizeof(size_t));
-
-            std::vector<std::pair<size_t, size_t>> sub_files = {};
-            for (char i = 0; i < number; i++)
-            {
-                size_t sub_file_length;
+                size_t file_length;
+                char length_buf[sizeof(size_t)];
                 out_stream.read(length_buf, sizeof(size_t));
-                std::memcpy(&sub_file_length, &length_buf, sizeof(size_t));
-                size_t sub_file_tuples;
-                out_stream.read(length_buf, sizeof(size_t));
-                std::memcpy(&sub_file_tuples, &length_buf, sizeof(size_t));
-                sub_files.push_back({sub_file_length, sub_file_tuples});
-            }
-            char m_worker = out_stream.get();
-            files.push_back({filename, number, file_length, sub_files, m_worker});
+                std::memcpy(&file_length, &length_buf, sizeof(size_t));
+                file.size = file_length;
 
-            head += sizeof(size_t) * number * 2 + sizeof(size_t) + filename.size() + 3;
+                for (char i = 0; i < number; i++)
+                {
+                    size_t sub_file_length;
+                    out_stream.read(length_buf, sizeof(size_t));
+                    std::memcpy(&sub_file_length, &length_buf, sizeof(size_t));
+                    size_t sub_file_tuples;
+                    out_stream.read(length_buf, sizeof(size_t));
+                    std::memcpy(&sub_file_tuples, &length_buf, sizeof(size_t));
+                    file.subfiles.push_back({sub_file_length, sub_file_tuples});
+                }
+                char m_worker = out_stream.get();
+                files.push_back(file);
+                head += sizeof(size_t) * number * 2 + sizeof(size_t) + filename.size() + 2 + sizeof(int);
+            }
+            part.files = files;
+            partitions.push_back(part);
+            head += sizeof(int) + 1;
         }
-        worker.files = files;
+        worker.partitions = partitions;
         mana.workers.push_back(worker);
     }
     return mana;
@@ -296,34 +327,53 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
             {
                 *in_stream << length_buf[i];
             }
-            for (auto &file : worker.files)
+            for (auto &partition : worker.partitions)
             {
-                *in_stream << get<0>(file);
-                *in_stream << ',';
+                *in_stream << partition.id;
 
-                *in_stream << get<1>(file);
-
-                char file_length_buf[sizeof(size_t)];
-                std::memcpy(file_length_buf, &get<2>(file), sizeof(size_t));
-                for (int i = 0; i < sizeof(size_t); i++)
+                char int_buf[sizeof(int)];
+                int l_temp = partition.files.size();
+                std::memcpy(int_buf, &l_temp, sizeof(int));
+                *in_stream << int_buf;
+                /* for (int i = 0; i < sizeof(int); i++)
                 {
-                    *in_stream << file_length_buf[i];
-                }
+                    *in_stream << partition_length_buf[i];
+                } */
 
-                for (auto &sub_file : get<3>(file))
+                for (auto &file : partition.files)
                 {
-                    std::memcpy(file_length_buf, &sub_file.first, sizeof(size_t));
-                    for (int i = 0; i < sizeof(size_t); i++)
+                    *in_stream << file.name;
+                    *in_stream << ',';
+
+                    l_temp = file.subfiles.size();
+                    std::memcpy(int_buf, &l_temp, sizeof(int));
+                    *in_stream << int_buf;
+
+                    char file_length_buf[sizeof(size_t)];
+                    std::memcpy(file_length_buf, &file.size, sizeof(size_t));
+                    *in_stream << file_length_buf;
+                    /* for (int i = 0; i < sizeof(size_t); i++)
                     {
                         *in_stream << file_length_buf[i];
-                    }
-                    std::memcpy(file_length_buf, &sub_file.second, sizeof(size_t));
-                    for (int i = 0; i < sizeof(size_t); i++)
+                    } */
+
+                    for (auto &sub_file : file.subfiles)
                     {
-                        *in_stream << file_length_buf[i];
+                        std::memcpy(file_length_buf, &sub_file.first, sizeof(size_t));
+                        *in_stream << file_length_buf;
+                        /* for (int i = 0; i < sizeof(size_t); i++)
+                        {
+                            *in_stream << file_length_buf[i];
+                        } */
+                        std::memcpy(file_length_buf, &sub_file.second, sizeof(size_t));
+                        *in_stream << file_length_buf;
+                        /* for (int i = 0; i < sizeof(size_t); i++)
+                        {
+                            *in_stream << file_length_buf[i];
+                        } */
                     }
+                    *in_stream << file.status;
                 }
-                *in_stream << get<4>(file);
             }
         }
 
@@ -430,12 +480,16 @@ void printMana(Aws::S3::S3Client *minio_client)
     for (auto &worker : mana.workers)
     {
         std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
-        for (auto &file : worker.files)
+        for (auto &partition : worker.partitions)
         {
-            std::cout << "  " << std::get<0>(file) << ": size: " << std::get<2>(file) << " worked on by: " << std::bitset<8>(std::get<4>(file)) << " subfiles:" << std::endl;
-            for (auto &sub_files : std::get<3>(file))
+            std::cout << "  Partition: " << partition.id;
+            for (auto &file : partition.files)
             {
-                std::cout << "    size: " << sub_files.first << " #tuples: " << sub_files.second << std::endl;
+                std::cout << "    " << file.name << ": size: " << file.size << " worked on by: " << std::bitset<8>(file.status) << " subfiles:" << std::endl;
+                for (auto &sub_files : file.subfiles)
+                {
+                    std::cout << "      size: " << sub_files.first << " #tuples: " << sub_files.second << std::endl;
+                }
             }
         }
     }
@@ -451,7 +505,7 @@ void initManagFile(Aws::S3::S3Client *minio_client)
     manaFileWorker worker;
     worker.id = worker_id;
     worker.length = 0;
-    worker.files = {};
+    worker.partitions = {};
     worker.locked = false;
     mana.workers.push_back(worker);
     mana.thread_lock = 0;
@@ -542,9 +596,15 @@ unsigned long decode(std::vector<char> *in_stream)
     return buf;
 }
 
-int addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std::vector<std::pair<size_t, size_t>> file_size, size_t comb_file_size, char write_to_id, unsigned char fileStatus, char thread_id)
+int addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std::vector<std::pair<size_t, size_t>> file_size, size_t comb_file_size, char write_to_id, unsigned char fileStatus, char thread_id, char partition_id)
 {
     manaFile mana = getLockedMana(minio_client, thread_id);
+    file file;
+    file.name = file_name;
+    file.size = comb_file_size;
+    file.status = fileStatus;
+    file.subfiles = file_size;
+    bool parition_found = false;
     for (auto &worker : mana.workers)
     {
         if (worker.id == write_to_id)
@@ -554,8 +614,24 @@ int addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std:
                 writeMana(minio_client, mana, true);
                 return 0;
             }
-            worker.files.push_back({file_name, file_size.size(), comb_file_size, file_size, fileStatus});
-            worker.length += file_name.size() + 3 + sizeof(size_t) + sizeof(size_t) * file_size.size() * 2;
+            for (auto &partition : worker.partitions)
+            {
+                if (partition.id == partition_id)
+                {
+                    partition.files.push_back(file);
+                    parition_found = true;
+                }
+            }
+            if (!parition_found)
+            {
+                partition partition;
+                partition.id = partition_id;
+                partition.files.push_back(file);
+                worker.partitions.push_back(partition);
+                worker.length += 1 + sizeof(int);
+            }
+
+            worker.length += file_name.size() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * file_size.size() * 2;
             break;
         }
     }
@@ -563,7 +639,7 @@ int addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std:
     return 1;
 }
 
-std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *getAllMergeFileNames(Aws::S3::S3Client *minio_client)
+std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id)
 {
     std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *files = new std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>();
     manaFile mana = getMana(minio_client);
@@ -571,11 +647,17 @@ std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>
     {
         if (worker.id == worker_id)
         {
-            for (auto &file : worker.files)
+            for (auto &partition : worker.partitions)
             {
-                if (get<4>(file) != 255)
+                if (partition.id == partition_id)
                 {
-                    files->insert({get<0>(file), get<2>(file), get<3>(file)});
+                    for (auto &file : partition.files)
+                    {
+                        if (file.status != 255)
+                        {
+                            files->insert({file.name, file.size, file.subfiles});
+                        }
+                    }
                 }
             }
         }
@@ -584,91 +666,80 @@ std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>
 }
 
 void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
-                      char beggarWorker, std::vector<std::string> *blacklist, std::pair<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, char> *res, char thread_id)
+                      char beggarWorker, char partition_id, std::vector<std::string> *blacklist, std::pair<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, char> *res, char thread_id)
 {
     *res = {{"", 0, {}}, 0};
     char given_beggarWorker = beggarWorker;
     std::vector<char> worker_blacklist = {};
     std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>> m_file = {"", 0, {}};
     manaFile mana = getLockedMana(minio_client, thread_id);
-    while (true)
+    // If no beggarWorker is yet selected choose the worker with the largest spill
+    if (beggarWorker == 0)
     {
-        // If no beggarWorker is yet selected choose the worker with the largest spill
-        if (beggarWorker == 0)
+        size_t partition_max = 0;
+        for (auto &worker : mana.workers)
         {
-            size_t max = 0;
-
-            for (auto &worker : mana.workers)
+            if (!worker.locked && !std::count(worker_blacklist.begin(), worker_blacklist.end(), worker.id))
             {
-                if (!worker.locked && !std::count(worker_blacklist.begin(), worker_blacklist.end(), worker.id))
+                int file_number = 0;
+                for (auto &partition : worker.partitions)
                 {
-                    size_t size_temp = 0;
-                    int file_number = 0;
-                    for (auto &file : worker.files)
+                    size_t partition_size_temp = 0;
+                    file_number = 0;
+                    for (auto &file : partition.files)
                     {
-                        if (get<4>(file) == 0)
+                        if (file.status == 0)
                         {
                             file_number++;
-                            if (!std::count(blacklist->begin(), blacklist->end(), get<0>(file)))
+                            if (!std::count(blacklist->begin(), blacklist->end(), file.name))
                             {
-                                size_temp += get<2>(file);
+                                partition_size_temp += file.size;
                             }
                         }
                     }
-                    if (max < size_temp && file_number > 3)
+                    if (partition_max < partition_size_temp && file_number > 3)
                     {
-                        max = size_temp;
+                        partition_max = partition_size_temp;
+                        partition_id = partition.id;
                         beggarWorker = worker.id;
                     }
                 }
             }
         }
-        if (beggarWorker == 0)
+    }
+    if (beggarWorker == 0)
+    {
+        writeMana(minio_client, mana, true);
+        return;
+    }
+    for (auto &worker : mana.workers)
+    {
+        if (worker.id == beggarWorker)
         {
-            writeMana(minio_client, mana, true);
-            return;
-        }
-        for (auto &worker : mana.workers)
-        {
-            if (worker.id == beggarWorker)
+            if (worker.locked)
             {
-                if (worker.locked)
-                {
-                    beggarWorker = 0;
-                    break;
-                }
-                size_t max = 0;
-                for (auto &file : worker.files)
-                {
-                    if (get<4>(file) == 0 && !std::count(blacklist->begin(), blacklist->end(), get<0>(file)))
-                    {
-                        size_t size_temp = get<2>(file);
-                        if (size_temp > max)
-                        {
-                            max = size_temp;
-                            m_file = {get<0>(file), size_temp, get<3>(file)};
-                        }
-                    }
-                }
+                beggarWorker = 0;
                 break;
             }
-        }
-        if (get<1>(m_file) == 0)
-        {
-            if (given_beggarWorker == 0)
+            size_t max = 0;
+            for (auto &partition : worker.partitions)
             {
-                worker_blacklist.push_back(beggarWorker);
-                beggarWorker = 0;
+                if (partition.id == partition_id)
+                {
+                    for (auto &file : partition.files)
+                    {
+                        if (file.status == 0 && !std::count(blacklist->begin(), blacklist->end(), file.name))
+                        {
+                            if (file.size > max)
+                            {
+                                max = file.size;
+                                m_file = {file.name, file.size, file.subfiles};
+                            }
+                        }
+                    }
+                    break;
+                }
             }
-            else
-            {
-                writeMana(minio_client, mana, true);
-                return;
-            }
-        }
-        else
-        {
-            break;
         }
     }
 
@@ -676,12 +747,18 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
     {
         if (worker.id == beggarWorker)
         {
-            for (auto &file : worker.files)
+            for (auto &partition : worker.partitions)
             {
-                if (get<0>(file) == get<0>(m_file))
+                if (partition == partition_id)
                 {
-                    get<4>(file) = worker_id;
-                    break;
+                    for (auto &file : partition.files)
+                    {
+                        if (file.name == get<0>(m_file))
+                        {
+                            file.status = worker_id;
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -2767,12 +2844,15 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             {
                 if (worker.id == worker_id)
                 {
-                    for (auto &f : worker.files)
+                    for (auto &partition : worker.partitions)
                     {
-                        if (std::get<4>(f) != 0 && std::get<4>(f) != 255)
+                        for (auto &f : partition.files)
                         {
-                            isWorkedOn = true;
-                            break;
+                            if (f.status != 0 && f.status != 255)
+                            {
+                                isWorkedOn = true;
+                                break;
+                            }
                         }
                     }
                 }

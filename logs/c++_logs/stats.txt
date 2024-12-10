@@ -23,6 +23,7 @@
 
 
 New:
+2. Phases:
 1 Worker, 4 threads, 4 Main, 0 Background:
 1320s
   merge: 817s
@@ -36,3 +37,26 @@ New:
   scan: 795s
   spillsize: 19392983952
   read lines: 874458493
+
+1 Worker, 4 threads, 4 Main, 10 Background:
+1274s
+  merge: 810s
+  scan: 416s
+  spillsize: 19392983952
+  read lines: 874458493
+written: macroseconds/line: 2.6641
+
+2 Worker, 4 threads, 4 Main, 0 Background:
+3993s
+  merge: 343s
+  coll merge: 3050s
+  scan: 569s
+  spillsize: 19392983952
+  read lines: 874458493
+written: macroseconds/line: 2.6641
+
+Trino 2 Worker, 5.4GB Main, inf Background:
+1048
+5.51 MB/s, 22.9GB input
+1.84MB/s, 7.65GB output
+  
