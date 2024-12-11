@@ -338,7 +338,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                 //*in_stream << int_buf;
                 for (int i = 0; i < sizeof(int); i++)
                 {
-                    *in_stream << partition_length_buf[i];
+                    *in_stream << int_buf[i];
                 }
 
                 for (auto &file : partition.files)
@@ -1127,7 +1127,7 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 std::memcpy(byteArray, &it.second[i], sizeof(unsigned long));
                 //*in_streams[partition] << byteArray;
                 for (int k = 0; k < sizeof(unsigned long); k++)
-                 *in_streams[partition] << byteArray[k];
+                    *in_streams[partition] << byteArray[k];
             }
         }
     }
