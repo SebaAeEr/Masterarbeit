@@ -2493,7 +2493,9 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     {
         spills.clear();
         char file_num = hmap->size() == 0 ? 2 : 1;
+        std::cout << "getMergeFileName!" << std::endl;
         getMergeFileName(hmap, &minio_client, beggarWorker, partition_id, &blacklist, &files, 0, file_num);
+        std::cout << "status: " << (int)(get<1>(files)) << std::endl;
         if (get<1>(files) == 0)
         {
             if (hmap->size() > 0)
@@ -3099,6 +3101,7 @@ int main(int argc, char **argv)
     std::atomic_ulong diff = 0;
     float avg = 1;
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
+    std::cout << "Helping!" << std::endl;
     helpMergePhase(memLimit, memLimitMain, minio_client, true, &hmap, comb_hash_size, diff, &avg);
     Aws::ShutdownAPI(options);
     std::cout << "Finished!" << std::endl;
