@@ -1174,7 +1174,7 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         std::string n_temp = n[partition_id] + "_" + std::to_string((*start_counter)[partition_id]);
         // std::cout << "Spill last to file: " << n_temp << " size: " << spill_mem_size_temp[i] << " #tuple: " << temp_counter[i] << std::endl;
         writeS3File(minio_client, in_streams[partition_id], spill_mem_size_temp[partition_id], n_temp);
-        (*sizes)[i].push_back({spill_mem_size_temp[partition_id], temp_counter[partition_id]});
+        (*sizes)[partition_id].push_back({spill_mem_size_temp[partition_id], temp_counter[partition_id]});
         (*start_counter)[partition_id]++;
     }
     return;
