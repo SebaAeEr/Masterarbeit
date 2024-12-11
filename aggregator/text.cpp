@@ -1694,7 +1694,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
 
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
           float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename, std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client,
-          bool writeRes, std::string &uName, size_t memMainLimit, char beggarWorker = 0, size_t *output_file_head)
+          bool writeRes, std::string &uName, size_t memMainLimit, size_t *output_file_head, char beggarWorker = 0)
 {
     // Open the outputfile to write results
     int output_fd;
@@ -2485,6 +2485,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     std::string local_spillName = "helpMergeSpill";
     bool b_minioSpiller = false;
     std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> spills = {};
+    size_t zero = 0;
 
     if (init)
     {
@@ -2543,7 +2544,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         uName = worker_id;
         uName += "_merge_" + std::to_string(counter);
 
-        merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, memMainLimit, beggarWorker);
+        merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, memMainLimit, beggarWorker, &zero);
         if (hmap->size() == 0)
         {
             std::unordered_map<std::string, char> file_stati;
