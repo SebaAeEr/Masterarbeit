@@ -517,7 +517,7 @@ void initManagFile(Aws::S3::S3Client *minio_client)
     mana.thread_lock = 0;
     mana.worker_lock = 0;
     writeMana(minio_client, mana, true);
-    //printMana(minio_client);
+    // printMana(minio_client);
 }
 
 void printProgressBar(float progress)
@@ -679,8 +679,8 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
     file m_file;
     *res = {{}, 0, 0};
     manaFile mana = getLockedMana(minio_client, thread_id);
-    //printMana(minio_client);
-    // If no beggarWorker is yet selected choose the worker with the largest spill
+    // printMana(minio_client);
+    //  If no beggarWorker is yet selected choose the worker with the largest spill
     if (beggarWorker == 0)
     {
         size_t partition_max = 0;
@@ -749,7 +749,7 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
                                         break;
                                     }
                                 }
-                                if (!false && file.size > max)
+                                if (!found && file.size > max)
                                 {
                                     max = file.size;
                                     biggest_file = file;
@@ -2551,7 +2551,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         beggarWorker = get<1>(files);
         partition_id = get<2>(files);
         std::vector<std::pair<int, size_t>> empty;
-        std::cout << "Worker: " << (int)(beggarWorker) << " Parition: " << (int)(partition_id) << " merging files: ";
+        std::cout << "Worker: " << beggarWorker << "; Parition: " << (int)(partition_id) << "; merging files: ";
         for (auto &merge_file : get<0>(files))
         {
             file_names.push_back(merge_file.name);
@@ -2672,7 +2672,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
     std::cout << "Scanning finished with time: " << duration << "s. Scanned Lines: " << numLines << ". macroseconds/line: " << duration * 1000000 / numLines << " Overall spill: " << comb_spill_size << "B. Spill to Main Memory: " << temp_loc_spills << "B. Spill to S3: " << comb_spill_size - temp_loc_spills << std::endl;
 
-    
     start_time = std::chrono::high_resolution_clock::now();
     std::vector<std::thread> spill_threads;
     std::string empty = "";
