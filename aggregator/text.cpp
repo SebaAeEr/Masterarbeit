@@ -1050,7 +1050,7 @@ void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOS
 }
 
 void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
-                 std::vector<std::vector<std::pair<size_t, size_t>>> *sizes, std::string uniqueName, std::vector<int> *start_counter)
+                 std::vector<std::vector<std::pair<size_t, size_t>>> *sizes, std::string uniqueName, std::vector<int> *start_counter, char partition_id = -1)
 {
     std::vector<int> counter = std::vector<int>(partitions, 0);
     std::vector<std::string> n;
@@ -1070,7 +1070,16 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     for (auto &it : *hmap)
     {
-        int partition = getPartition(it.first);
+        int partition;
+        if (partition_id != -1)
+        {
+            partition = partition_id;
+        }
+        else
+        {
+            partition = getPartition(it.first);
+        }
+
         if (temp_counter[partition] == max_s3_spill_size)
         {
             if (!deencode)
@@ -1715,7 +1724,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
 
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
           float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename, std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client,
-          bool writeRes, std::string &uName, size_t memMainLimit, size_t *output_file_head, char beggarWorker = 0, int output_fd = -1)
+          bool writeRes, std::string &uName, size_t memMainLimit, size_t *output_file_head, char partition = -1, char beggarWorker = 0, int output_fd = -1)
 {
     // Open the outputfile to write results
     /* if (writeRes)
@@ -1818,8 +1827,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     printProgressBar(0);
     size_t size_after_init = getPhyValue();
     bool increase_size = true;
-    std::vector<int> write_counter = std::vector<int>(partitions, 0);
-    std::vector<std::vector<std::pair<size_t, size_t>>> write_sizes = {};
+    std::vector<int> write_counter = std::vector<int>(1, 0);
+    std::vector<std::vector<std::pair<size_t, size_t>>> write_sizes = std::vector<std::vector<std::pair<size_t, size_t>>>(1);
     // char buffer[(int)((memLimit - size_after_init * 1024) * 0.1)];
 
     // std::cout << "buffer size: " << (memLimit - size_after_init * 1024) * 0.1 << std::endl;
@@ -2344,7 +2353,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     {
                         std::cout << "Writing file: " << uName << " write_sizes: " << write_sizes[0][0].first << " write_counter: " << write_counter[0] << std::endl;
                         // std::cout << "Writing hmap to " << uName << " with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
-                        spillS3Hmap(hmap, minio_client, &write_sizes, uName, &write_counter);
+                        spillS3Hmap(hmap, minio_client, &write_sizes, uName, &write_counter, partition);
                     }
                 }
 
@@ -2384,20 +2393,17 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         get<0>(thread).join();
                         remove((local_spill_name + std::to_string((int)(get<2>(thread)))).c_str());
                     } */
-                    for (int i = 0; i < partitions; i++)
+                    size_t write_size = 0;
+                    for (auto &w_size : write_sizes[0])
                     {
-                        size_t write_size = 0;
-                        for (auto &w_size : write_sizes[i])
-                        {
-                            write_size += w_size.first;
-                        }
-                        if (write_size > 0)
-                        {
-                            std::string n_temp = uName + "_" + std::to_string(i);
-                            std::cout << "Adding merge file: " << n_temp << " partition: " << i << " write size: " << write_size << std::endl;
-                            addFileToManag(minio_client, n_temp, write_sizes[i], write_size, beggarWorker, 0, 0, i);
-                            std::cout << "Finished adding file" << std::endl;
-                        }
+                        write_size += w_size.first;
+                    }
+                    if (write_size > 0)
+                    {
+                        std::string n_temp = uName + "_" + std::to_string(partition);
+                        std::cout << "Adding merge file: " << n_temp << " partition: " << partition << " write size: " << write_size << std::endl;
+                        addFileToManag(minio_client, n_temp, write_sizes[0], write_size, beggarWorker, 0, 0, partition);
+                        std::cout << "Finished adding file" << std::endl;
                     }
                 }
             }
@@ -2569,7 +2575,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         uName = worker_id;
         uName += "_merge_" + std::to_string(counter);
 
-        merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, memMainLimit, &zero, beggarWorker);
+        merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, memMainLimit, &zero, partition_id, beggarWorker);
         if (hmap->size() == 0)
         {
             std::unordered_map<std::string, char> file_stati;
@@ -2818,7 +2824,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             }
             std::cout << std::endl; */
             std::string empty = "";
-            merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true, empty, memLimitMain, &output_file_head, 0, output_fd);
+            merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true, empty, memLimitMain, &output_file_head, -1, 0, output_fd);
             delete files;
         }
 
