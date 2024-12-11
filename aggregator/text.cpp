@@ -2525,6 +2525,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             }
             else
             {
+                std::cout << "finish" << std::endl;
                 return;
             }
         }
@@ -3103,6 +3104,7 @@ int main(int argc, char **argv)
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
     std::cout << "Helping!" << std::endl;
     helpMergePhase(memLimit, memLimitMain, minio_client, true, &hmap, comb_hash_size, diff, &avg);
+    std::cout << "Shutting down!" << std::endl;
     Aws::ShutdownAPI(options);
     std::cout << "Finished!" << std::endl;
     return 1;
