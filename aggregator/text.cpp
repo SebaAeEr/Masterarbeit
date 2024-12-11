@@ -641,6 +641,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std
         }
     }
     writeMana(minio_client, mana, true);
+    printMana(minio_client);
     return;
 }
 
