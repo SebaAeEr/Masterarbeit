@@ -377,6 +377,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                             *in_stream << file_length_buf[i];
                         }
                     }
+                    std::cout << "write Mana: " << std::bitset<8>(file.status) << " name: " << file.name << std::endl;
                     *in_stream << file.status;
                 }
             }
@@ -640,6 +641,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std
             break;
         }
     }
+    std::cout << "add file to Mana: " << std::bitset<8>(file.status) << std::endl;
     writeMana(minio_client, mana, true);
     printMana(minio_client);
     return;
@@ -1280,7 +1282,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         spillS3File(spill_file, minio_client, &sizes, uniqueName, &counter);
         std::cout << "finished spillS3File: " << (int)(thread_id) << std::endl;
     } */
-
+    std::cout << "spillToMinio: " << std::bitset<8>(fileStatus) << std::endl;
     for (int i = 0; i < partitions; i++)
     {
         size_t spill_mem_size = 0;
