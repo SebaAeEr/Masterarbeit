@@ -348,7 +348,11 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
 
                     l_temp = file.subfiles.size();
                     std::memcpy(int_buf, &l_temp, sizeof(int));
-                    *in_stream << int_buf;
+                    //*in_stream << int_buf;
+                    for (int i = 0; i < sizeof(int); i++)
+                    {
+                        *in_stream << int_buf[i];
+                    }
 
                     char file_length_buf[sizeof(size_t)];
                     std::memcpy(file_length_buf, &file.size, sizeof(size_t));
