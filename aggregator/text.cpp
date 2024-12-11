@@ -763,12 +763,12 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
             }
         }
     }
-    std::cout << "res_files: ";
+    /* std::cout << "res_files: ";
     for (auto temp : res_files)
     {
         std::cout << temp.name << ", ";
     }
-    std::cout << std::endl;
+    std::cout << std::endl; */
     get<0>(*res) = res_files;
 
     for (auto &worker : mana.workers)
@@ -2390,8 +2390,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         {
                             write_size += w_size.first;
                         }
-                        std::string n_temp = uName + "_" + std::to_string(i);
-                        addFileToManag(minio_client, n_temp, write_sizes[i], write_size, beggarWorker, 0, 0, i);
+                        if (write_size > 0)
+                        {
+                            std::string n_temp = uName + "_" + std::to_string(i);
+                            addFileToManag(minio_client, n_temp, write_sizes[i], write_size, beggarWorker, 0, 0, i);
+                        }
                     }
                 }
             }
@@ -2551,7 +2554,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         beggarWorker = get<1>(files);
         partition_id = get<2>(files);
         std::vector<std::pair<int, size_t>> empty;
-        std::cout << "Worker: " << beggarWorker << "; Parition: " << (int)(partition_id) << "; merging files: ";
+        std::cout << "Worker: " << beggarWorker << "; Partition: " << (int)(partition_id) << "; merging files: ";
         for (auto &merge_file : get<0>(files))
         {
             file_names.push_back(merge_file.name);
