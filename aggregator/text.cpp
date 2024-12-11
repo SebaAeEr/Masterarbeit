@@ -1706,7 +1706,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     diff->exchange(0);
     // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
     unsigned long input_head_base = 0;
-    unsigned long output_head = *output_file_head;
     bool locked = true;
     unsigned long *spill_map = nullptr;
     unsigned long comb_spill_size = 0;
@@ -2298,8 +2297,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
             } */
-            output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
-            *output_file_head = output_head;
+            *output_file_head += writeHashmap(hmap, output_fd, *output_file_head, pagesize * 30);
             /*
                         if (hmap->size() > maxHashsize)
                         {
@@ -2788,6 +2786,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         {
             auto files = getAllMergeFileNames(&minio_client, i);
             std::string empty = "";
+            std::cout << output_file_head << std::endl;
             merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true, empty, memLimitMain, &output_file_head);
             delete files;
         }
