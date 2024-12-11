@@ -87,7 +87,7 @@ size_t max_s3_spill_size = 10000000;
 unsigned long extra_mem = 0;
 unsigned long mainMem_usage = 0;
 bool deencode = true;
-bool mergePhase = true;
+bool mergePhase = false;
 unsigned long test_values[5];
 int partitions = 1;
 
@@ -487,7 +487,7 @@ void printMana(Aws::S3::S3Client *minio_client)
         std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
         for (auto &partition : worker.partitions)
         {
-            std::cout << "  Partition: " << partition.id;
+            std::cout << "  Partition: " << (int)(partition.id) << std::endl;
             for (auto &file : partition.files)
             {
                 std::cout << "    " << file.name << ": size: " << file.size << " worked on by: " << std::bitset<8>(file.status) << " subfiles:" << std::endl;
