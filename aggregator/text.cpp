@@ -280,7 +280,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
                     std::memcpy(&sub_file_tuples, &length_buf, sizeof(size_t));
                     file.subfiles.push_back({sub_file_length, sub_file_tuples});
                 }
-                char m_worker = out_stream.get();
+                file.status = out_stream.get();
                 files.push_back(file);
                 head += sizeof(size_t) * number * 2 + sizeof(size_t) + filename.size() + 2 + sizeof(int);
             }
