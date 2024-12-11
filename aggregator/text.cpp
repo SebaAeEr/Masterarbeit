@@ -227,7 +227,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     mana.workers = {};
     while (out_stream.peek() != EOF)
     {
-        manaFileWorker worker;
+        manaFileWorker worker = manaFileWorker();
         char workerid = out_stream.get();
         worker.id = workerid;
         worker.locked = out_stream.get() == 1;
@@ -599,6 +599,7 @@ unsigned long decode(std::vector<char> *in_stream)
 
 void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std::vector<std::pair<size_t, size_t>> file_size, size_t comb_file_size, char write_to_id, unsigned char fileStatus, char thread_id, char partition_id)
 {
+    std::cout << "Adding file" << std::endl;
     manaFile mana = getLockedMana(minio_client, thread_id);
     file file;
     file.name = file_name;
@@ -625,7 +626,8 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std
             }
             if (!parition_found)
             {
-                partition partition;
+                std::cout << "adding partition" << std::endl;
+                partition partition = partition();
                 partition.id = partition_id;
                 partition.files.push_back(file);
                 worker.partitions.push_back(partition);
@@ -636,7 +638,9 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std
             break;
         }
     }
+    std::cout << "writing mana" << std::endl;
     writeMana(minio_client, mana, true);
+    std::cout << "Finished updating mana" << std::endl;
     return;
 }
 
@@ -1081,11 +1085,11 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
                 char byteArray[sizeof(unsigned long)];
                 std::memcpy(byteArray, &it.first[i], sizeof(unsigned long));
-                // in_streams[partition] << byteArray;
-                for (int i = 0; i < l_bytes; i++)
+                *in_streams[partition] << byteArray;
+                /* for (int i = 0; i < l_bytes; i++)
                 {
                     *in_streams[partition] << byteArray[i];
-                }
+                } */
                 spill_mem_size_temp[partition] += l_bytes + 1;
             }
             for (int i = 0; i < value_number; i++)
@@ -1138,6 +1142,7 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         (*sizes)[i].push_back({spill_mem_size_temp[i], temp_counter[i]});
         (*start_counter)[i]++;
     }
+    std::cout << "Finished writing all" << std::endl;
     return;
 }
 
