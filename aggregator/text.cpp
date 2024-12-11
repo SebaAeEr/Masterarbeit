@@ -2394,7 +2394,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         remove((local_spill_name + std::to_string((int)(get<2>(thread)))).c_str());
                     } */
                     size_t write_size = 0;
-                    for (auto &w_size : write_sizes[0])
+                    for (auto &w_size : write_sizes[partition])
                     {
                         write_size += w_size.first;
                     }
@@ -2402,7 +2402,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     {
                         std::string n_temp = uName + "_" + std::to_string(partition);
                         std::cout << "Adding merge file: " << n_temp << " partition: " << partition << " write size: " << write_size << std::endl;
-                        addFileToManag(minio_client, n_temp, write_sizes[0], write_size, beggarWorker, 0, 0, partition);
+                        addFileToManag(minio_client, n_temp, write_sizes[partition], write_size, beggarWorker, 0, 0, partition);
                         std::cout << "Finished adding file" << std::endl;
                     }
                 }
