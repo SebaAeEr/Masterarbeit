@@ -684,29 +684,29 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
         size_t partition_max = 0;
         for (auto &worker : mana.workers)
         {
-                for (auto &partition : worker.partitions)
+            for (auto &partition : worker.partitions)
+            {
+                size_t partition_size_temp = 0;
+                int file_number = 0;
+                for (auto &file : partition.files)
                 {
-                    size_t partition_size_temp = 0;
-                    int file_number = 0;
-                    for (auto &file : partition.files)
+                    if (file.status == 0)
                     {
-                        if (file.status == 0)
+                        file_number++;
+                        if (!std::count(blacklist->begin(), blacklist->end(), file.name))
                         {
-                            file_number++;
-                            if (!std::count(blacklist->begin(), blacklist->end(), file.name))
-                            {
-                                partition_size_temp += file.size;
-                            }
+                            partition_size_temp += file.size;
                         }
                     }
-                    if (partition_max < partition_size_temp && file_number > 3)
-                    {
-                        partition_max = partition_size_temp;
-                        partition_id = partition.id;
-                        beggarWorker = worker.id;
-                    }
+                }
+                if (partition_max < partition_size_temp && file_number > 3)
+                {
+                    partition_max = partition_size_temp;
+                    partition_id = partition.id;
+                    beggarWorker = worker.id;
                 }
             }
+        }
     }
     if (beggarWorker == 0)
     {
@@ -1694,7 +1694,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
 
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
           float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename, std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client,
-          bool writeRes, std::string &uName, size_t memMainLimit, char beggarWorker = 0)
+          bool writeRes, std::string &uName, size_t memMainLimit, char beggarWorker = 0, size_t *output_file_head)
 {
     // Open the outputfile to write results
     int output_fd;
@@ -1706,7 +1706,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     diff->exchange(0);
     // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
     unsigned long input_head_base = 0;
-    unsigned long output_head = 0;
+    unsigned long output_head = *output_file_head;
     bool locked = true;
     unsigned long *spill_map = nullptr;
     unsigned long comb_spill_size = 0;
@@ -2299,6 +2299,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
             } */
             output_head += writeHashmap(hmap, output_fd, output_head, pagesize * 30);
+            *output_file_head = output_head;
             /*
                         if (hmap->size() > maxHashsize)
                         {
@@ -2780,12 +2781,13 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             }
         }
         writeMana(&minio_client, mana, true);
+        size_t output_file_head = 0;
         // printMana(&minio_client);
         for (char i = 0; i < partitions; i++)
         {
             auto files = getAllMergeFileNames(&minio_client, i);
             std::string empty = "";
-            merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true, empty, memLimitMain);
+            merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true, empty, memLimitMain, &output_file_head);
             delete files;
         }
 
