@@ -378,7 +378,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                         }
                     }
                     *in_stream << file.status;
-                    std::cout << "Filestatus: " << std::bitset<8>(file.status) << std::endl;
                 }
             }
         }
@@ -611,7 +610,6 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std
     file.status = fileStatus;
     file.subfiles = file_size;
     bool parition_found = false;
-    std::cout << "Filestatus: " << std::bitset<8>(file.status) << std::endl;
     for (auto &worker : mana.workers)
     {
         if (worker.id == write_to_id)
@@ -753,6 +751,12 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
             }
         }
     }
+    std::cout << "res_files: ";
+    for (auto temp : res_files)
+    {
+        std::cout << temp.name << ", ";
+    }
+    std::cout << std::endl;
     get<0>(*res) = res_files;
 
     for (auto &worker : mana.workers)
@@ -2532,7 +2536,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         beggarWorker = get<1>(files);
         partition_id = get<2>(files);
         std::vector<std::pair<int, size_t>> empty;
-        std::cout << "Merging files: ";
+        std::cout << "Worker: " << (int)(beggarWorker) << " Parition: " << (int)(partition_id) << " merging files: ";
         for (auto &merge_file : get<0>(files))
         {
             file_names.push_back(merge_file.name);
