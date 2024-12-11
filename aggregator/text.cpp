@@ -2366,8 +2366,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 {
                     if (memMainLimit <= mainMem_usage + spill_size)
                     {
-                        std::cout << "Writing file: " << uName << std::endl;
-                        //  std::cout << "Writing hmap to " << uName << " with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
+                        // std::cout << "Writing file: " << uName << std::endl;
+                        std::cout << "Writing hmap to " << uName << " with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
                         spillS3Hmap(hmap, minio_client, &write_sizes, uName, &write_counter, partition);
                     }
                 }
@@ -2416,9 +2416,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     if (write_size > 0)
                     {
                         std::string n_temp = uName + "_" + std::to_string(partition);
-                        std::cout << "Adding merge file: " << n_temp << " partition: " << partition << " write size: " << write_size << std::endl;
+                        // std::cout << "Adding merge file: " << n_temp << " partition: " << partition << " write size: " << write_size << std::endl;
                         addFileToManag(minio_client, n_temp, write_sizes[partition], write_size, beggarWorker, 0, 0, partition);
-                        std::cout << "Finished adding file" << std::endl;
+                        // std::cout << "Finished adding file" << std::endl;
                     }
                 }
             }
