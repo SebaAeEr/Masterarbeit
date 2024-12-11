@@ -1255,7 +1255,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
                   Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus, char thread_id)
 {
     int counter = 0;
-    std::vector<std::vector<std::pair<size_t, size_t>>> sizes = {};
+    std::vector<std::vector<std::pair<size_t, size_t>>> sizes = std::vector<std::vector<std::pair<size_t, size_t>>>(partitions);
 
     std::string n;
     std::vector<int> start_vector = std::vector<int>(partitions, 0);
