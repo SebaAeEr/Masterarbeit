@@ -227,7 +227,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     mana.workers = {};
     while (out_stream.peek() != EOF)
     {
-        manaFileWorker worker = manaFileWorker();
+        manaFileWorker worker;
         char workerid = out_stream.get();
         worker.id = workerid;
         worker.locked = out_stream.get() == 1;
@@ -627,7 +627,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std
             if (!parition_found)
             {
                 std::cout << "adding partition" << std::endl;
-                partition partition = partition();
+                partition partition;
                 partition.id = partition_id;
                 partition.files.push_back(file);
                 worker.partitions.push_back(partition);
