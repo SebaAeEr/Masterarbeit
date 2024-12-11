@@ -1150,16 +1150,31 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             }
         }
     }
-    for (int i = 0; i < partitions; i++)
+    if (partition_id == -1)
+    {
+        for (int i = 0; i < partitions; i++)
+        {
+            if (!deencode)
+            {
+                spill_mem_size_temp[i] = temp_counter[i] * sizeof(unsigned long) * (key_number + value_number);
+            }
+            std::string n_temp = n[i] + "_" + std::to_string((*start_counter)[i]);
+            // std::cout << "Spill last to file: " << n_temp << " size: " << spill_mem_size_temp[i] << " #tuple: " << temp_counter[i] << std::endl;
+            writeS3File(minio_client, in_streams[i], spill_mem_size_temp[i], n_temp);
+            (*sizes)[i].push_back({spill_mem_size_temp[i], temp_counter[i]});
+            (*start_counter)[i]++;
+        }
+    }
+    else
     {
         if (!deencode)
         {
-            spill_mem_size_temp[i] = temp_counter[i] * sizeof(unsigned long) * (key_number + value_number);
+            spill_mem_size_temp[partition_id] = temp_counter[partition_id] * sizeof(unsigned long) * (key_number + value_number);
         }
-        std::string n_temp = n[i] + "_" + std::to_string((*start_counter)[i]);
+        std::string n_temp = n[partition_id] + "_" + std::to_string((*start_counter)[partition_id]);
         // std::cout << "Spill last to file: " << n_temp << " size: " << spill_mem_size_temp[i] << " #tuple: " << temp_counter[i] << std::endl;
-        writeS3File(minio_client, in_streams[i], spill_mem_size_temp[i], n_temp);
-        (*sizes)[i].push_back({spill_mem_size_temp[i], temp_counter[i]});
+        writeS3File(minio_client, in_streams[partition_id], spill_mem_size_temp[partition_id], n_temp);
+        (*sizes)[i].push_back({spill_mem_size_temp[partition_id], temp_counter[partition_id]});
         (*start_counter)[i]++;
     }
     return;
