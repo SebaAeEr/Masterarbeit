@@ -735,7 +735,7 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
                         file biggest_file;
                         for (auto &file : partition.files)
                         {
-                            std::cout << "File status: " << file.status << " size: " << file.size << " name: " << file.name << std::endl;
+                            std::cout << "File status: " << (int)(file.status) << " size: " << file.size << " name: " << file.name << std::endl;
                             if (file.status == 0 && !std::count(blacklist->begin(), blacklist->end(), file.name))
                             {
                                 bool found = false;
