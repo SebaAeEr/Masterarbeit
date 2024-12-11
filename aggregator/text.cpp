@@ -87,7 +87,7 @@ size_t max_s3_spill_size = 10000000;
 unsigned long extra_mem = 0;
 unsigned long mainMem_usage = 0;
 bool deencode = true;
-bool mergePhase = false;
+bool mergePhase = true;
 unsigned long test_values[5];
 int partitions = 2;
 
@@ -2785,14 +2785,13 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         for (char i = 0; i < partitions; i++)
         {
             auto files = getAllMergeFileNames(&minio_client, i);
-            for (auto &name : *files)
+            /* for (auto &name : *files)
             {
                 std::cout << std::get<0>(name) << ", ";
             }
-            std::cout << std::endl;
+            std::cout << std::endl; */
             std::string empty = "";
             merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true, empty, memLimitMain, &output_file_head, 0, output_fd);
-            std::cout << output_file_head << std::endl;
             delete files;
         }
 
