@@ -2351,8 +2351,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 {
                     if (memMainLimit <= mainMem_usage + spill_size)
                     {
-                        std::cout << "Writing file: " << uName << " write_sizes: " << write_sizes[0][0].first << " write_counter: " << write_counter[0] << std::endl;
-                        // std::cout << "Writing hmap to " << uName << " with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
+                        // std::cout << "Writing file: " << uName << " write_sizes: " << write_sizes[0][0].first << " write_counter: " << write_counter[0] << std::endl;
+                        //  std::cout << "Writing hmap to " << uName << " with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
                         spillS3Hmap(hmap, minio_client, &write_sizes, uName, &write_counter, partition);
                     }
                 }
