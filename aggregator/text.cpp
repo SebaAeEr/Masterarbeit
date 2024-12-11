@@ -335,11 +335,11 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                 char int_buf[sizeof(int)];
                 int l_temp = partition.files.size();
                 std::memcpy(int_buf, &l_temp, sizeof(int));
-                *in_stream << int_buf;
-                /* for (int i = 0; i < sizeof(int); i++)
+                //*in_stream << int_buf;
+                for (int i = 0; i < sizeof(int); i++)
                 {
                     *in_stream << partition_length_buf[i];
-                } */
+                }
 
                 for (auto &file : partition.files)
                 {
@@ -352,26 +352,26 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
 
                     char file_length_buf[sizeof(size_t)];
                     std::memcpy(file_length_buf, &file.size, sizeof(size_t));
-                    *in_stream << file_length_buf;
-                    /* for (int i = 0; i < sizeof(size_t); i++)
+                    //*in_stream << file_length_buf;
+                    for (int i = 0; i < sizeof(size_t); i++)
                     {
                         *in_stream << file_length_buf[i];
-                    } */
+                    }
 
                     for (auto &sub_file : file.subfiles)
                     {
                         std::memcpy(file_length_buf, &sub_file.first, sizeof(size_t));
-                        *in_stream << file_length_buf;
-                        /* for (int i = 0; i < sizeof(size_t); i++)
+                        // *in_stream << file_length_buf;
+                        for (int i = 0; i < sizeof(size_t); i++)
                         {
                             *in_stream << file_length_buf[i];
-                        } */
+                        }
                         std::memcpy(file_length_buf, &sub_file.second, sizeof(size_t));
-                        *in_stream << file_length_buf;
-                        /* for (int i = 0; i < sizeof(size_t); i++)
+                        //*in_stream << file_length_buf;
+                        for (int i = 0; i < sizeof(size_t); i++)
                         {
                             *in_stream << file_length_buf[i];
-                        } */
+                        }
                     }
                     *in_stream << file.status;
                 }
@@ -1101,11 +1101,11 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
                 char byteArray[sizeof(unsigned long)];
                 std::memcpy(byteArray, &it.second[i], sizeof(unsigned long));
-                *in_streams[partition] << byteArray;
-                /* for (int i = 0; i < l_bytes; i++)
+                //*in_streams[partition] << byteArray;
+                for (int i = 0; i < l_bytes; i++)
                 {
-                    *in_stream << byteArray[i];
-                } */
+                    *in_streams[partition] << byteArray[i];
+                }
                 spill_mem_size_temp[partition] += l_bytes + 1;
             }
         }
@@ -1116,18 +1116,18 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             {
                 // std::cout << it.first[i];
                 std::memcpy(byteArray, &it.first[i], sizeof(unsigned long));
-                *in_streams[partition] << byteArray;
-                /* for (int k = 0; k < sizeof(unsigned long); k++)
+                //*in_streams[partition] << byteArray;
+                for (int k = 0; k < sizeof(unsigned long); k++)
                 {
-                    *in_stream << byteArray[k];
-                } */
+                    *in_streams[partition] << byteArray[k];
+                }
             }
             for (int i = 0; i < value_number; i++)
             {
                 std::memcpy(byteArray, &it.second[i], sizeof(unsigned long));
-                *in_streams[partition] << byteArray;
-                /* for (int k = 0; k < sizeof(unsigned long); k++)
-                 *in_stream << byteArray[k]; */
+                //*in_streams[partition] << byteArray;
+                for (int k = 0; k < sizeof(unsigned long); k++)
+                 *in_streams[partition] << byteArray[k];
             }
         }
     }
