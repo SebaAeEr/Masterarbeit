@@ -1694,14 +1694,13 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
 
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
           float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename, std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client,
-          bool writeRes, std::string &uName, size_t memMainLimit, size_t *output_file_head, char beggarWorker = 0)
+          bool writeRes, std::string &uName, size_t memMainLimit, size_t *output_file_head, char beggarWorker = 0, int output_fd = -1)
 {
     // Open the outputfile to write results
-    int output_fd;
-    if (writeRes)
+    /* if (writeRes)
     {
         output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
-    }
+    } */
     auto start_time = std::chrono::high_resolution_clock::now();
     diff->exchange(0);
     // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
@@ -2791,7 +2790,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             }
             std::cout << std::endl;
             std::string empty = "";
-            merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true, empty, memLimitMain, &output_file_head);
+            merge(&emHashmap, &spills, comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true, empty, memLimitMain, &output_file_head, 0, output_fd);
             std::cout << output_file_head << std::endl;
             delete files;
         }
