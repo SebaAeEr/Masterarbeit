@@ -89,7 +89,7 @@ unsigned long mainMem_usage = 0;
 bool deencode = true;
 bool mergePhase = false;
 unsigned long test_values[5];
-int partitions = 1;
+int partitions = 2;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -603,7 +603,6 @@ unsigned long decode(std::vector<char> *in_stream)
 
 void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std::vector<std::pair<size_t, size_t>> file_size, size_t comb_file_size, char write_to_id, unsigned char fileStatus, char thread_id, char partition_id)
 {
-    std::cout << "Adding file" << std::endl;
     manaFile mana = getLockedMana(minio_client, thread_id);
     file file;
     file.name = file_name;
@@ -630,7 +629,6 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std
             }
             if (!parition_found)
             {
-                std::cout << "adding partition" << std::endl;
                 partition partition;
                 partition.id = partition_id;
                 partition.files.push_back(file);
@@ -642,9 +640,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std
             break;
         }
     }
-    std::cout << "writing mana" << std::endl;
     writeMana(minio_client, mana, true);
-    std::cout << "Finished updating mana" << std::endl;
     return;
 }
 
@@ -679,7 +675,6 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
 {
 
     char given_beggarWorker = beggarWorker;
-    std::vector<char> worker_blacklist = {};
     file m_file;
     *res = {{}, 0, 0};
     manaFile mana = getLockedMana(minio_client, thread_id);
@@ -689,13 +684,10 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
         size_t partition_max = 0;
         for (auto &worker : mana.workers)
         {
-            if (!worker.locked && !std::count(worker_blacklist.begin(), worker_blacklist.end(), worker.id))
-            {
-                int file_number = 0;
                 for (auto &partition : worker.partitions)
                 {
                     size_t partition_size_temp = 0;
-                    file_number = 0;
+                    int file_number = 0;
                     for (auto &file : partition.files)
                     {
                         if (file.status == 0)
@@ -715,7 +707,6 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
                     }
                 }
             }
-        }
     }
     if (beggarWorker == 0)
     {
@@ -1069,17 +1060,14 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 spill_mem_size_temp[partition] = temp_counter[partition] * sizeof(unsigned long) * (key_number + value_number);
             }
             std::string temp_n = n[partition] + "_" + std::to_string((*start_counter)[partition]);
-            std::cout << "Spill to file: " << temp_n << " size: " << spill_mem_size_temp[partition] << " #tuple: " << temp_counter[partition] << std::endl;
+            // std::cout << "Spill to file: " << temp_n << " size: " << spill_mem_size_temp[partition] << " #tuple: " << temp_counter[partition] << std::endl;
             writeS3File(minio_client, in_streams[partition], spill_mem_size_temp[partition], temp_n);
-            std::cout << "Finished writing" << std::endl;
             counter[partition]++;
             (*start_counter)[partition]++;
             in_streams[partition] = Aws::MakeShared<Aws::StringStream>("");
-            std::cout << "New stream" << std::endl;
             (*sizes)[partition].push_back({spill_mem_size_temp[partition], temp_counter[partition]});
             spill_mem_size_temp[partition] = 0;
             temp_counter[partition] = 0;
-            std::cout << "Finished writing" << std::endl;
         }
         temp_counter[partition]++;
         if (deencode)
@@ -1142,13 +1130,11 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             spill_mem_size_temp[i] = temp_counter[i] * sizeof(unsigned long) * (key_number + value_number);
         }
         std::string n_temp = n[i] + "_" + std::to_string((*start_counter)[i]);
-        std::cout << "Spill last to file: " << n_temp << " size: " << spill_mem_size_temp[i] << " #tuple: " << temp_counter[i] << std::endl;
+        // std::cout << "Spill last to file: " << n_temp << " size: " << spill_mem_size_temp[i] << " #tuple: " << temp_counter[i] << std::endl;
         writeS3File(minio_client, in_streams[i], spill_mem_size_temp[i], n_temp);
-        std::cout << "Finished writing" << std::endl;
         (*sizes)[i].push_back({spill_mem_size_temp[i], temp_counter[i]});
         (*start_counter)[i]++;
     }
-    std::cout << "Finished writing all" << std::endl;
     return;
 }
 
