@@ -1061,7 +1061,9 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 spill_mem_size_temp[partition] = temp_counter[partition] * sizeof(unsigned long) * (key_number + value_number);
             }
             std::string temp_n = n[partition] + "_" + std::to_string((*start_counter)[partition]);
+            std::cout << "Spill to file: " << temp_n << " size: " << spill_mem_size_temp[partition] << " #tuple: " << temp_counter[partition] << std::endl;
             writeS3File(minio_client, in_streams[partition], spill_mem_size_temp[partition], temp_n);
+            std::cout << "Finished writing" << std::endl;
             counter[partition]++;
             (*start_counter)[partition]++;
             in_streams[partition] = Aws::MakeShared<Aws::StringStream>("");
@@ -1079,11 +1081,11 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
                 char byteArray[sizeof(unsigned long)];
                 std::memcpy(byteArray, &it.first[i], sizeof(unsigned long));
-                *in_streams[partition] << byteArray;
-                /* for (int i = 0; i < l_bytes; i++)
+                // in_streams[partition] << byteArray;
+                for (int i = 0; i < l_bytes; i++)
                 {
                     *in_stream << byteArray[i];
-                } */
+                }
                 spill_mem_size_temp[partition] += l_bytes + 1;
             }
             for (int i = 0; i < value_number; i++)
@@ -1130,7 +1132,9 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             spill_mem_size_temp[i] = temp_counter[i] * sizeof(unsigned long) * (key_number + value_number);
         }
         std::string n_temp = n[i] + "_" + std::to_string((*start_counter)[i]);
+        std::cout << "Spill to file: " << n_temp << " size: " << spill_mem_size_temp[i] << " #tuple: " << temp_counter[i] << std::endl;
         writeS3File(minio_client, in_streams[i], spill_mem_size_temp[i], n_temp);
+        std::cout << "Finished writing" << std::endl;
         (*sizes)[i].push_back({spill_mem_size_temp[i], temp_counter[i]});
         (*start_counter)[i]++;
     }
