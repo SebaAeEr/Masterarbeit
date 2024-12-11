@@ -1827,8 +1827,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     printProgressBar(0);
     size_t size_after_init = getPhyValue();
     bool increase_size = true;
-    std::vector<int> write_counter = std::vector<int>(1, 0);
-    std::vector<std::vector<std::pair<size_t, size_t>>> write_sizes = std::vector<std::vector<std::pair<size_t, size_t>>>(1);
+    std::vector<int> write_counter = std::vector<int>(partitions, 0);
+    std::vector<std::vector<std::pair<size_t, size_t>>> write_sizes = std::vector<std::vector<std::pair<size_t, size_t>>>(partitions);
     // char buffer[(int)((memLimit - size_after_init * 1024) * 0.1)];
 
     // std::cout << "buffer size: " << (memLimit - size_after_init * 1024) * 0.1 << std::endl;
