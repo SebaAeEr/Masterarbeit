@@ -2393,7 +2393,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         if (write_size > 0)
                         {
                             std::string n_temp = uName + "_" + std::to_string(i);
+                            std::cout << "Adding merge file: " << n_temp << " partition: " << i << " write size: " << write_size << std::endl;
                             addFileToManag(minio_client, n_temp, write_sizes[i], write_size, beggarWorker, 0, 0, i);
+                            std::cout << "Finished adding file" << std::endl;
                         }
                     }
                 }
