@@ -2544,7 +2544,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         uName = worker_id;
         uName += "_merge_" + std::to_string(counter);
 
-        merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, memMainLimit, beggarWorker, &zero);
+        merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, memMainLimit, &zero, beggarWorker);
         if (hmap->size() == 0)
         {
             std::unordered_map<std::string, char> file_stati;
