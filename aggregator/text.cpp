@@ -1085,11 +1085,11 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
                 char byteArray[sizeof(unsigned long)];
                 std::memcpy(byteArray, &it.first[i], sizeof(unsigned long));
-                *in_streams[partition] << byteArray;
-                /* for (int i = 0; i < l_bytes; i++)
+                //*in_streams[partition] << byteArray;
+                for (int i = 0; i < l_bytes; i++)
                 {
                     *in_streams[partition] << byteArray[i];
-                } */
+                }
                 spill_mem_size_temp[partition] += l_bytes + 1;
             }
             for (int i = 0; i < value_number; i++)
