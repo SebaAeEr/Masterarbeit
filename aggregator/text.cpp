@@ -642,7 +642,6 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std
         }
     }
     writeMana(minio_client, mana, true);
-    printMana(minio_client);
     return;
 }
 
@@ -1291,7 +1290,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         if (spill_mem_size > 0)
         {
             std::string n_temp = uniqueName + "_" + std::to_string(i);
-            std::cout << "Add file: " << n_temp << std::endl;
+            // std ::cout << "Add file: " << n_temp << std::endl;
             addFileToManag(minio_client, n_temp, sizes[i], spill_mem_size, write_to_id, fileStatus, thread_id, i);
         }
     }
