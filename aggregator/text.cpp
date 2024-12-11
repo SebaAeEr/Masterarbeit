@@ -378,6 +378,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                         }
                     }
                     *in_stream << file.status;
+                    std::cout << "Filestatus: " << std::bitset<8>(file.status) << std::endl;
                 }
             }
         }
@@ -610,6 +611,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std
     file.status = fileStatus;
     file.subfiles = file_size;
     bool parition_found = false;
+    std::cout << "Filestatus: " << std::bitset<8>(file.status) << std::endl;
     for (auto &worker : mana.workers)
     {
         if (worker.id == write_to_id)
