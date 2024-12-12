@@ -2549,8 +2549,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 for (int k = 0; k < key_number; k++)
                 {
                     char l_bytes = spill_map_char[newi];
+                    std::cout << "l_bytes " << std::bitset<8>(l_bytes) << std::endl;
                     if (l_bytes < 0 && k == 0)
                     {
+                        std::cout << "is negative" << std::endl;
                         i += l_bytes * -1 + 1;
                         for (int s = 0; s < key_number + value_number; s++)
                         {
@@ -2561,6 +2563,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     newi++;
                     int counter = 0;
+                    std::cout << "Trying to write to char_buf" << std::endl;
                     while (counter < l_bytes)
                     {
                         char_buf[counter] = spill_map_char[newi];
