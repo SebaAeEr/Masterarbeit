@@ -2678,7 +2678,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
             if (comb_hash_size.load() * (*avg) + base_size >= memLimit * 0.9)
             {
-                // std::cout << "Freeing up mapping" << std::endl;
+                std::cout << "Freeing up mapping" << std::endl;
                 unsigned long used_space = newi - input_head;
                 if (!deencode)
                 {
@@ -2713,6 +2713,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     {
                         input_head += freed_space_temp / sizeof(long);
                     }
+                    std::cout << "Freed up mapping" << std::endl;
                     // std::cout << input_head << std::endl;
                     //  Update numHashRows so that the estimations are still correct.
 
