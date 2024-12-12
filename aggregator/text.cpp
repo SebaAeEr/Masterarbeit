@@ -1055,8 +1055,8 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     for (int i = 0; i < partitions; i++)
     {
         munmap(&spills[i][writeheads[i]], spill_mem_size - writeheads[i]);
-        (*spill_file)[i].second += counters[i] - 1;
-        if (ftruncate((*spill_file)[i].first, counters[i] - 1) == -1)
+        (*spill_file)[i].second += counters[i];
+        if (ftruncate((*spill_file)[i].first, counters[i]) == -1)
         {
             close((*spill_file)[i].first);
             perror("Error truncation file");
