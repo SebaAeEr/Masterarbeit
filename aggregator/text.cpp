@@ -2503,7 +2503,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                             }
                             madvise(spill_map_char, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
                             input_head = 0;
-                            offset = ((sum - it.second) + map_start);
+                            offset = ((sum - it.second) + map_start) + 1;
                             std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << std::endl;
                         }
                         else
@@ -2548,7 +2548,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
             if (deencode)
             {
-                std::cout << "Decoding: " << newi << std::endl;
                 char char_buf[sizeof(long)];
                 for (int k = 0; k < key_number; k++)
                 {
@@ -2603,7 +2602,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         std::memcpy(&values[k], &char_buf, sizeof(long));
                     }
                 }
-                std::cout << "Decoded: " << newi << std::endl;
             }
             else
             {
