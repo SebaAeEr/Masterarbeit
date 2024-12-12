@@ -2564,8 +2564,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     newi++;
                     int counter = 0;
                     std::cout << "Trying to write to char_buf" << std::endl;
+                    char_buf[0] = 0;
                     while (counter < l_bytes)
                     {
+                        std::cout << "Trying to write to char_buf counter: " << counter << std::endl;
                         char_buf[counter] = spill_map_char[newi];
                         counter++;
                         newi++;
