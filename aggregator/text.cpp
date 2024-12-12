@@ -2574,6 +2574,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     while (counter < sizeof(long))
                     {
+                        std::cout << "Trying to write to char_buf counter: " << counter << std::endl;
                         char_buf[counter] = 0;
                         counter++;
                     }
@@ -2589,12 +2590,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         int counter = 0;
                         while (counter < l_bytes)
                         {
+                            std::cout << "Trying to write to char_buf counter: " << counter << std::endl;
                             char_buf[counter] = spill_map_char[newi];
                             counter++;
                             newi++;
                         }
                         while (counter < sizeof(long))
                         {
+                            std::cout << "Trying to write to char_buf counter: " << counter << std::endl;
                             char_buf[counter] = 0;
                             counter++;
                         }
