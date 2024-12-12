@@ -852,8 +852,10 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     madvise(mappedoutputFile, output_size + start_diff, MADV_SEQUENTIAL | MADV_WILLNEED);
     if (mappedoutputFile == MAP_FAILED)
     {
+        struct stat stats;
+        stat("output_tpc_13_sup_small.json", &stats);
         close(file);
-        std::cout << "Start: " << output_size << " + " << start_diff << " start_page: " << start_page << std::endl;
+        std::cout << "Start: " << output_size << " + " << start_diff << " start_page: " << start_page << " filesize: " << stats.st_size << std::endl;
         perror("Error mmapping the file in write Hashmap");
         exit(EXIT_FAILURE);
     }
