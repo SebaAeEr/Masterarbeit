@@ -2653,9 +2653,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     //    delete pair in spill
                     if (deencode)
                     {
-                        std::cout << "ognewi first: " << spill_map_char[ognewi];
+                        std::cout << "ognewi first: " << (int) (spill_map_char[ognewi]);
                         spill_map_char[ognewi] *= -1;
-                        std::cout << " later: " << spill_map_char[ognewi] << std::endl;
+                        std::cout << " later: " <<(int) (spill_map_char[ognewi]) << std::endl;
                     }
                     else
                     {
