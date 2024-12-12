@@ -2032,8 +2032,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     unsigned long input_head_base = 0;
     bool locked = true;
     unsigned long *spill_map = nullptr;
+    char *spill_map_char = nullptr;
     unsigned long comb_spill_size = 0;
-    unsigned long freed_mem = 0;
     unsigned long overall_size = 0;
     unsigned long read_lines = 0;
     unsigned long written_lines = 0;
@@ -2144,7 +2144,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
         // std::cout << "merger: freed_mem: " << freed_mem << " size: " << overall_size << std::endl;
         overall_size = 0;
-        freed_mem = 0;
         // std::cout << "write: " << emHashmap[{221877}][0] << std::endl;
         bool firsts3File = false;
         bool firsts3subFile = false;
@@ -2364,7 +2363,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                         perror("Could not free memory of bitmap 1!");
                                     }
                                     // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(unsigned long) + input_head << std::endl;
-                                    freed_mem += freed_space_temp;
                                     // Update Head to point at the new unfreed mapping space.
                                     lower_index += freed_space_temp;
                                 }
@@ -2455,16 +2453,16 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         // std::cout << "New round" << std::endl;
 
         // Go through entire mapping
-        for (unsigned long i = input_head_base; i < comb_spill_size / sizeof(unsigned long); i++)
+        for (unsigned long i = input_head_base; (!deencode && i < comb_spill_size / sizeof(unsigned long)) || (deencode && i < comb_spill_size); i++)
         {
-            if (i >= sum / sizeof(unsigned long))
+            if ((!deencode && i >= sum / sizeof(unsigned long)) || (deencode && i >= sum))
             {
                 // std::cout << "New mapping" << std::endl;
                 sum = 0;
                 for (auto &it : *spills)
                 {
                     sum += it.second;
-                    if (i < sum / sizeof(unsigned long))
+                    if ((!deencode && i < sum / sizeof(unsigned long)) || (deencode && i < sum))
                     {
                         if (spill_map != nullptr && mapping_size - input_head * sizeof(unsigned long) > 0)
                         {
@@ -2474,23 +2472,53 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                 std::cout << "invalid size: " << mapping_size - input_head * sizeof(unsigned long) << std::endl;
                                 perror("Could not free memory in merge 2_1!");
                             }
-                            freed_mem += mapping_size - input_head * sizeof(unsigned long);
                             // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(unsigned long) << std::endl;
                         }
-                        unsigned long map_start = i * sizeof(unsigned long) - (sum - it.second) - ((i * sizeof(unsigned long) - (sum - it.second)) % pagesize);
-                        mapping_size = it.second - map_start;
-                        // std::cout << " map_start: " << map_start << std::endl;
-                        spill_map = static_cast<unsigned long *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, it.first, map_start));
-                        overall_size += mapping_size;
-                        if (spill_map == MAP_FAILED)
+                        if (spill_map_char != nullptr && mapping_size - input_head > 0)
                         {
-                            close(it.first);
-                            perror("Error mmapping the file");
-                            exit(EXIT_FAILURE);
+                            // save empty flag and release the mapping
+                            if (munmap(&spill_map_char[input_head], mapping_size - input_head) == -1)
+                            {
+                                std::cout << "invalid size: " << mapping_size - input_head << std::endl;
+                                perror("Could not free memory in merge 2_1!");
+                            }
+                            // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(unsigned long) << std::endl;
                         }
-                        madvise(spill_map, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
-                        input_head = 0;
-                        offset = ((sum - it.second) + map_start) / sizeof(unsigned long);
+                        unsigned long map_start;
+                        if (deencode)
+                        {
+                            map_start = i * -(sum - it.second) - ((i * -(sum - it.second)) % pagesize);
+                            mapping_size = it.second - map_start;
+                            spill_map_char = static_cast<char *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, it.first, map_start));
+                            overall_size += mapping_size;
+                            if (spill_map_char == MAP_FAILED)
+                            {
+                                close(it.first);
+                                perror("Error mmapping the file");
+                                exit(EXIT_FAILURE);
+                            }
+                            madvise(spill_map_char, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
+                            input_head = 0;
+                            offset = ((sum - it.second) + map_start);
+                        }
+                        else
+                        {
+                            map_start = i * sizeof(unsigned long) - (sum - it.second) - ((i * sizeof(unsigned long) - (sum - it.second)) % pagesize);
+
+                            mapping_size = it.second - map_start;
+                            // std::cout << " map_start: " << map_start << std::endl;
+                            spill_map = static_cast<unsigned long *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, it.first, map_start));
+                            overall_size += mapping_size;
+                            if (spill_map == MAP_FAILED)
+                            {
+                                close(it.first);
+                                perror("Error mmapping the file");
+                                exit(EXIT_FAILURE);
+                            }
+                            madvise(spill_map, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
+                            input_head = 0;
+                            offset = ((sum - it.second) + map_start) / sizeof(unsigned long);
+                        }
 
                         // std::cout << "sum: " << sum / sizeof(unsigned long) << " offset: " << offset << " head: " << input_head_base << " map_start: " << map_start / sizeof(unsigned long) << " i: " << i << std::endl;
                         break;
@@ -2499,29 +2527,97 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             newi = i - offset;
             unsigned long ognewi = newi;
-            diff->exchange((newi - input_head) * sizeof(unsigned long));
-
-            if (spill_map[newi] == ULONG_MAX)
+            if (deencode)
             {
-                i += key_number;
-                i += value_number - 1;
+                diff->exchange((newi - input_head));
             }
             else
             {
+                diff->exchange((newi - input_head) * sizeof(unsigned long));
+            }
+            bool empty = false;
+
+            if (deencode)
+            {
+                char char_buf[sizeof(unsigned long)];
                 for (int k = 0; k < key_number; k++)
                 {
-                    keys[k] = spill_map[newi];
+                    char l_bytes = spill_map_char[newi];
+                    if (l_bytes < 0 && k == 0)
+                    {
+                        i += l_bytes * -1 + 1;
+                        for (int s = 0; s < key_number + value_number; s++)
+                        {
+                            i += spill_map_char[i] + 1;
+                        }
+                        empty = true;
+                        break;
+                    }
                     newi++;
+                    int counter = 0;
+                    while (counter < l_bytes)
+                    {
+                        char_buf[counter] = spill_map_char[newi];
+                        counter++;
+                        newi++;
+                    }
+                    while (counter < sizeof(unsigned long))
+                    {
+                        char_buf[counter] = 0;
+                        counter++;
+                    }
+                    std::memcpy(&keys[k], &char_buf, sizeof(unsigned long));
                 }
-
-                for (int k = 0; k < value_number; k++)
+                if (!empty)
                 {
-                    values[k] = spill_map[newi];
-                    newi++;
+                    for (int k = 0; k < value_number; k++)
+                    {
+
+                        char l_bytes = spill_map_char[newi];
+                        newi++;
+                        int counter = 0;
+                        while (counter < l_bytes)
+                        {
+                            char_buf[counter] = spill_map_char[newi];
+                            counter++;
+                            newi++;
+                        }
+                        while (counter < sizeof(unsigned long))
+                        {
+                            char_buf[counter] = 0;
+                            counter++;
+                        }
+                        std::memcpy(&values[k], &char_buf, sizeof(unsigned long));
+                    }
                 }
+            }
+            else
+            {
+                if (spill_map[newi] == ULONG_MAX)
+                {
+                    i += key_number;
+                    i += value_number - 1;
+                    empty = true;
+                }
+                else
+                {
+                    for (int k = 0; k < key_number; k++)
+                    {
+                        keys[k] = spill_map[newi];
+                        newi++;
+                    }
+
+                    for (int k = 0; k < value_number; k++)
+                    {
+                        values[k] = spill_map[newi];
+                        newi++;
+                    }
+                }
+            }
+            if (!empty)
+            {
                 newi--;
                 i = newi + offset;
-
                 // std::cout << "merging/adding" << std::endl;
                 //  Update count if customerkey is in hashmap and delete pair in spill
                 if (hmap->contains(keys))
@@ -2537,7 +2633,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     (*hmap)[keys] = temp;
                     // mergeHashEntries(&emHashmap[keys], &values);
                     //    delete pair in spill
-                    spill_map[ognewi] = ULONG_MAX;
+                    if (deencode)
+                    {
+                        spill_map[ognewi] = spill_map[ognewi] * -1;
+                    }
+                    else
+                    {
+                        spill_map[ognewi] = ULONG_MAX;
+                    }
                 }
                 else if (!locked)
                 {
@@ -2548,26 +2651,54 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         comb_hash_size.fetch_add(1);
                     }
                     // delete pair in spill
-                    spill_map[ognewi] = ULONG_MAX;
+                    if (deencode)
+                    {
+                        spill_map[ognewi] = spill_map[ognewi] * -1;
+                    }
+                    else
+                    {
+                        spill_map[ognewi] = ULONG_MAX;
+                    }
                 }
             }
 
             // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
             if (comb_hash_size.load() * (*avg) + base_size >= memLimit * 0.9)
             {
-                unsigned long used_space = (newi - input_head) * sizeof(unsigned long);
+                unsigned long used_space = newi - input_head;
+                if (!deencode)
+                {
+                    used_space *= sizeof(unsigned long);
+                }
                 if (used_space > pagesize)
                 {
                     //  calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
                     unsigned long freed_space_temp = used_space - (used_space % pagesize);
-                    if (munmap(&spill_map[input_head], freed_space_temp) == -1)
+                    if (deencode)
                     {
-                        perror("Could not free memory in merge 1!");
+                        if (munmap(&spill_map_char[input_head], freed_space_temp) == -1)
+                        {
+                            perror("Could not free memory in merge 1!");
+                        }
+                    }
+                    else
+                    {
+                        if (munmap(&spill_map[input_head], freed_space_temp) == -1)
+                        {
+                            perror("Could not free memory in merge 1!");
+                        }
                     }
                     // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(unsigned long) + input_head << std::endl;
-                    freed_mem += freed_space_temp;
                     // Update Head to point at the new unfreed mapping space.
-                    input_head += freed_space_temp / sizeof(unsigned long);
+
+                    if (deencode)
+                    {
+                        input_head += freed_space_temp;
+                    }
+                    else
+                    {
+                        input_head += freed_space_temp / sizeof(unsigned long);
+                    }
                     // std::cout << input_head << std::endl;
                     //  Update numHashRows so that the estimations are still correct.
 
@@ -2584,16 +2715,28 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         // std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
 
         //  save empty flag and release the mapping
-        if (mapping_size - input_head * sizeof(unsigned long) > 0)
+        if (deencode)
         {
-            if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(unsigned long)) == -1)
+            if (mapping_size - input_head > 0)
             {
-                perror("Could not free memory in merge 2!");
+                if (munmap(&spill_map_char[input_head], mapping_size - input_head) == -1)
+                {
+                    perror("Could not free memory in merge 2!");
+                }
+            }
+        }
+        else
+        {
+            if (mapping_size - input_head * sizeof(unsigned long) > 0)
+            {
+                if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(unsigned long)) == -1)
+                {
+                    perror("Could not free memory in merge 2!");
+                }
             }
         }
         // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(unsigned long) << std::endl;
         //  std::cout << "Last head: " << input_head << " should be: " << (mapping_size - (mapping_size - input_head * sizeof(unsigned long))) / sizeof(unsigned long) << std::endl;
-        freed_mem += mapping_size - input_head * sizeof(unsigned long);
 
         // std::cout << "Writing hmap with size: " << hmap->size() << std::endl;
         //  write merged hashmap to the result and update head to point at the end of the file
@@ -2612,7 +2755,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 counter++;
             }
             finished_rows += s3spillStart_head * number_of_longs * sizeof(unsigned long);
-            printProgressBar((finished_rows + input_head_base * sizeof(unsigned long)) / (float)(overall_s3spillsize + comb_spill_size));
+            if (deencode)
+            {
+                printProgressBar((finished_rows + i) / (float)(overall_s3spillsize + comb_spill_size));
+            }
+            else
+            {
+                printProgressBar((finished_rows + input_head_base * sizeof(unsigned long)) / (float)(overall_s3spillsize + comb_spill_size));
+            }
             /* if (deencode)
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
