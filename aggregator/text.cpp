@@ -2544,7 +2544,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
             if (deencode)
             {
-                //std::cout << "Trying to decode " << std::endl;
+                // std::cout << "Trying to decode " << std::endl;
                 char char_buf[sizeof(long)];
                 for (int k = 0; k < key_number; k++)
                 {
@@ -2621,14 +2621,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                 }
             }
-            //std::cout << keys[0] << ", " << values[0] << std::endl;
+            // std::cout << keys[0] << ", " << values[0] << std::endl;
             if (!empty)
             {
                 newi--;
                 i = newi + offset;
-                //std::cout << "i: " << i << ", newi: " << newi << std::endl;
-                // std::cout << "merging/adding" << std::endl;
-                //  Update count if customerkey is in hashmap and delete pair in spill
+                // std::cout << "i: " << i << ", newi: " << newi << std::endl;
+                //  std::cout << "merging/adding" << std::endl;
+                //   Update count if customerkey is in hashmap and delete pair in spill
                 if (hmap->contains(keys))
                 {
                     read_lines++;
@@ -2674,7 +2674,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
             if (comb_hash_size.load() * (*avg) + base_size >= memLimit * 0.9)
             {
-                std::cout << "Freeing up mapping" << std::endl;
+                // std::cout << "Freeing up mapping" << std::endl;
                 unsigned long used_space = newi - input_head;
                 if (!deencode)
                 {
