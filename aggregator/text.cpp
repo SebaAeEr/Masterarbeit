@@ -2492,7 +2492,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         {
                             map_start = i - (sum - it.second) - ((i - (sum - it.second)) % pagesize);
                             mapping_size = it.second - map_start;
-                            std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << std::endl;
+                            
                             spill_map_char = static_cast<char *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, it.first, map_start));
                             overall_size += mapping_size;
                             if (spill_map_char == MAP_FAILED)
@@ -2504,6 +2504,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                             madvise(spill_map_char, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
                             input_head = 0;
                             offset = ((sum - it.second) + map_start);
+                            std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset  << std::endl;
                         }
                         else
                         {
@@ -2530,6 +2531,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
             }
             newi = i - offset;
+            if(newi > mapping_size) {
+                std::cout << "newi too big!! " << newi  << std::endl;
+            }
             unsigned long ognewi = newi;
             if (deencode)
             {
