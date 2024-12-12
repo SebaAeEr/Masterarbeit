@@ -2544,15 +2544,13 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
             if (deencode)
             {
-                std::cout << "Trying to decode " << std::endl;
+                //std::cout << "Trying to decode " << std::endl;
                 char char_buf[sizeof(long)];
                 for (int k = 0; k < key_number; k++)
                 {
                     char l_bytes = spill_map_char[newi];
-                    std::cout << "l_bytes " << std::bitset<8>(l_bytes) << std::endl;
                     if (l_bytes < 0 && k == 0)
                     {
-                        std::cout << "is negative" << std::endl;
                         i += l_bytes * -1 + 1;
                         for (int s = 0; s < key_number + value_number; s++)
                         {
@@ -2563,18 +2561,15 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     newi++;
                     int counter = 0;
-                    std::cout << "Trying to write to char_buf" << std::endl;
                     char_buf[0] = 0;
                     while (counter < l_bytes)
                     {
-                        std::cout << "Trying to write to char_buf counter: " << counter << std::endl;
                         char_buf[counter] = spill_map_char[newi];
                         counter++;
                         newi++;
                     }
                     while (counter < sizeof(long))
                     {
-                        std::cout << "Trying to write to char_buf counter: " << counter << std::endl;
                         char_buf[counter] = 0;
                         counter++;
                     }
@@ -2590,14 +2585,12 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         int counter = 0;
                         while (counter < l_bytes)
                         {
-                            std::cout << "Trying to write to char_buf counter: " << counter << std::endl;
                             char_buf[counter] = spill_map_char[newi];
                             counter++;
                             newi++;
                         }
                         while (counter < sizeof(long))
                         {
-                            std::cout << "Trying to write to char_buf counter: " << counter << std::endl;
                             char_buf[counter] = 0;
                             counter++;
                         }
@@ -2628,10 +2621,12 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                 }
             }
+            //std::cout << keys[0] << ", " << values[0] << std::endl;
             if (!empty)
             {
                 newi--;
                 i = newi + offset;
+                //std::cout << "i: " << i << ", newi: " << newi << std::endl;
                 // std::cout << "merging/adding" << std::endl;
                 //  Update count if customerkey is in hashmap and delete pair in spill
                 if (hmap->contains(keys))
@@ -2649,7 +2644,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     //    delete pair in spill
                     if (deencode)
                     {
-                        spill_map[ognewi] = spill_map[ognewi] * -1;
+                        spill_map_char[ognewi] = spill_map_char[ognewi] * -1;
                     }
                     else
                     {
@@ -2667,7 +2662,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     // delete pair in spill
                     if (deencode)
                     {
-                        spill_map[ognewi] = spill_map[ognewi] * -1;
+                        spill_map_char[ognewi] = spill_map_char[ognewi] * -1;
                     }
                     else
                     {
