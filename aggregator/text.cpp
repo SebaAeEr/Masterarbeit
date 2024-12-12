@@ -2678,7 +2678,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
             if (comb_hash_size.load() * (*avg) + base_size >= memLimit * 0.9)
             {
-                std::cout << "Freeing up mapping" << std::endl;
+                
                 unsigned long used_space = newi - input_head;
                 if (!deencode)
                 {
@@ -2686,6 +2686,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
                 if (used_space > pagesize)
                 {
+                    std::cout << "Freeing up mapping" << std::endl;
                     //  calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
                     unsigned long freed_space_temp = used_space - (used_space % pagesize);
                     if (deencode)
