@@ -2479,7 +2479,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         }
                         if (spill_map_char != nullptr && mapping_size - input_head > 0)
                         {
-                            std::cout << "using useless code" << std::endl;
                             // save empty flag and release the mapping
                             if (munmap(&spill_map_char[input_head], mapping_size - input_head) == -1)
                             {
@@ -2773,14 +2772,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             {
                 printProgressBar((finished_rows + input_head_base * sizeof(long)) / (float)(overall_s3spillsize + comb_spill_size));
             }
-            /* if (deencode)
+            if (deencode)
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
             }
             else
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
-            } */
+            }
             *output_file_head += writeHashmap(hmap, output_fd, *output_file_head, pagesize * 30);
             /*
                         if (hmap->size() > maxHashsize)
