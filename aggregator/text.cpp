@@ -2548,10 +2548,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
             if (deencode)
             {
-                // std::cout << "Trying to decode " << std::endl;
+                std::cout << "Decoding: " << newi << std::endl;
                 char char_buf[sizeof(long)];
                 for (int k = 0; k < key_number; k++)
                 {
+                    std::cout << "l_bytes negative: " << (int)(l_bytes) << std::endl;
                     char l_bytes = spill_map_char[newi];
                     if (l_bytes < 0 && k == 0)
                     {
@@ -2601,6 +2602,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         std::memcpy(&values[k], &char_buf, sizeof(long));
                     }
                 }
+                std::cout << "Decoded: " << newi << std::endl;
             }
             else
             {
@@ -2678,7 +2680,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
             if (comb_hash_size.load() * (*avg) + base_size >= memLimit * 0.9)
             {
-                
+
                 unsigned long used_space = newi - input_head;
                 if (!deencode)
                 {
@@ -2686,8 +2688,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
                 if (used_space > pagesize)
                 {
-                    std::cout << "Freeing up mapping" << std::endl;
-                    //  calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
+                    // std::cout << "Freeing up mapping" << std::endl;
+                    //   calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
                     unsigned long freed_space_temp = used_space - (used_space % pagesize);
                     if (deencode)
                     {
@@ -2714,9 +2716,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     {
                         input_head += freed_space_temp / sizeof(long);
                     }
-                    std::cout << "Freed up mapping" << std::endl;
-                    // std::cout << input_head << std::endl;
-                    //  Update numHashRows so that the estimations are still correct.
+                    // std::cout << "Freed up mapping" << std::endl;
+                    //  std::cout << input_head << std::endl;
+                    //   Update numHashRows so that the estimations are still correct.
 
                     // std::cout << "hashmap size: " << emHashmap.size() * avg << " freed space: " << freed_space_temp << std::endl;
                 }
