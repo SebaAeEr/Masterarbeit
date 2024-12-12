@@ -2459,7 +2459,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         {
             if ((!deencode && i >= sum / sizeof(long)) || (deencode && i >= sum))
             {
-                std::cout << "New mapping" << std::endl;
+                std::cout << "New mapping sum: " << sum << std::endl;
                 sum = 0;
                 for (auto &it : *spills)
                 {
@@ -2503,7 +2503,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                             }
                             madvise(spill_map_char, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
                             input_head = 0;
-                            offset = i; //((sum - it.second) + map_start);
+                            offset = ((sum - it.second) + map_start);
                             std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << std::endl;
                         }
                         else
