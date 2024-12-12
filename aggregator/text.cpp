@@ -2559,7 +2559,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     {
                         std::cout << "l_bytes negative: " << (int)(l_bytes) << " add: " << l_bytes * -1 + 1;
                         i += l_bytes * -1 + 1;
-                        for (int s = 0; s < key_number + value_number; s++)
+                        for (int s = 0; s < key_number + value_number - 1; s++)
                         {
                             std::cout << ", " << spill_map_char[i] + 1;
                             i += spill_map_char[i] + 1;
