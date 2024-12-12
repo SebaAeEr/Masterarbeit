@@ -1706,7 +1706,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     temp_spill_file_name += "_temp_spill";
     std::thread minioSpiller;
     unsigned long old_i = 0;
-    bool spilltoS3 = false;
     bool spillS3Thread = false;
     bool thread_finishFlag = false;
     std::string uName;
@@ -1818,7 +1817,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 unsigned long temp_spill_size = hmap->size() * (key_number + value_number) * sizeof(unsigned long);
                 spill_size += temp_spill_size;
                 comb_spill_size.fetch_add(temp_spill_size);
-                spilltoS3 = memLimitMain < mainMem_usage + temp_spill_size * 2;
 
                 if (memLimitMain > mainMem_usage + temp_spill_size - temp_local_spill_size)
                 {
@@ -2487,7 +2485,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         unsigned long map_start;
                         if (deencode)
                         {
-                            map_start = i * -(sum - it.second) - ((i * -(sum - it.second)) % pagesize);
+                            map_start = i - (sum - it.second) - ((i - (sum - it.second)) % pagesize);
                             mapping_size = it.second - map_start;
                             spill_map_char = static_cast<char *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, it.first, map_start));
                             overall_size += mapping_size;
