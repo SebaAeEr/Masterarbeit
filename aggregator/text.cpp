@@ -2557,12 +2557,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     char l_bytes = spill_map_char[newi];
                     if (l_bytes < 0 && k == 0)
                     {
-                        std::cout << "l_bytes negative: " << (int)(l_bytes) << std::endl;
+                        std::cout << "l_bytes negative: " << (int)(l_bytes) << " add: " << l_bytes * -1 + 1;
                         i += l_bytes * -1 + 1;
                         for (int s = 0; s < key_number + value_number; s++)
                         {
+                            std::cout << ", " << spill_map_char[i] + 1;
                             i += spill_map_char[i] + 1;
                         }
+                        std::cout << std::endl;
                         empty = true;
                         break;
                     }
@@ -2651,7 +2653,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     //    delete pair in spill
                     if (deencode)
                     {
-                        spill_map_char[ognewi] = spill_map_char[ognewi] * -1;
+                        std::cout << "ognewi first: " << spill_map_char[ognewi];
+                        spill_map_char[ognewi] *= -1;
+                        std::cout << " later: " << spill_map_char[ognewi] << std::endl;
                     }
                     else
                     {
@@ -2669,7 +2673,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     // delete pair in spill
                     if (deencode)
                     {
-                        spill_map_char[ognewi] = spill_map_char[ognewi] * -1;
+                        spill_map_char[ognewi] *= -1;
                     }
                     else
                     {
