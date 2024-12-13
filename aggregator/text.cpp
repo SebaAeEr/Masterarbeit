@@ -689,7 +689,6 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
 
     char given_beggarWorker = beggarWorker;
     file m_file;
-    *res = {{}, 0, 0};
     manaFile mana = getLockedMana(minio_client, thread_id);
     // printMana(minio_client);
     //  If no beggarWorker is yet selected choose the worker with the largest spill
@@ -777,6 +776,8 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
     if (res_files.size() < file_num)
     {
         writeMana(minio_client, mana, true);
+        get<1>(*res) = 0;
+        std::cout << "setting beggar to 0" << std::endl;
         return;
     }
     /* std::cout << "res_files: ";
