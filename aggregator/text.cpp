@@ -607,7 +607,7 @@ void setPartitionNumber(size_t comb_hash_size)
 {
     if (set_partitions)
     {
-        partitions = ceil(comb_hash_size / 1000000);
+        partitions = ceil(comb_hash_size / 1000000.0);
         std::cout << "Set partition number to: " << partitions << std::endl;
     }
     else
