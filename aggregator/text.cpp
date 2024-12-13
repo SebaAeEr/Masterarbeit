@@ -771,6 +771,10 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
                         {
                             res_files.push_back(biggest_file);
                         }
+                        else
+                        {
+                            break;
+                        }
                     }
                     break;
                 }
