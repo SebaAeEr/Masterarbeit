@@ -2197,8 +2197,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 unsigned long lower_index = 0;
                 if (increase_size)
                 {
-                    size_t increase = 0;
-                    while (increase < size_after_init * 1024 * 100)
+                    size_t increase = size_after_init * 1024 * 100 + 1;
+                    while (increase > size_after_init * 1024 * 100)
                     {
                         increase = (getPhyValue() - size_after_init) * 1024;
                         std::cout << "Stream buffer: " << increase << std::endl;
