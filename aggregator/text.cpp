@@ -1371,7 +1371,7 @@ void spillS3FileEncoded(std::pair<int, size_t> spill_file, Aws::S3::S3Client *mi
     unsigned long i_head = 0;
     size_t spill_mem_size_temp = 0;
     std::vector<char> char_longs;
-    unsigned long i;
+    unsigned long i = 0;
 
     // Write int to Mapping
     while (i < spill_mem_size)
