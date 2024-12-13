@@ -90,7 +90,7 @@ bool deencode = true;
 bool mergePhase = false;
 bool set_partitions = true;
 unsigned long test_values[5];
-int partitions = 2;
+int partitions = -1;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
