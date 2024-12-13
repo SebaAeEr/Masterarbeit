@@ -1412,6 +1412,7 @@ void spillS3FileEncoded(std::pair<int, size_t> spill_file, Aws::S3::S3Client *mi
             }
             i_head += freed_space_temp;
         }
+        i++;
     }
     if (munmap(&spill_map[i_head], spill_mem_size - i_head) == -1)
     {
