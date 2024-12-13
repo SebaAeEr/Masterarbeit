@@ -988,11 +988,11 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     {
         for (int i = 0; i < partitions; i++)
         {
-            std::cout << "opening file " << (fileName + "_" + std::to_string(i)) << std::endl;
+            //std::cout << "opening file " << (fileName + "_" + std::to_string(i)) << std::endl;
             (*spill_file)[i].first = open((fileName + "_" + std::to_string(i)).c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
             if ((*spill_file)[i].first == -1)
             {
-                std::cout << "Tying to open file " << (fileName + "_" + std::to_string(i)) << std::endl;
+                //std::cout << "Tying to open file " << (fileName + "_" + std::to_string(i)) << std::endl;
                 perror("Error opening file for writing");
                 exit(EXIT_FAILURE);
             }
@@ -1002,7 +1002,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     // extend file
     for (int i = 0; i < partitions; i++)
     {
-        std::cout << "extending file " << (fileName + "_" + std::to_string(i)) << " by " << (*spill_file)[i].second + spill_mem_size - 1 << std::endl;
+        //std::cout << "extending file " << (fileName + "_" + std::to_string(i)) << " by " << (*spill_file)[i].second + spill_mem_size - 1 << std::endl;
         lseek((*spill_file)[i].first, (*spill_file)[i].second + spill_mem_size - 1, SEEK_SET);
         if (write((*spill_file)[i].first, "", 1) == -1)
         {
@@ -1012,7 +1012,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
         }
     }
     std::vector<char *> spills;
-    std::cout << "opening mappings " << fileName << std::endl;
+   // std::cout << "opening mappings " << fileName << std::endl;
 
     for (int i = 0; i < partitions; i++)
     {
@@ -1029,7 +1029,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     // Write int to Mapping
     std::vector<unsigned long> counters = std::vector<unsigned long>(partitions, 0);
     std::vector<unsigned long> writeheads = std::vector<unsigned long>(partitions, 0);
-    std::cout << "writing " << fileName << std::endl;
+    //std::cout << "writing " << fileName << std::endl;
 
     for (auto &it : *hmap)
     {
@@ -1075,7 +1075,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
         }
     }
 
-    std::cout << "freeing up mapping " << fileName << std::endl;
+    //std::cout << "freeing up mapping " << fileName << std::endl;
 
     for (int i = 0; i < partitions; i++)
     {
