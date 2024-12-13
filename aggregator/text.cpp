@@ -1399,7 +1399,6 @@ void spillS3FileEncoded(std::pair<int, size_t> spill_file, Aws::S3::S3Client *mi
             l_bytes--;
             *in_stream << spill_map[i];
         }
-        
 
         unsigned long i_diff = i - i_head;
         if (i_diff > pagesize * 10)
@@ -1522,11 +1521,11 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         {
             if (deencode)
             {
-                spillS3FileEncoded(spill_file[i], minio_client, &sizes[i], uniqueName, &counter);
+                spillS3FileEncoded(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
             }
             else
             {
-                spillS3File(spill_file[i], minio_client, &sizes[i], uniqueName, &counter);
+                spillS3File(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
             }
         }
     }
