@@ -724,6 +724,7 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
     if (beggarWorker == 0)
     {
         writeMana(minio_client, mana, true);
+        get<1>(*res) = 0;
         return;
     }
 
