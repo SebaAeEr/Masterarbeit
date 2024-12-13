@@ -984,6 +984,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     // Calc spill size
     size_t spill_mem_size = hmap->size() * sizeof(long) * (key_number + value_number);
 
+    std::cout << "opening file " << fileName << std::endl;
     if ((*spill_file)[0].first == -1)
     {
         for (int i = 0; i < partitions; i++)
@@ -991,7 +992,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
             (*spill_file)[i].first = open((fileName + "_" + std::to_string(i)).c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
         }
     }
-
+    std::cout << "extending file " << fileName << std::endl;
     // extend file
     for (int i = 0; i < partitions; i++)
     {
@@ -1004,6 +1005,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
         }
     }
     std::vector<char *> spills;
+    std::cout << "opening mappings " << fileName << std::endl;
 
     for (int i = 0; i < partitions; i++)
     {
@@ -1020,6 +1022,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     // Write int to Mapping
     std::vector<unsigned long> counters = std::vector<unsigned long>(partitions, 0);
     std::vector<unsigned long> writeheads = std::vector<unsigned long>(partitions, 0);
+    std::cout << "writing " << fileName << std::endl;
 
     for (auto &it : *hmap)
     {
@@ -1064,6 +1067,8 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
             writehead += freed_space;
         }
     }
+
+    std::cout << "freeing up mapping " << fileName << std::endl;
 
     for (int i = 0; i < partitions; i++)
     {
@@ -1840,16 +1845,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     setPartitionNumber(comb_hash_size);
                     if (spill_files->size() == 0)
                     {
-                        std::cout << "increasing spillfiles " << partitions << std::endl;
-                        std::cout << "size: " << spill_files->size() << std::endl;
                         for (int i = 0; i < partitions; i++)
                         {
                             spill_files->push_back({});
                         }
-                        std::cout << "size: " << spill_files->size() << std::endl;
-
-                        //*spill_files = std::vector<std::vector<std::pair<int, size_t>>>(partitions);
-                        std::cout << "test: " << (*spill_files)[0].size() << std::endl;
                     }
                 }
 
