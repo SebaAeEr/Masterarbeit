@@ -1835,6 +1835,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 if (partitions == -1)
                 {
                     setPartitionNumber(comb_hash_size);
+                    if (spill_files->size() == 0)
+                    {
+                        spill_files->push_back(std::vector<std::pair<int, size_t>>(0));
+                    }
                 }
 
                 if (memLimitMain > mainMem_usage + temp_spill_size - temp_local_spill_size)
@@ -3112,7 +3116,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
 
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmaps[threadNumber];
-    std::vector<std::vector<std::pair<int, size_t>>> spills = std::vector<std::vector<std::pair<int, size_t>>>(partitions);
+    std::vector<std::vector<std::pair<int, size_t>>> spills; //= std::vector<std::vector<std::pair<int, size_t>>>(partitions);
     std::atomic<unsigned long> numLines = 0;
     std::atomic<unsigned long> readBytes = 0;
     std::atomic<unsigned long> comb_hash_size = 0;
