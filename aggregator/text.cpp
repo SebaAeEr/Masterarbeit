@@ -608,6 +608,7 @@ void setPartitionNumber(size_t comb_hash_size)
     if (set_partitions)
     {
         partitions = ceil(comb_hash_size / 1000000);
+        std::cout << "Set partition number to: " << partitions << std::endl;
     }
     else
     {
@@ -615,43 +616,42 @@ void setPartitionNumber(size_t comb_hash_size)
     }
 }
 
-void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std::vector<std::pair<size_t, size_t>> file_size, size_t comb_file_size, char write_to_id, unsigned char fileStatus, char thread_id, char partition_id)
+void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
 {
     manaFile mana = getLockedMana(minio_client, thread_id);
-    file file;
-    file.name = file_name;
-    file.size = comb_file_size;
-    file.status = fileStatus;
-    file.subfiles = file_size;
-    bool parition_found = false;
-    for (auto &worker : mana.workers)
+    for (auto &file : files)
     {
-        if (worker.id == write_to_id)
+        bool parition_found = false;
+        for (auto &worker : mana.workers)
         {
-            if (worker.locked)
+            if (worker.id == write_to_id)
             {
-                writeMana(minio_client, mana, true);
-                return;
-            }
-            for (auto &partition : worker.partitions)
-            {
-                if (partition.id == partition_id)
+                if (worker.locked)
                 {
-                    partition.files.push_back(file);
-                    parition_found = true;
+                    writeMana(minio_client, mana, true);
+                    return;
                 }
-            }
-            if (!parition_found)
-            {
-                partition partition;
-                partition.id = partition_id;
-                partition.files.push_back(file);
-                worker.partitions.push_back(partition);
-                worker.length += 1 + sizeof(int);
-            }
+                for (auto &partition : worker.partitions)
+                {
+                    if (partition.id == file.second)
+                    {
+                        partition.files.push_back(file.first);
+                        parition_found = true;
+                        break;
+                    }
+                }
+                if (!parition_found)
+                {
+                    partition partition;
+                    partition.id = file.second;
+                    partition.files.push_back(file.first);
+                    worker.partitions.push_back(partition);
+                    worker.length += 1 + sizeof(int);
+                }
 
-            worker.length += file_name.size() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * file_size.size() * 2;
-            break;
+                worker.length += file.first.name.size() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * file.first.subfiles.size() * 2;
+                break;
+            }
         }
     }
     writeMana(minio_client, mana, true);
@@ -1596,7 +1596,8 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
             }
         }
     }
-    for (int i = 0; i < partitions; i++)
+    std::vector<std::pair<file, char>> files;
+    for (char i = 0; i < partitions; i++)
     {
         size_t spill_mem_size = 0;
         for (auto &it : sizes[i])
@@ -1605,11 +1606,15 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         }
         if (spill_mem_size > 0)
         {
-            std::string n_temp = uniqueName + "_" + std::to_string(i);
-            // std ::cout << "Add file: " << n_temp << std::endl;
-            addFileToManag(minio_client, n_temp, sizes[i], spill_mem_size, write_to_id, fileStatus, thread_id, i);
+            file file;
+            file.name = uniqueName + "_" + std::to_string(i);
+            file.size = spill_mem_size;
+            file.status = fileStatus;
+            file.subfiles = sizes[i];
+            files.push_back({file, i});
         }
     }
+    addFileToManag(minio_client, files, write_to_id, fileStatus);
 }
 
 void execOperation(std::array<unsigned long, max_size> *hashValue, int value)
@@ -2890,8 +2895,15 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     if (write_size > 0)
                     {
                         std::string n_temp = uName + "_" + std::to_string(partition);
+
+                        file temp_file;
+                        temp_file.name = uName + "_" + std::to_string(partition);
+                        temp_file.size = write_size;
+                        temp_file.status = 0;
+                        temp_file.subfiles = write_sizes[partition];
+                        std::vector<std::pair<file, char>> files = std::vector<std::pair<file, char>>(1, {temp_file, partition});
                         // std::cout << "Adding merge file: " << n_temp << " partition: " << partition << " write size: " << write_size << std::endl;
-                        addFileToManag(minio_client, n_temp, write_sizes[partition], write_size, beggarWorker, 0, 0, partition);
+                        addFileToManag(minio_client, files, beggarWorker, 0);
                         // std::cout << "Finished adding file" << std::endl;
                     }
                 }
