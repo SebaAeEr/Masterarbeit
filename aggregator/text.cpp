@@ -1380,7 +1380,7 @@ void spillS3FileEncoded(std::pair<int, size_t> spill_file, Aws::S3::S3Client *mi
         {
             n = uniqueName + "_" + std::to_string(*start_counter);
             (*start_counter)++;
-            std::cout << "writing: " << n << " i: " << i << " spill_mem_size: " << spill_mem_size << " spill_mem_size_temp: " << spill_mem_size_temp << std::endl;
+            // std::cout << "writing: " << n << " i: " << i << " spill_mem_size: " << spill_mem_size << " spill_mem_size_temp: " << spill_mem_size_temp << std::endl;
             writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
             sizes->push_back({spill_mem_size_temp, temp_counter});
             counter++;
@@ -1419,7 +1419,7 @@ void spillS3FileEncoded(std::pair<int, size_t> spill_file, Aws::S3::S3Client *mi
         perror("Could not free memory!");
     }
     n = uniqueName + "_" + std::to_string(*start_counter);
-    std::cout << "writing: " << n << " size: " << spill_mem_size_temp << std::endl;
+    // std::cout << "writing: " << n << " size: " << spill_mem_size_temp << std::endl;
     (*start_counter)++;
     writeS3File(minio_client, in_stream, spill_mem_size_temp, n);
     sizes->push_back({spill_mem_size_temp, temp_counter});
@@ -1529,7 +1529,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
                 spillS3File(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
             }
         }
-        }
+    }
     std::vector<std::pair<file, char>> files;
     for (char i = 0; i < partitions; i++)
     {
@@ -2423,7 +2423,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         {
             if ((!deencode && i >= sum / sizeof(long)) || (deencode && i >= sum))
             {
-                std::cout << "New mapping sum: " << sum << std::endl;
+                // std::cout << "New mapping sum: " << sum << std::endl;
                 sum = 0;
                 for (auto &it : *spills)
                 {
@@ -3261,13 +3261,13 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             files.clear();
             std::cout << "getAllMergeFileNames" << std::endl;
             getAllMergeFileNames(&minio_client, i, &files);
-            for (auto &name : files)
+            /* for (auto &name : files)
             {
                 std::cout << std::get<0>(name) << ", ";
             }
             std::cout << std::endl;
             std::string empty = "";
-            std::cout << "output file head: " << output_file_head << std::endl;
+            std::cout << "output file head: " << output_file_head << std::endl; */
             if (spills.size() == 0)
             {
                 spills.push_back(std::vector<std::pair<int, size_t>>(0));
