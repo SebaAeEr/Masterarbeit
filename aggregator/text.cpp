@@ -1843,7 +1843,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                         std::cout << "increasing spillfiles" << std::endl;
                         for (int i = 0; i < partitions; i++)
                         {
-                            spill_files->push_back(std::vector<std::pair<int, size_t>>(0));
+                            spill_files->push_back({});
                         }
 
                         //*spill_files = std::vector<std::vector<std::pair<int, size_t>>>(partitions);
@@ -3132,7 +3132,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
 
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmaps[threadNumber];
-    std::vector<std::vector<std::pair<int, size_t>>> spills= std::vector<std::vector<std::pair<int, size_t>>>(0);
+    std::vector<std::vector<std::pair<int, size_t>>> spills = std::vector<std::vector<std::pair<int, size_t>>>(0);
     std::atomic<unsigned long> numLines = 0;
     std::atomic<unsigned long> readBytes = 0;
     std::atomic<unsigned long> comb_hash_size = 0;
