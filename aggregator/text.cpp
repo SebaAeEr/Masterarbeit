@@ -88,6 +88,7 @@ unsigned long extra_mem = 0;
 unsigned long mainMem_usage = 0;
 bool deencode = true;
 bool mergePhase = false;
+bool set_partitions = true;
 unsigned long test_values[5];
 int partitions = 2;
 
@@ -600,6 +601,18 @@ unsigned long decode(std::vector<char> *in_stream)
     // spill.read(char_buf, sizeof(long));
     std::memcpy(&buf, &char_buf, sizeof(long));
     return buf;
+}
+
+void setPartitionNumber(size_t comb_hash_size)
+{
+    if (set_partitions)
+    {
+        partitions = ceil(comb_hash_size / 1000000);
+    }
+    else
+    {
+        partitions = 1;
+    }
 }
 
 void addFileToManag(Aws::S3::S3Client *minio_client, std::string &file_name, std::vector<std::pair<size_t, size_t>> file_size, size_t comb_file_size, char write_to_id, unsigned char fileStatus, char thread_id, char partition_id)
@@ -1819,6 +1832,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 unsigned long temp_spill_size = hmap->size() * (key_number + value_number) * sizeof(long);
                 spill_size += temp_spill_size;
                 comb_spill_size.fetch_add(temp_spill_size);
+                if (partitions == -1)
+                {
+                    setPartitionNumber(comb_hash_size);
+                }
 
                 if (memLimitMain > mainMem_usage + temp_spill_size - temp_local_spill_size)
                 {
