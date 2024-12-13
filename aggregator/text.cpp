@@ -2201,10 +2201,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     while (increase < size_after_init * 1024 * 100)
                     {
                         increase = (getPhyValue() - size_after_init) * 1024;
-                        // std::cout << "Stream buffer: " << increase << std::endl;
-                        extra_mem += increase;
-                        increase_size = false;
+                        std::cout << "Stream buffer: " << increase << std::endl;
                     }
+                    extra_mem += increase;
+                    increase_size = false;
                 }
                 while (spill.peek() != EOF)
                 {
