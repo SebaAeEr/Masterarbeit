@@ -863,11 +863,10 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     madvise(mappedoutputFile, output_size + start_diff, MADV_SEQUENTIAL | MADV_WILLNEED);
     if (mappedoutputFile == MAP_FAILED)
     {
-        struct stat stats;
-        stat("output_tpc_13_sup_small.json", &stats);
-        close(file);
-        std::cout << "Start: " << output_size << " + " << start_diff << " start_page: " << start_page << " filesize: " << stats.st_size << std::endl;
+
+        std::cout << "Start: " << output_size << " + " << start_diff << " start_page: " << start_page << " filehandler: " << file << std::endl;
         perror("Error mmapping the file in write Hashmap");
+        close(file);
         exit(EXIT_FAILURE);
     }
     unsigned long freed_mem = 0;
@@ -984,18 +983,25 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     // Calc spill size
     size_t spill_mem_size = hmap->size() * sizeof(long) * (key_number + value_number);
 
-    std::cout << "opening file " << fileName << std::endl;
     if ((*spill_file)[0].first == -1)
     {
         for (int i = 0; i < partitions; i++)
         {
+            std::cout << "opening file " << (fileName + "_" + std::to_string(i)) << std::endl;
             (*spill_file)[i].first = open((fileName + "_" + std::to_string(i)).c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+            if ((*spill_file)[i].first == -1)
+            {
+                std::cout << "Tying to open file " << (fileName + "_" + std::to_string(i)) << std::endl;
+                perror("Error opening file for writing");
+                exit(EXIT_FAILURE);
+            }
         }
     }
-    std::cout << "extending file " << fileName << std::endl;
+
     // extend file
     for (int i = 0; i < partitions; i++)
     {
+        std::cout << "extending file " << (fileName + "_" + std::to_string(i)) << " by " << (*spill_file)[i].second + spill_mem_size - 1 << std::endl;
         lseek((*spill_file)[i].first, (*spill_file)[i].second + spill_mem_size - 1, SEEK_SET);
         if (write((*spill_file)[i].first, "", 1) == -1)
         {
@@ -1892,7 +1898,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                         spill_file_name += "_";
                         spill_file_name += "spill";
                         mainMem_usage += temp_spill_size;
-                        std::vector<std::pair<int, size_t>> spill_file = std::vector<std::pair<int, size_t>>(partitions, {-1, 0});
+                        std::vector<std::pair<int, size_t>> spill_file(partitions, {-1, 0});
                         spillToFile(hmap, &spill_file, id, pagesize * 20, spill_file_name);
                         for (int i = 0; i < partitions; i++)
                         {
@@ -2537,7 +2543,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                             madvise(spill_map_char, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
                             input_head = 0;
                             offset = ((sum - it.second) + map_start);
-                            std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << std::endl;
+                            // std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << std::endl;
                         }
                         else
                         {
