@@ -1840,7 +1840,9 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     setPartitionNumber(comb_hash_size);
                     if (spill_files->size() == 0)
                     {
-                        spill_files->push_back(std::vector<std::pair<int, size_t>>(0));
+                        std::cout << "increasing spillfiles" << std::endl;
+                        *spill_files = std::vector<std::vector<std::pair<int, size_t>>>(partitions);
+                        std::cout << "test: " << (*spill_files)[0].size() << std::endl;
                     }
                 }
 
