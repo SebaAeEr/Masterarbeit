@@ -3127,7 +3127,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
 
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmaps[threadNumber];
-    std::vector<std::vector<std::pair<int, size_t>>> spills; //= std::vector<std::vector<std::pair<int, size_t>>>(partitions);
+    std::vector<std::vector<std::pair<int, size_t>>> = std::vector<std::vector<std::pair<int, size_t>>>(0);
     std::atomic<unsigned long> numLines = 0;
     std::atomic<unsigned long> readBytes = 0;
     std::atomic<unsigned long> comb_hash_size = 0;
