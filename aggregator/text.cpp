@@ -2134,7 +2134,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     }
     else
     {
-        std::cout << "Creating bitmaps" << std::endl;
         // not spilling bitmaps
         for (auto &name : *s3spillNames2)
         {
@@ -3330,7 +3329,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             std::cout << std::endl;
             std::string empty = "";
             std::cout << "output file head: " << output_file_head << std::endl;
-            merge(&emHashmap, &spills[i], comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitMain, &output_file_head, -1, 0, output_fd);
+            if (spills.size() == 0)
+            {
+                spills.push_back(std::vector<std::pair<int, size_t>>(0));
+            }
+            auto m_spill = spills.size() == 1 ? spills[0] : spills[i];
+            merge(&emHashmap, &m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitMain, &output_file_head, -1, 0, output_fd);
         }
 
         /* for (auto &name : *files)
