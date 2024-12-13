@@ -658,9 +658,8 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
     return;
 }
 
-std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id)
+void getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id, std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *files)
 {
-    std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *files = new std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>();
     manaFile mana = getMana(minio_client);
     for (auto &worker : mana.workers)
     {
@@ -681,7 +680,6 @@ std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>
             }
         }
     }
-    return files;
 }
 
 void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
@@ -2136,7 +2134,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     }
     else
     {
-
+        std::cout << "Creating bitmaps" << std::endl;
         // not spilling bitmaps
         for (auto &name : *s3spillNames2)
         {
@@ -2814,7 +2812,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             if (deencode)
             {
-                std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
+                std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " locked: " << locked << std::endl;
             }
             else
             {
@@ -3318,18 +3316,21 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         }
         writeMana(&minio_client, mana, true);
         size_t output_file_head = 0;
+        std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
         // printMana(&minio_client);
         for (char i = 0; i < partitions; i++)
         {
-            auto files = getAllMergeFileNames(&minio_client, i);
-            /* for (auto &name : *files)
+            files.clear();
+            std::cout << "getAllMergeFileNames" << std::endl;
+            getAllMergeFileNames(&minio_client, i, &files);
+            for (auto &name : files)
             {
                 std::cout << std::get<0>(name) << ", ";
             }
-            std::cout << std::endl; */
+            std::cout << std::endl;
             std::string empty = "";
-            merge(&emHashmap, &spills[i], comb_hash_size, &avg, memLimit, &diff, outputfilename, files, &minio_client, true, empty, memLimitMain, &output_file_head, -1, 0, output_fd);
-            delete files;
+            std::cout << "output file head: " << output_file_head << std::endl;
+            merge(&emHashmap, &spills[i], comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitMain, &output_file_head, -1, 0, output_fd);
         }
 
         /* for (auto &name : *files)
