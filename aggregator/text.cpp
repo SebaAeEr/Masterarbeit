@@ -686,7 +686,7 @@ void getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id, st
 void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
                       char beggarWorker, char partition_id, std::vector<std::string> *blacklist, std::tuple<std::vector<file>, char, char> *res, char thread_id, char file_num)
 {
-
+    std::cout << "getting file name" << std::endl;
     char given_beggarWorker = beggarWorker;
     file m_file;
     manaFile mana = getLockedMana(minio_client, thread_id);
@@ -767,8 +767,9 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
                                 }
                             }
                         }
-                        if(max > 0) {
-                        res_files.push_back(biggest_file);
+                        if (max > 0)
+                        {
+                            res_files.push_back(biggest_file);
                         }
                     }
                     break;
@@ -3022,6 +3023,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         uName += "_merge_" + std::to_string(counter);
 
         merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, memMainLimit, &zero, partition_id, beggarWorker);
+        std::cout << "Merge finished" << std::endl;
         if (hmap->size() == 0)
         {
             std::unordered_map<std::string, char> file_stati;
