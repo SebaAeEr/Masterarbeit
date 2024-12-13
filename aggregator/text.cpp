@@ -727,7 +727,7 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
         return;
     }
 
-    std::vector<file> res_files;
+    std::vector<file> res_files(0);
     for (auto &worker : mana.workers)
     {
         if (worker.id == beggarWorker)
@@ -766,7 +766,9 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
                                 }
                             }
                         }
+                        if(max > 0) {
                         res_files.push_back(biggest_file);
+                        }
                     }
                     break;
                 }
