@@ -1519,6 +1519,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     {
         for (int i = 0; i < partitions; i++)
         {
+            counter = 0;
             if (deencode)
             {
                 spillS3FileEncoded(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
@@ -1528,6 +1529,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
                 spillS3File(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
             }
         }
+        -
     }
     std::vector<std::pair<file, char>> files;
     for (char i = 0; i < partitions; i++)
