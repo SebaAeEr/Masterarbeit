@@ -2097,8 +2097,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     printProgressBar(0);
     size_t size_after_init = getPhyValue();
     bool increase_size = true;
-    std::vector<int> write_counter = std::vector<int>(partitions, 0);
-    std::vector<std::vector<std::pair<size_t, size_t>>> write_sizes = std::vector<std::vector<std::pair<size_t, size_t>>>(partitions);
+    std::vector<int> write_counter(partitions, 0);
+    std::vector<std::vector<std::pair<size_t, size_t>>> write_sizes(partitions);
     // char buffer[(int)((memLimit - size_after_init * 1024) * 0.1)];
 
     // std::cout << "buffer size: " << (memLimit - size_after_init * 1024) * 0.1 << std::endl;
@@ -2143,8 +2143,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             {
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = hmap->empty();
-                // std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
-                //    std::cout << "Start reading: " << (*set_it).first << std::endl;
+                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
@@ -3013,7 +3012,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         }
         beggarWorker = get<1>(files);
         partition_id = get<2>(files);
-        std::vector<std::pair<int, size_t>> empty;
+        std::vector<std::pair<int, size_t>> empty(0);
         std::cout << "Worker: " << beggarWorker << "; Partition: " << (int)(partition_id) << "; merging files: ";
         for (auto &merge_file : get<0>(files))
         {

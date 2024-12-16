@@ -59,4 +59,13 @@ Trino 2 Worker, 5.4GB Main, inf Background:
 1048
 5.51 MB/s, 22.9GB input
 1.84MB/s, 7.65GB output
+
+
+Newnew:
+1 Worker 4 Threads, 6 Main, 10 Back, 20Part:
+668s
+	merge: 330
+	scan: 165
+	merge:22s
+	
   
