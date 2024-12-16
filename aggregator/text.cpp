@@ -493,7 +493,7 @@ void printMana(Aws::S3::S3Client *minio_client)
         std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
         for (auto &partition : worker.partitions)
         {
-            std::cout << "  Partition: " << (int)(partition.id) << std::endl;
+            std::cout << "  Partition: " << (int)(partition.id) << ", locked: " << partition.lock << std::endl;
             for (auto &file : partition.files)
             {
                 std::cout << "    " << file.name << ": size: " << file.size << " worked on by: " << std::bitset<8>(file.status) << " subfiles:" << std::endl;
@@ -2181,7 +2181,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     outcome = minio_client->GetObject(request);
                     if (!outcome.IsSuccess())
                     {
-                        std::cout << "GetObject error " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " " << outcome.GetError().GetMessage() << std::endl;
+                        std::cout << "GetObject error " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter - 1) << " " << outcome.GetError().GetMessage() << std::endl;
                     }
                     else
                     {
@@ -3093,19 +3093,40 @@ char getMergePartition(Aws::S3::S3Client *minio_client)
 {
     manaFile mana = getLockedMana(minio_client, 0);
     int min_fileNumber = 100000;
+    int b_min_fileNumber = 100000;
     char partition = -1;
+    char partition_b = -1;
     for (auto &w : mana.workers)
     {
         if (worker_id == w.id)
         {
             for (auto &p : w.partitions)
             {
+                int temp_fileNumber = 0;
+                bool b_part = false;
                 if (!p.lock)
                 {
-                    if (min_fileNumber > p.files.size())
+                    for (auto &p_file : p.files)
+                    {
+                        if (p_file.status == 0)
+                        {
+                            temp_fileNumber++;
+                        }
+                        else if (p_file.status != 255)
+                        {
+                            b_part = true;
+                            temp_fileNumber++;
+                        }
+                    }
+                    if (!b_part && min_fileNumber > temp_fileNumber)
                     {
                         partition = p.id;
-                        min_fileNumber = p.files.size();
+                        min_fileNumber = temp_fileNumber;
+                    }
+                    else if (b_part && b_min_fileNumber > temp_fileNumber)
+                    {
+                        partition_b = p.id;
+                        b_min_fileNumber = temp_fileNumber;
                     }
                 }
             }
@@ -3114,8 +3135,15 @@ char getMergePartition(Aws::S3::S3Client *minio_client)
     }
     if (partition == -1)
     {
-        writeMana(minio_client, mana, true);
-        return partition;
+        if (partition_b == -1)
+        {
+            writeMana(minio_client, mana, true);
+            return partition;
+        }
+        else
+        {
+            partition = partition_b;
+        }
     }
     for (auto &w : mana.workers)
     {

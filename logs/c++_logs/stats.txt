@@ -66,6 +66,12 @@ Newnew:
 668s
 	merge: 330
 	scan: 165
-	merge:22s
+	merge hmap :22s
 	
+
+2 Worker 4 Threads, 6 main, 0 Back, 20Part:
+1077s
+	merge: 432
+	scan: 585
+	merge hmap: 43
   

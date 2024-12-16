@@ -1,9 +1,1491 @@
-table scan:
-direct spill into s3 every xth partition
-aggregation:
-spill to s3 to use first results ??
-spill for dynamic scaling
-order by:
-spill to merge -> merge spill to disk
-
-Spill non relevant coloumns for operations and merge them with the result once in the end
+erasmus@atkemper4:/hddSpace/erasmus/Masterarbeit/aggregator/build$ ./aggregator status
+worker lock: free, thread lock: 00000000
+Worker id: 1 locked: 0
+  Partition: 0
+    1_0_0_0: size: 10083891 worked on by: 00000000 subfiles:
+      size: 10083891 #tuples: 924363
+    1_2_0_0: size: 11409438 worked on by: 00000000 subfiles:
+      size: 11409438 #tuples: 1045883
+    1_1_0_0: size: 13467216 worked on by: 00000000 subfiles:
+      size: 13467216 #tuples: 1234489
+    1_3_0_0: size: 14543345 worked on by: 00000000 subfiles:
+      size: 14543345 #tuples: 1333125
+    1_0_1_0: size: 13463821 worked on by: 00000000 subfiles:
+      size: 13463821 #tuples: 1234155
+    1_2_1_0: size: 13836778 worked on by: 00000000 subfiles:
+      size: 13836778 #tuples: 1268346
+    1_1_1_0: size: 13914784 worked on by: 00000000 subfiles:
+      size: 13914784 #tuples: 1275452
+    1_3_1_0: size: 13638997 worked on by: 00000000 subfiles:
+      size: 13638997 #tuples: 1250235
+    1_0_2_0: size: 13687611 worked on by: 00000000 subfiles:
+      size: 13687611 #tuples: 1254747
+    1_2_2_0: size: 14011852 worked on by: 00000000 subfiles:
+      size: 14011852 #tuples: 1284418
+    1_1_2_0: size: 13858400 worked on by: 00000000 subfiles:
+      size: 13858400 #tuples: 1270336
+    1_0_3_0: size: 14017621 worked on by: 00000000 subfiles:
+      size: 14017621 #tuples: 1284913
+    1_3_2_0: size: 13994636 worked on by: 00000000 subfiles:
+      size: 13994636 #tuples: 1282799
+    1_2_3_0: size: 13681097 worked on by: 00000000 subfiles:
+      size: 13681097 #tuples: 1254091
+    1_1_3_0: size: 14049096 worked on by: 00000000 subfiles:
+      size: 14049096 #tuples: 1287780
+    1_0_4_0: size: 13999696 worked on by: 00000000 subfiles:
+      size: 13999696 #tuples: 1283304
+    1_3_3_0: size: 13776725 worked on by: 00000000 subfiles:
+      size: 13776725 #tuples: 1262808
+    1_2_4_0: size: 13783205 worked on by: 00000000 subfiles:
+      size: 13783205 #tuples: 1263443
+    1_1_4_0: size: 14155206 worked on by: 00000000 subfiles:
+      size: 14155206 #tuples: 1297542
+    1_0_5_0: size: 14144982 worked on by: 00000000 subfiles:
+      size: 14144982 #tuples: 1296585
+    1_2_5_0: size: 14049655 worked on by: 00000000 subfiles:
+      size: 14049655 #tuples: 1287895
+    1_3_4_0: size: 14061768 worked on by: 00000000 subfiles:
+      size: 14061768 #tuples: 1288987
+    1_1_5_0: size: 13975691 worked on by: 00000000 subfiles:
+      size: 13975691 #tuples: 1281036
+    1_0_6_0: size: 14057747 worked on by: 00000000 subfiles:
+      size: 14057747 #tuples: 1288585
+    1_2_6_0: size: 14182662 worked on by: 00000000 subfiles:
+      size: 14182662 #tuples: 1300053
+    1_3_5_0: size: 14113122 worked on by: 00000000 subfiles:
+      size: 14113122 #tuples: 1293632
+    1_1_6_0: size: 13942824 worked on by: 00000000 subfiles:
+      size: 13942824 #tuples: 1277997
+    1_0_7_0: size: 13950483 worked on by: 00000000 subfiles:
+      size: 13950483 #tuples: 1278782
+    1_2_7_0: size: 14207858 worked on by: 00000000 subfiles:
+      size: 14207858 #tuples: 1302366
+    1_3_6_0: size: 14108446 worked on by: 00000000 subfiles:
+      size: 14108446 #tuples: 1293239
+    1_1_7_0: size: 13961546 worked on by: 00000000 subfiles:
+      size: 13961546 #tuples: 1279800
+    1_3_7_0: size: 14262827 worked on by: 00000000 subfiles:
+      size: 14262827 #tuples: 1307433
+    spill_3_0: size: 6269701 worked on by: 00000000 subfiles:
+      size: 6269701 #tuples: 574716
+    spill_2_0: size: 10352919 worked on by: 00000000 subfiles:
+      size: 10352919 #tuples: 949010
+    spill_1_0: size: 8140382 worked on by: 00000000 subfiles:
+      size: 8140382 #tuples: 746218
+    spill_0_0: size: 12127821 worked on by: 00000000 subfiles:
+      size: 12127821 #tuples: 1111726
+  Partition: 1
+    1_0_0_1: size: 10085246 worked on by: 00000000 subfiles:
+      size: 10085246 #tuples: 924473
+    1_2_0_1: size: 11409546 worked on by: 00000000 subfiles:
+      size: 11409546 #tuples: 1045875
+    1_1_0_1: size: 13452633 worked on by: 00000000 subfiles:
+      size: 13452633 #tuples: 1233204
+    1_3_0_1: size: 14558005 worked on by: 00000000 subfiles:
+      size: 14558005 #tuples: 1334518
+    1_0_1_1: size: 13471911 worked on by: 00000000 subfiles:
+      size: 13471911 #tuples: 1234901
+    1_2_1_1: size: 13822302 worked on by: 00000000 subfiles:
+      size: 13822302 #tuples: 1267003
+    1_1_1_1: size: 13912439 worked on by: 00000000 subfiles:
+      size: 13912439 #tuples: 1275318
+    1_3_1_1: size: 13608857 worked on by: 00000000 subfiles:
+      size: 13608857 #tuples: 1247470
+    1_0_2_1: size: 13686366 worked on by: 00000000 subfiles:
+      size: 13686366 #tuples: 1254550
+    1_2_2_1: size: 14038052 worked on by: 00000000 subfiles:
+      size: 14038052 #tuples: 1286807
+    1_1_2_1: size: 13860494 worked on by: 00000000 subfiles:
+      size: 13860494 #tuples: 1270476
+    1_0_3_1: size: 14031006 worked on by: 00000000 subfiles:
+      size: 14031006 #tuples: 1286166
+    1_3_2_1: size: 14012318 worked on by: 00000000 subfiles:
+      size: 14012318 #tuples: 1284477
+    1_2_3_1: size: 13665513 worked on by: 00000000 subfiles:
+      size: 13665513 #tuples: 1252710
+    1_1_3_1: size: 14069501 worked on by: 00000000 subfiles:
+      size: 14069501 #tuples: 1289707
+    1_0_4_1: size: 14033503 worked on by: 00000000 subfiles:
+      size: 14033503 #tuples: 1286411
+    1_3_3_1: size: 13801937 worked on by: 00000000 subfiles:
+      size: 13801937 #tuples: 1265196
+    1_2_4_1: size: 13796755 worked on by: 00000000 subfiles:
+      size: 13796755 #tuples: 1264717
+    1_1_4_1: size: 14121195 worked on by: 00000000 subfiles:
+      size: 14121195 #tuples: 1294441
+    1_0_5_1: size: 14132081 worked on by: 00000000 subfiles:
+      size: 14132081 #tuples: 1295454
+    1_2_5_1: size: 14045328 worked on by: 00000000 subfiles:
+      size: 14045328 #tuples: 1287468
+    1_3_4_1: size: 14072603 worked on by: 00000000 subfiles:
+      size: 14072603 #tuples: 1289950
+    1_1_5_1: size: 13986478 worked on by: 00000000 subfiles:
+      size: 13986478 #tuples: 1282108
+    1_0_6_1: size: 14037482 worked on by: 00000000 subfiles:
+      size: 14037482 #tuples: 1286778
+    1_2_6_1: size: 14185925 worked on by: 00000000 subfiles:
+      size: 14185925 #tuples: 1300333
+    1_3_5_1: size: 14105080 worked on by: 00000000 subfiles:
+      size: 14105080 #tuples: 1293002
+    1_1_6_1: size: 13954595 worked on by: 00000000 subfiles:
+      size: 13954595 #tuples: 1279191
+    1_0_7_1: size: 13949427 worked on by: 00000000 subfiles:
+      size: 13949427 #tuples: 1278726
+    1_2_7_1: size: 14197095 worked on by: 00000000 subfiles:
+      size: 14197095 #tuples: 1301345
+    1_3_6_1: size: 14119955 worked on by: 00000000 subfiles:
+      size: 14119955 #tuples: 1294342
+    1_1_7_1: size: 13961056 worked on by: 00000000 subfiles:
+      size: 13961056 #tuples: 1279762
+    1_3_7_1: size: 14264241 worked on by: 00000000 subfiles:
+      size: 14264241 #tuples: 1307522
+    spill_3_1: size: 6272937 worked on by: 00000000 subfiles:
+      size: 6272937 #tuples: 575055
+    spill_2_1: size: 10372722 worked on by: 00000000 subfiles:
+      size: 10372722 #tuples: 950859
+    spill_1_1: size: 8145360 worked on by: 00000000 subfiles:
+      size: 8145360 #tuples: 746635
+    spill_0_1: size: 12119426 worked on by: 00000000 subfiles:
+      size: 12119426 #tuples: 1110936
+  Partition: 2
+    1_0_0_2: size: 10069972 worked on by: 00000000 subfiles:
+      size: 10069972 #tuples: 923080
+    1_2_0_2: size: 11401666 worked on by: 00000000 subfiles:
+      size: 11401666 #tuples: 1045110
+    1_1_0_2: size: 13441063 worked on by: 00000000 subfiles:
+      size: 13441063 #tuples: 1232121
+    1_3_0_2: size: 14551354 worked on by: 00000000 subfiles:
+      size: 14551354 #tuples: 1333840
+    1_0_1_2: size: 13449679 worked on by: 00000000 subfiles:
+      size: 13449679 #tuples: 1232886
+    1_2_1_2: size: 13824743 worked on by: 00000000 subfiles:
+      size: 13824743 #tuples: 1267264
+    1_1_1_2: size: 13900205 worked on by: 00000000 subfiles:
+      size: 13900205 #tuples: 1274185
+    1_3_1_2: size: 13598153 worked on by: 00000000 subfiles:
+      size: 13598153 #tuples: 1246500
+    1_0_2_2: size: 13661395 worked on by: 00000000 subfiles:
+      size: 13661395 #tuples: 1252283
+    1_2_2_2: size: 13999454 worked on by: 00000000 subfiles:
+      size: 13999454 #tuples: 1283289
+    1_1_2_2: size: 13853344 worked on by: 00000000 subfiles:
+      size: 13853344 #tuples: 1269877
+    1_0_3_2: size: 13989982 worked on by: 00000000 subfiles:
+      size: 13989982 #tuples: 1282367
+    1_3_2_2: size: 13996479 worked on by: 00000000 subfiles:
+      size: 13996479 #tuples: 1282981
+    1_2_3_2: size: 13673163 worked on by: 00000000 subfiles:
+      size: 13673163 #tuples: 1253370
+    1_1_3_2: size: 14066746 worked on by: 00000000 subfiles:
+      size: 14066746 #tuples: 1289455
+    1_0_4_2: size: 14012791 worked on by: 00000000 subfiles:
+      size: 14012791 #tuples: 1284522
+    1_3_3_2: size: 13781740 worked on by: 00000000 subfiles:
+      size: 13781740 #tuples: 1263297
+    1_2_4_2: size: 13781268 worked on by: 00000000 subfiles:
+      size: 13781268 #tuples: 1263273
+    1_1_4_2: size: 14135774 worked on by: 00000000 subfiles:
+      size: 14135774 #tuples: 1295770
+    1_0_5_2: size: 14109261 worked on by: 00000000 subfiles:
+      size: 14109261 #tuples: 1293318
+    1_2_5_2: size: 14036310 worked on by: 00000000 subfiles:
+      size: 14036310 #tuples: 1286618
+    1_3_4_2: size: 14037109 worked on by: 00000000 subfiles:
+      size: 14037109 #tuples: 1286744
+    1_1_5_2: size: 13953935 worked on by: 00000000 subfiles:
+      size: 13953935 #tuples: 1279130
+    1_0_6_2: size: 14043426 worked on by: 00000000 subfiles:
+      size: 14043426 #tuples: 1287233
+    1_2_6_2: size: 14166590 worked on by: 00000000 subfiles:
+      size: 14166590 #tuples: 1298577
+    1_3_5_2: size: 14102750 worked on by: 00000000 subfiles:
+      size: 14102750 #tuples: 1292767
+    1_1_6_2: size: 13955067 worked on by: 00000000 subfiles:
+      size: 13955067 #tuples: 1279196
+    1_0_7_2: size: 13948279 worked on by: 00000000 subfiles:
+      size: 13948279 #tuples: 1278563
+    1_2_7_2: size: 14192924 worked on by: 00000000 subfiles:
+      size: 14192924 #tuples: 1301022
+    1_3_6_2: size: 14115417 worked on by: 00000000 subfiles:
+      size: 14115417 #tuples: 1293881
+    1_1_7_2: size: 13946468 worked on by: 00000000 subfiles:
+      size: 13946468 #tuples: 1278439
+    1_3_7_2: size: 14251047 worked on by: 00000000 subfiles:
+      size: 14251047 #tuples: 1306323
+    spill_3_2: size: 6286507 worked on by: 00000000 subfiles:
+      size: 6286507 #tuples: 576287
+    spill_2_2: size: 10360304 worked on by: 00000000 subfiles:
+      size: 10360304 #tuples: 949734
+    spill_1_2: size: 8129724 worked on by: 00000000 subfiles:
+      size: 8129724 #tuples: 745207
+    spill_0_2: size: 12130885 worked on by: 00000000 subfiles:
+      size: 12130885 #tuples: 1111971
+  Partition: 3
+    1_0_0_3: size: 10081089 worked on by: 00000000 subfiles:
+      size: 10081089 #tuples: 924074
+    1_2_0_3: size: 11406841 worked on by: 00000000 subfiles:
+      size: 11406841 #tuples: 1045657
+    1_1_0_3: size: 13469186 worked on by: 00000000 subfiles:
+      size: 13469186 #tuples: 1234692
+    1_3_0_3: size: 14546062 worked on by: 00000000 subfiles:
+      size: 14546062 #tuples: 1333375
+    1_0_1_3: size: 13471326 worked on by: 00000000 subfiles:
+      size: 13471326 #tuples: 1234838
+    1_2_1_3: size: 13816360 worked on by: 00000000 subfiles:
+      size: 13816360 #tuples: 1266462
+    1_1_1_3: size: 13907483 worked on by: 00000000 subfiles:
+      size: 13907483 #tuples: 1274829
+    1_3_1_3: size: 13623700 worked on by: 00000000 subfiles:
+      size: 13623700 #tuples: 1248861
+    1_0_2_3: size: 13646517 worked on by: 00000000 subfiles:
+      size: 13646517 #tuples: 1250920
+    1_2_2_3: size: 14005385 worked on by: 00000000 subfiles:
+      size: 14005385 #tuples: 1283865
+    1_1_2_3: size: 13850055 worked on by: 00000000 subfiles:
+      size: 13850055 #tuples: 1269617
+    1_0_3_3: size: 14007010 worked on by: 00000000 subfiles:
+      size: 14007010 #tuples: 1283930
+    1_3_2_3: size: 13980208 worked on by: 00000000 subfiles:
+      size: 13980208 #tuples: 1281497
+    1_2_3_3: size: 13669426 worked on by: 00000000 subfiles:
+      size: 13669426 #tuples: 1252954
+    1_1_3_3: size: 14047254 worked on by: 00000000 subfiles:
+      size: 14047254 #tuples: 1287667
+    1_0_4_3: size: 14012290 worked on by: 00000000 subfiles:
+      size: 14012290 #tuples: 1284434
+    1_3_3_3: size: 13775950 worked on by: 00000000 subfiles:
+      size: 13775950 #tuples: 1262814
+    1_2_4_3: size: 13811584 worked on by: 00000000 subfiles:
+      size: 13811584 #tuples: 1266101
+    1_1_4_3: size: 14141848 worked on by: 00000000 subfiles:
+      size: 14141848 #tuples: 1296317
+    1_0_5_3: size: 14119566 worked on by: 00000000 subfiles:
+      size: 14119566 #tuples: 1294297
+    1_2_5_3: size: 14037005 worked on by: 00000000 subfiles:
+      size: 14037005 #tuples: 1286710
+    1_3_4_3: size: 14032582 worked on by: 00000000 subfiles:
+      size: 14032582 #tuples: 1286308
+    1_1_5_3: size: 13971893 worked on by: 00000000 subfiles:
+      size: 13971893 #tuples: 1280731
+    1_0_6_3: size: 14037454 worked on by: 00000000 subfiles:
+      size: 14037454 #tuples: 1286759
+    1_2_6_3: size: 14174300 worked on by: 00000000 subfiles:
+      size: 14174300 #tuples: 1299316
+    1_3_5_3: size: 14120361 worked on by: 00000000 subfiles:
+      size: 14120361 #tuples: 1294270
+    1_1_6_3: size: 13948990 worked on by: 00000000 subfiles:
+      size: 13948990 #tuples: 1278695
+    1_0_7_3: size: 13930340 worked on by: 00000000 subfiles:
+      size: 13930340 #tuples: 1276892
+    1_2_7_3: size: 14175415 worked on by: 00000000 subfiles:
+      size: 14175415 #tuples: 1299369
+    1_3_6_3: size: 14115463 worked on by: 00000000 subfiles:
+      size: 14115463 #tuples: 1293952
+    1_1_7_3: size: 13948837 worked on by: 00000000 subfiles:
+      size: 13948837 #tuples: 1278633
+    1_3_7_3: size: 14230807 worked on by: 00000000 subfiles:
+      size: 14230807 #tuples: 1304467
+    spill_3_3: size: 6277127 worked on by: 00000000 subfiles:
+      size: 6277127 #tuples: 575376
+    spill_2_3: size: 10364731 worked on by: 00000000 subfiles:
+      size: 10364731 #tuples: 950067
+    spill_1_3: size: 8142416 worked on by: 00000000 subfiles:
+      size: 8142416 #tuples: 746331
+    spill_0_3: size: 12144798 worked on by: 00000000 subfiles:
+      size: 12144798 #tuples: 1113252
+  Partition: 4
+    1_0_0_4: size: 10082276 worked on by: 00000000 subfiles:
+      size: 10082276 #tuples: 924233
+    1_2_0_4: size: 11405083 worked on by: 00000000 subfiles:
+      size: 11405083 #tuples: 1045432
+    1_1_0_4: size: 13463692 worked on by: 00000000 subfiles:
+      size: 13463692 #tuples: 1234165
+    1_3_0_4: size: 14552499 worked on by: 00000000 subfiles:
+      size: 14552499 #tuples: 1333997
+    1_0_1_4: size: 13455469 worked on by: 00000000 subfiles:
+      size: 13455469 #tuples: 1233370
+    1_2_1_4: size: 13841314 worked on by: 00000000 subfiles:
+      size: 13841314 #tuples: 1268789
+    1_1_1_4: size: 13934009 worked on by: 00000000 subfiles:
+      size: 13934009 #tuples: 1277303
+    1_3_1_4: size: 13638651 worked on by: 00000000 subfiles:
+      size: 13638651 #tuples: 1250187
+    1_0_2_4: size: 13687954 worked on by: 00000000 subfiles:
+      size: 13687954 #tuples: 1254716
+    1_2_2_4: size: 14012863 worked on by: 00000000 subfiles:
+      size: 14012863 #tuples: 1284525
+    1_1_2_4: size: 13871847 worked on by: 00000000 subfiles:
+      size: 13871847 #tuples: 1271522
+    1_0_3_4: size: 13995198 worked on by: 00000000 subfiles:
+      size: 13995198 #tuples: 1282883
+    1_3_2_4: size: 14032445 worked on by: 00000000 subfiles:
+      size: 14032445 #tuples: 1286306
+    1_2_3_4: size: 13682554 worked on by: 00000000 subfiles:
+      size: 13682554 #tuples: 1254264
+    1_1_3_4: size: 14056838 worked on by: 00000000 subfiles:
+      size: 14056838 #tuples: 1288528
+    1_0_4_4: size: 14029427 worked on by: 00000000 subfiles:
+      size: 14029427 #tuples: 1286028
+    1_3_3_4: size: 13786751 worked on by: 00000000 subfiles:
+      size: 13786751 #tuples: 1263781
+    1_2_4_4: size: 13785742 worked on by: 00000000 subfiles:
+      size: 13785742 #tuples: 1263659
+    1_1_4_4: size: 14128859 worked on by: 00000000 subfiles:
+      size: 14128859 #tuples: 1295120
+    1_0_5_4: size: 14124317 worked on by: 00000000 subfiles:
+      size: 14124317 #tuples: 1294716
+    1_2_5_4: size: 14055329 worked on by: 00000000 subfiles:
+      size: 14055329 #tuples: 1288462
+    1_3_4_4: size: 14041327 worked on by: 00000000 subfiles:
+      size: 14041327 #tuples: 1287145
+    1_1_5_4: size: 13976086 worked on by: 00000000 subfiles:
+      size: 13976086 #tuples: 1281119
+    1_0_6_4: size: 14053217 worked on by: 00000000 subfiles:
+      size: 14053217 #tuples: 1288221
+    1_2_6_4: size: 14188156 worked on by: 00000000 subfiles:
+      size: 14188156 #tuples: 1300579
+    1_3_5_4: size: 14129045 worked on by: 00000000 subfiles:
+      size: 14129045 #tuples: 1295188
+    1_1_6_4: size: 13961368 worked on by: 00000000 subfiles:
+      size: 13961368 #tuples: 1279819
+    1_0_7_4: size: 13959609 worked on by: 00000000 subfiles:
+      size: 13959609 #tuples: 1279640
+    1_2_7_4: size: 14224975 worked on by: 00000000 subfiles:
+      size: 14224975 #tuples: 1303957
+    1_3_6_4: size: 14115064 worked on by: 00000000 subfiles:
+      size: 14115064 #tuples: 1293840
+    1_1_7_4: size: 13971847 worked on by: 00000000 subfiles:
+      size: 13971847 #tuples: 1280779
+    1_3_7_4: size: 14263926 worked on by: 00000000 subfiles:
+      size: 14263926 #tuples: 1307534
+    spill_3_4: size: 6269032 worked on by: 00000000 subfiles:
+      size: 6269032 #tuples: 574669
+    spill_2_4: size: 10378631 worked on by: 00000000 subfiles:
+      size: 10378631 #tuples: 951359
+    spill_1_4: size: 8151783 worked on by: 00000000 subfiles:
+      size: 8151783 #tuples: 747236
+    spill_0_4: size: 12143845 worked on by: 00000000 subfiles:
+      size: 12143845 #tuples: 1113193
+  Partition: 5
+    1_0_0_5: size: 10064935 worked on by: 00000000 subfiles:
+      size: 10064935 #tuples: 922583
+    1_2_0_5: size: 11391040 worked on by: 00000000 subfiles:
+      size: 11391040 #tuples: 1044157
+    1_1_0_5: size: 13451683 worked on by: 00000000 subfiles:
+      size: 13451683 #tuples: 1233000
+    1_3_0_5: size: 14549023 worked on by: 00000000 subfiles:
+      size: 14549023 #tuples: 1333642
+    1_0_1_5: size: 13468106 worked on by: 00000000 subfiles:
+      size: 13468106 #tuples: 1234527
+    1_2_1_5: size: 13836693 worked on by: 00000000 subfiles:
+      size: 13836693 #tuples: 1268336
+    1_1_1_5: size: 13927598 worked on by: 00000000 subfiles:
+      size: 13927598 #tuples: 1276668
+    1_3_1_5: size: 13618292 worked on by: 00000000 subfiles:
+      size: 13618292 #tuples: 1248335
+    1_0_2_5: size: 13665652 worked on by: 00000000 subfiles:
+      size: 13665652 #tuples: 1252615
+    1_2_2_5: size: 13998484 worked on by: 00000000 subfiles:
+      size: 13998484 #tuples: 1283137
+    1_1_2_5: size: 13863851 worked on by: 00000000 subfiles:
+      size: 13863851 #tuples: 1270821
+    1_0_3_5: size: 14007068 worked on by: 00000000 subfiles:
+      size: 14007068 #tuples: 1283962
+    1_3_2_5: size: 13990091 worked on by: 00000000 subfiles:
+      size: 13990091 #tuples: 1282426
+    1_2_3_5: size: 13666649 worked on by: 00000000 subfiles:
+      size: 13666649 #tuples: 1252751
+    1_1_3_5: size: 14057745 worked on by: 00000000 subfiles:
+      size: 14057745 #tuples: 1288604
+    1_0_4_5: size: 14013284 worked on by: 00000000 subfiles:
+      size: 14013284 #tuples: 1284504
+    1_3_3_5: size: 13755508 worked on by: 00000000 subfiles:
+      size: 13755508 #tuples: 1260901
+    1_2_4_5: size: 13777082 worked on by: 00000000 subfiles:
+      size: 13777082 #tuples: 1262900
+    1_1_4_5: size: 14123257 worked on by: 00000000 subfiles:
+      size: 14123257 #tuples: 1294642
+    1_0_5_5: size: 14124815 worked on by: 00000000 subfiles:
+      size: 14124815 #tuples: 1294723
+    1_2_5_5: size: 14069417 worked on by: 00000000 subfiles:
+      size: 14069417 #tuples: 1289660
+    1_3_4_5: size: 14031393 worked on by: 00000000 subfiles:
+      size: 14031393 #tuples: 1286213
+    1_1_5_5: size: 13996149 worked on by: 00000000 subfiles:
+      size: 13996149 #tuples: 1282921
+    1_0_6_5: size: 14056264 worked on by: 00000000 subfiles:
+      size: 14056264 #tuples: 1288403
+    1_2_6_5: size: 14189973 worked on by: 00000000 subfiles:
+      size: 14189973 #tuples: 1300718
+    1_3_5_5: size: 14132119 worked on by: 00000000 subfiles:
+      size: 14132119 #tuples: 1295436
+    1_1_6_5: size: 13932020 worked on by: 00000000 subfiles:
+      size: 13932020 #tuples: 1277047
+    1_0_7_5: size: 13945792 worked on by: 00000000 subfiles:
+      size: 13945792 #tuples: 1278385
+    1_2_7_5: size: 14197783 worked on by: 00000000 subfiles:
+      size: 14197783 #tuples: 1301387
+    1_3_6_5: size: 14101683 worked on by: 00000000 subfiles:
+      size: 14101683 #tuples: 1292629
+    1_1_7_5: size: 13938792 worked on by: 00000000 subfiles:
+      size: 13938792 #tuples: 1277698
+    1_3_7_5: size: 14280456 worked on by: 00000000 subfiles:
+      size: 14280456 #tuples: 1309025
+    spill_3_5: size: 6250576 worked on by: 00000000 subfiles:
+      size: 6250576 #tuples: 572954
+    spill_2_5: size: 10358977 worked on by: 00000000 subfiles:
+      size: 10358977 #tuples: 949539
+    spill_1_5: size: 8146163 worked on by: 00000000 subfiles:
+      size: 8146163 #tuples: 746720
+    spill_0_5: size: 12124261 worked on by: 00000000 subfiles:
+      size: 12124261 #tuples: 1111340
+  Partition: 6
+    1_0_0_6: size: 10070072 worked on by: 00000000 subfiles:
+      size: 10070072 #tuples: 923104
+    1_2_0_6: size: 11407930 worked on by: 00000000 subfiles:
+      size: 11407930 #tuples: 1045749
+    1_1_0_6: size: 13456642 worked on by: 00000000 subfiles:
+      size: 13456642 #tuples: 1233502
+    1_3_0_6: size: 14552589 worked on by: 00000000 subfiles:
+      size: 14552589 #tuples: 1334015
+    1_0_1_6: size: 13464929 worked on by: 00000000 subfiles:
+      size: 13464929 #tuples: 1234297
+    1_2_1_6: size: 13827471 worked on by: 00000000 subfiles:
+      size: 13827471 #tuples: 1267506
+    1_1_1_6: size: 13942656 worked on by: 00000000 subfiles:
+      size: 13942656 #tuples: 1278093
+    1_3_1_6: size: 13638535 worked on by: 00000000 subfiles:
+      size: 13638535 #tuples: 1250186
+    1_0_2_6: size: 13691209 worked on by: 00000000 subfiles:
+      size: 13691209 #tuples: 1255006
+    1_2_2_6: size: 14002441 worked on by: 00000000 subfiles:
+      size: 14002441 #tuples: 1283560
+    1_1_2_6: size: 13867732 worked on by: 00000000 subfiles:
+      size: 13867732 #tuples: 1271212
+    1_0_3_6: size: 13992067 worked on by: 00000000 subfiles:
+      size: 13992067 #tuples: 1282625
+    1_3_2_6: size: 13990609 worked on by: 00000000 subfiles:
+      size: 13990609 #tuples: 1282505
+    1_2_3_6: size: 13681454 worked on by: 00000000 subfiles:
+      size: 13681454 #tuples: 1254173
+    1_1_3_6: size: 14063003 worked on by: 00000000 subfiles:
+      size: 14063003 #tuples: 1289146
+    1_0_4_6: size: 14002274 worked on by: 00000000 subfiles:
+      size: 14002274 #tuples: 1283543
+    1_3_3_6: size: 13770447 worked on by: 00000000 subfiles:
+      size: 13770447 #tuples: 1262335
+    1_2_4_6: size: 13799794 worked on by: 00000000 subfiles:
+      size: 13799794 #tuples: 1264975
+    1_1_4_6: size: 14134002 worked on by: 00000000 subfiles:
+      size: 14134002 #tuples: 1295646
+    1_0_5_6: size: 14130847 worked on by: 00000000 subfiles:
+      size: 14130847 #tuples: 1295353
+    1_2_5_6: size: 14021748 worked on by: 00000000 subfiles:
+      size: 14021748 #tuples: 1285343
+    1_3_4_6: size: 14066106 worked on by: 00000000 subfiles:
+      size: 14066106 #tuples: 1289410
+    1_1_5_6: size: 13973771 worked on by: 00000000 subfiles:
+      size: 13973771 #tuples: 1280987
+    1_0_6_6: size: 14040812 worked on by: 00000000 subfiles:
+      size: 14040812 #tuples: 1287095
+    1_2_6_6: size: 14156597 worked on by: 00000000 subfiles:
+      size: 14156597 #tuples: 1297730
+    1_3_5_6: size: 14108747 worked on by: 00000000 subfiles:
+      size: 14108747 #tuples: 1293317
+    1_1_6_6: size: 13948568 worked on by: 00000000 subfiles:
+      size: 13948568 #tuples: 1278592
+    1_0_7_6: size: 13936785 worked on by: 00000000 subfiles:
+      size: 13936785 #tuples: 1277578
+    1_2_7_6: size: 14206648 worked on by: 00000000 subfiles:
+      size: 14206648 #tuples: 1302307
+    1_3_6_6: size: 14113041 worked on by: 00000000 subfiles:
+      size: 14113041 #tuples: 1293714
+    1_1_7_6: size: 13945439 worked on by: 00000000 subfiles:
+      size: 13945439 #tuples: 1278379
+    1_3_7_6: size: 14244059 worked on by: 00000000 subfiles:
+      size: 14244059 #tuples: 1305751
+    spill_3_6: size: 6280518 worked on by: 00000000 subfiles:
+      size: 6280518 #tuples: 575715
+    spill_2_6: size: 10352826 worked on by: 00000000 subfiles:
+      size: 10352826 #tuples: 948996
+    spill_1_6: size: 8134118 worked on by: 00000000 subfiles:
+      size: 8134118 #tuples: 745646
+    spill_0_6: size: 12121728 worked on by: 00000000 subfiles:
+      size: 12121728 #tuples: 1111153
+  Partition: 7
+    1_0_0_7: size: 10081757 worked on by: 00000000 subfiles:
+      size: 10081757 #tuples: 924128
+    1_2_0_7: size: 11424472 worked on by: 00000000 subfiles:
+      size: 11424472 #tuples: 1047218
+    1_1_0_7: size: 13464195 worked on by: 00000000 subfiles:
+      size: 13464195 #tuples: 1234226
+    1_3_0_7: size: 14555995 worked on by: 00000000 subfiles:
+      size: 14555995 #tuples: 1334283
+    1_0_1_7: size: 13448786 worked on by: 00000000 subfiles:
+      size: 13448786 #tuples: 1232801
+    1_2_1_7: size: 13825142 worked on by: 00000000 subfiles:
+      size: 13825142 #tuples: 1267274
+    1_1_1_7: size: 13952790 worked on by: 00000000 subfiles:
+      size: 13952790 #tuples: 1278981
+    1_3_1_7: size: 13638718 worked on by: 00000000 subfiles:
+      size: 13638718 #tuples: 1250161
+    1_0_2_7: size: 13684469 worked on by: 00000000 subfiles:
+      size: 13684469 #tuples: 1254327
+    1_2_2_7: size: 13995981 worked on by: 00000000 subfiles:
+      size: 13995981 #tuples: 1282922
+    1_1_2_7: size: 13861337 worked on by: 00000000 subfiles:
+      size: 13861337 #tuples: 1270611
+    1_0_3_7: size: 14016006 worked on by: 00000000 subfiles:
+      size: 14016006 #tuples: 1284784
+    1_3_2_7: size: 14014055 worked on by: 00000000 subfiles:
+      size: 14014055 #tuples: 1284574
+    1_2_3_7: size: 13684692 worked on by: 00000000 subfiles:
+      size: 13684692 #tuples: 1254405
+    1_1_3_7: size: 14072657 worked on by: 00000000 subfiles:
+      size: 14072657 #tuples: 1289997
+    1_0_4_7: size: 14012893 worked on by: 00000000 subfiles:
+      size: 14012893 #tuples: 1284572
+    1_3_3_7: size: 13780602 worked on by: 00000000 subfiles:
+      size: 13780602 #tuples: 1263209
+    1_2_4_7: size: 13771063 worked on by: 00000000 subfiles:
+      size: 13771063 #tuples: 1262356
+    1_1_4_7: size: 14159747 worked on by: 00000000 subfiles:
+      size: 14159747 #tuples: 1297980
+    1_0_5_7: size: 14140958 worked on by: 00000000 subfiles:
+      size: 14140958 #tuples: 1296221
+    1_2_5_7: size: 14012552 worked on by: 00000000 subfiles:
+      size: 14012552 #tuples: 1284455
+    1_3_4_7: size: 14022687 worked on by: 00000000 subfiles:
+      size: 14022687 #tuples: 1285429
+    1_1_5_7: size: 13957139 worked on by: 00000000 subfiles:
+      size: 13957139 #tuples: 1279433
+    1_0_6_7: size: 14047970 worked on by: 00000000 subfiles:
+      size: 14047970 #tuples: 1287738
+    1_2_6_7: size: 14190274 worked on by: 00000000 subfiles:
+      size: 14190274 #tuples: 1300762
+    1_3_5_7: size: 14121842 worked on by: 00000000 subfiles:
+      size: 14121842 #tuples: 1294454
+    1_1_6_7: size: 13955315 worked on by: 00000000 subfiles:
+      size: 13955315 #tuples: 1279248
+    1_0_7_7: size: 13972705 worked on by: 00000000 subfiles:
+      size: 13972705 #tuples: 1280766
+    1_2_7_7: size: 14181288 worked on by: 00000000 subfiles:
+      size: 14181288 #tuples: 1299949
+    1_3_6_7: size: 14116802 worked on by: 00000000 subfiles:
+      size: 14116802 #tuples: 1294011
+    1_1_7_7: size: 13937749 worked on by: 00000000 subfiles:
+      size: 13937749 #tuples: 1277645
+    1_3_7_7: size: 14269283 worked on by: 00000000 subfiles:
+      size: 14269283 #tuples: 1308024
+    spill_3_7: size: 6271697 worked on by: 00000000 subfiles:
+      size: 6271697 #tuples: 574911
+    spill_2_7: size: 10373570 worked on by: 00000000 subfiles:
+      size: 10373570 #tuples: 950894
+    spill_1_7: size: 8140910 worked on by: 00000000 subfiles:
+      size: 8140910 #tuples: 746287
+    spill_0_7: size: 12138551 worked on by: 00000000 subfiles:
+      size: 12138551 #tuples: 1112681
+  Partition: 8
+    1_0_0_8: size: 10063255 worked on by: 00000000 subfiles:
+      size: 10063255 #tuples: 922443
+    1_2_0_8: size: 11391561 worked on by: 00000000 subfiles:
+      size: 11391561 #tuples: 1044169
+    1_1_0_8: size: 13451991 worked on by: 00000000 subfiles:
+      size: 13451991 #tuples: 1233088
+    1_3_0_8: size: 14530712 worked on by: 00000000 subfiles:
+      size: 14530712 #tuples: 1331967
+    1_0_1_8: size: 13437925 worked on by: 00000000 subfiles:
+      size: 13437925 #tuples: 1231820
+    1_2_1_8: size: 13833947 worked on by: 00000000 subfiles:
+      size: 13833947 #tuples: 1268040
+    1_1_1_8: size: 13894564 worked on by: 00000000 subfiles:
+      size: 13894564 #tuples: 1273686
+    1_3_1_8: size: 13614110 worked on by: 00000000 subfiles:
+      size: 13614110 #tuples: 1247947
+    1_0_2_8: size: 13657930 worked on by: 00000000 subfiles:
+      size: 13657930 #tuples: 1251961
+    1_2_2_8: size: 14004815 worked on by: 00000000 subfiles:
+      size: 14004815 #tuples: 1283775
+    1_1_2_8: size: 13863498 worked on by: 00000000 subfiles:
+      size: 13863498 #tuples: 1270813
+    1_0_3_8: size: 13991507 worked on by: 00000000 subfiles:
+      size: 13991507 #tuples: 1282519
+    1_3_2_8: size: 13978192 worked on by: 00000000 subfiles:
+      size: 13978192 #tuples: 1281309
+    1_2_3_8: size: 13672097 worked on by: 00000000 subfiles:
+      size: 13672097 #tuples: 1253275
+    1_1_3_8: size: 14047753 worked on by: 00000000 subfiles:
+      size: 14047753 #tuples: 1287688
+    1_0_4_8: size: 14018502 worked on by: 00000000 subfiles:
+      size: 14018502 #tuples: 1285028
+    1_3_3_8: size: 13783969 worked on by: 00000000 subfiles:
+      size: 13783969 #tuples: 1263555
+    1_2_4_8: size: 13782819 worked on by: 00000000 subfiles:
+      size: 13782819 #tuples: 1263428
+    1_1_4_8: size: 14095734 worked on by: 00000000 subfiles:
+      size: 14095734 #tuples: 1292072
+    1_0_5_8: size: 14117760 worked on by: 00000000 subfiles:
+      size: 14117760 #tuples: 1294063
+    1_2_5_8: size: 14013777 worked on by: 00000000 subfiles:
+      size: 14013777 #tuples: 1284553
+    1_3_4_8: size: 14022836 worked on by: 00000000 subfiles:
+      size: 14022836 #tuples: 1285410
+    1_1_5_8: size: 13949698 worked on by: 00000000 subfiles:
+      size: 13949698 #tuples: 1278732
+    1_0_6_8: size: 14032599 worked on by: 00000000 subfiles:
+      size: 14032599 #tuples: 1286282
+    1_2_6_8: size: 14184818 worked on by: 00000000 subfiles:
+      size: 14184818 #tuples: 1300256
+    1_3_5_8: size: 14131036 worked on by: 00000000 subfiles:
+      size: 14131036 #tuples: 1295370
+    1_1_6_8: size: 13973576 worked on by: 00000000 subfiles:
+      size: 13973576 #tuples: 1280934
+    1_0_7_8: size: 13928902 worked on by: 00000000 subfiles:
+      size: 13928902 #tuples: 1276840
+    1_2_7_8: size: 14204338 worked on by: 00000000 subfiles:
+      size: 14204338 #tuples: 1302047
+    1_3_6_8: size: 14104605 worked on by: 00000000 subfiles:
+      size: 14104605 #tuples: 1292922
+    1_1_7_8: size: 13934639 worked on by: 00000000 subfiles:
+      size: 13934639 #tuples: 1277275
+    1_3_7_8: size: 14223828 worked on by: 00000000 subfiles:
+      size: 14223828 #tuples: 1303800
+    spill_3_8: size: 6258373 worked on by: 00000000 subfiles:
+      size: 6258373 #tuples: 573679
+    spill_2_8: size: 10368272 worked on by: 00000000 subfiles:
+      size: 10368272 #tuples: 950411
+    spill_1_8: size: 8164800 worked on by: 00000000 subfiles:
+      size: 8164800 #tuples: 748448
+    spill_0_8: size: 12115447 worked on by: 00000000 subfiles:
+      size: 12115447 #tuples: 1110589
+  Partition: 9
+    1_0_0_9: size: 10068573 worked on by: 00000000 subfiles:
+      size: 10068573 #tuples: 922946
+    1_2_0_9: size: 11396008 worked on by: 00000000 subfiles:
+      size: 11396008 #tuples: 1044619
+    1_1_0_9: size: 13468064 worked on by: 00000000 subfiles:
+      size: 13468064 #tuples: 1234567
+    1_3_0_9: size: 14571440 worked on by: 00000000 subfiles:
+      size: 14571440 #tuples: 1335736
+    1_0_1_9: size: 13470389 worked on by: 00000000 subfiles:
+      size: 13470389 #tuples: 1234744
+    1_2_1_9: size: 13840785 worked on by: 00000000 subfiles:
+      size: 13840785 #tuples: 1268740
+    1_1_1_9: size: 13944165 worked on by: 00000000 subfiles:
+      size: 13944165 #tuples: 1278215
+    1_3_1_9: size: 13631074 worked on by: 00000000 subfiles:
+      size: 13631074 #tuples: 1249530
+    1_0_2_9: size: 13683460 worked on by: 00000000 subfiles:
+      size: 13683460 #tuples: 1254297
+    1_2_2_9: size: 14019509 worked on by: 00000000 subfiles:
+      size: 14019509 #tuples: 1285119
+    1_1_2_9: size: 13900997 worked on by: 00000000 subfiles:
+      size: 13900997 #tuples: 1274240
+    1_0_3_9: size: 14016690 worked on by: 00000000 subfiles:
+      size: 14016690 #tuples: 1284838
+    1_3_2_9: size: 14034167 worked on by: 00000000 subfiles:
+      size: 14034167 #tuples: 1286481
+    1_2_3_9: size: 13685978 worked on by: 00000000 subfiles:
+      size: 13685978 #tuples: 1254542
+    1_1_3_9: size: 14042942 worked on by: 00000000 subfiles:
+      size: 14042942 #tuples: 1287267
+    1_0_4_9: size: 14025576 worked on by: 00000000 subfiles:
+      size: 14025576 #tuples: 1285691
+    1_3_3_9: size: 13794312 worked on by: 00000000 subfiles:
+      size: 13794312 #tuples: 1264466
+    1_2_4_9: size: 13796393 worked on by: 00000000 subfiles:
+      size: 13796393 #tuples: 1264658
+    1_1_4_9: size: 14137410 worked on by: 00000000 subfiles:
+      size: 14137410 #tuples: 1295900
+    1_0_5_9: size: 14157488 worked on by: 00000000 subfiles:
+      size: 14157488 #tuples: 1297781
+    1_2_5_9: size: 14032200 worked on by: 00000000 subfiles:
+      size: 14032200 #tuples: 1286277
+    1_3_4_9: size: 14040892 worked on by: 00000000 subfiles:
+      size: 14040892 #tuples: 1287077
+    1_1_5_9: size: 13982513 worked on by: 00000000 subfiles:
+      size: 13982513 #tuples: 1281763
+    1_0_6_9: size: 14062841 worked on by: 00000000 subfiles:
+      size: 14062841 #tuples: 1289051
+    1_2_6_9: size: 14165494 worked on by: 00000000 subfiles:
+      size: 14165494 #tuples: 1298469
+    1_3_5_9: size: 14138266 worked on by: 00000000 subfiles:
+      size: 14138266 #tuples: 1296007
+    1_1_6_9: size: 13948177 worked on by: 00000000 subfiles:
+      size: 13948177 #tuples: 1278592
+    1_0_7_9: size: 13953541 worked on by: 00000000 subfiles:
+      size: 13953541 #tuples: 1279100
+    1_2_7_9: size: 14200286 worked on by: 00000000 subfiles:
+      size: 14200286 #tuples: 1301626
+    1_3_6_9: size: 14118965 worked on by: 00000000 subfiles:
+      size: 14118965 #tuples: 1294242
+    1_1_7_9: size: 13945394 worked on by: 00000000 subfiles:
+      size: 13945394 #tuples: 1278303
+    1_3_7_9: size: 14260189 worked on by: 00000000 subfiles:
+      size: 14260189 #tuples: 1307148
+    spill_3_9: size: 6255845 worked on by: 00000000 subfiles:
+      size: 6255845 #tuples: 573461
+    spill_2_9: size: 10367976 worked on by: 00000000 subfiles:
+      size: 10367976 #tuples: 950385
+    spill_1_9: size: 8142581 worked on by: 00000000 subfiles:
+      size: 8142581 #tuples: 746382
+    spill_0_9: size: 12133786 worked on by: 00000000 subfiles:
+      size: 12133786 #tuples: 1112235
+  Partition: 10
+    1_0_0_10: size: 10089775 worked on by: 00000000 subfiles:
+      size: 10089775 #tuples: 924884
+    1_2_0_10: size: 11408022 worked on by: 00000000 subfiles:
+      size: 11408022 #tuples: 1045715
+    1_1_0_10: size: 13450883 worked on by: 00000000 subfiles:
+      size: 13450883 #tuples: 1232968
+    1_3_0_10: size: 14551916 worked on by: 00000000 subfiles:
+      size: 14551916 #tuples: 1333927
+    1_0_1_10: size: 13471502 worked on by: 00000000 subfiles:
+      size: 13471502 #tuples: 1234921
+    1_2_1_10: size: 13837392 worked on by: 00000000 subfiles:
+      size: 13837392 #tuples: 1268408
+    1_1_1_10: size: 13935825 worked on by: 00000000 subfiles:
+      size: 13935825 #tuples: 1277395
+    1_3_1_10: size: 13622050 worked on by: 00000000 subfiles:
+      size: 13622050 #tuples: 1248669
+    1_0_2_10: size: 13690192 worked on by: 00000000 subfiles:
+      size: 13690192 #tuples: 1254944
+    1_2_2_10: size: 14001084 worked on by: 00000000 subfiles:
+      size: 14001084 #tuples: 1283387
+    1_1_2_10: size: 13860390 worked on by: 00000000 subfiles:
+      size: 13860390 #tuples: 1270522
+    1_0_3_10: size: 13992313 worked on by: 00000000 subfiles:
+      size: 13992313 #tuples: 1282637
+    1_3_2_10: size: 14012672 worked on by: 00000000 subfiles:
+      size: 14012672 #tuples: 1284455
+    1_2_3_10: size: 13671898 worked on by: 00000000 subfiles:
+      size: 13671898 #tuples: 1253251
+    1_1_3_10: size: 14068248 worked on by: 00000000 subfiles:
+      size: 14068248 #tuples: 1289606
+    1_0_4_10: size: 13991121 worked on by: 00000000 subfiles:
+      size: 13991121 #tuples: 1282503
+    1_3_3_10: size: 13794584 worked on by: 00000000 subfiles:
+      size: 13794584 #tuples: 1264487
+    1_2_4_10: size: 13797588 worked on by: 00000000 subfiles:
+      size: 13797588 #tuples: 1264753
+    1_1_4_10: size: 14129972 worked on by: 00000000 subfiles:
+      size: 14129972 #tuples: 1295237
+    1_0_5_10: size: 14124763 worked on by: 00000000 subfiles:
+      size: 14124763 #tuples: 1294731
+    1_2_5_10: size: 14035286 worked on by: 00000000 subfiles:
+      size: 14035286 #tuples: 1286562
+    1_3_4_10: size: 14043101 worked on by: 00000000 subfiles:
+      size: 14043101 #tuples: 1287319
+    1_1_5_10: size: 13990995 worked on by: 00000000 subfiles:
+      size: 13990995 #tuples: 1282484
+    1_0_6_10: size: 14056253 worked on by: 00000000 subfiles:
+      size: 14056253 #tuples: 1288465
+    1_2_6_10: size: 14184120 worked on by: 00000000 subfiles:
+      size: 14184120 #tuples: 1300188
+    1_3_5_10: size: 14129138 worked on by: 00000000 subfiles:
+      size: 14129138 #tuples: 1295134
+    1_1_6_10: size: 13948634 worked on by: 00000000 subfiles:
+      size: 13948634 #tuples: 1278626
+    1_0_7_10: size: 13941333 worked on by: 00000000 subfiles:
+      size: 13941333 #tuples: 1277928
+    1_2_7_10: size: 14194351 worked on by: 00000000 subfiles:
+      size: 14194351 #tuples: 1301109
+    1_3_6_10: size: 14125349 worked on by: 00000000 subfiles:
+      size: 14125349 #tuples: 1294790
+    1_1_7_10: size: 13927202 worked on by: 00000000 subfiles:
+      size: 13927202 #tuples: 1276669
+    1_3_7_10: size: 14253324 worked on by: 00000000 subfiles:
+      size: 14253324 #tuples: 1306521
+    spill_3_10: size: 6270546 worked on by: 00000000 subfiles:
+      size: 6270546 #tuples: 574815
+    spill_2_10: size: 10362249 worked on by: 00000000 subfiles:
+      size: 10362249 #tuples: 949861
+    spill_1_10: size: 8160069 worked on by: 00000000 subfiles:
+      size: 8160069 #tuples: 747999
+    spill_0_10: size: 12129958 worked on by: 00000000 subfiles:
+      size: 12129958 #tuples: 1111869
+  Partition: 11
+    1_0_0_11: size: 10060957 worked on by: 00110010 subfiles:
+      size: 10060957 #tuples: 922207
+    1_2_0_11: size: 11407647 worked on by: 00110010 subfiles:
+      size: 11407647 #tuples: 1045671
+    1_1_0_11: size: 13484815 worked on by: 00110010 subfiles:
+      size: 13484815 #tuples: 1236025
+    1_3_0_11: size: 14575925 worked on by: 00110010 subfiles:
+      size: 14575925 #tuples: 1336161
+    1_0_1_11: size: 13484075 worked on by: 00110010 subfiles:
+      size: 13484075 #tuples: 1235989
+    1_2_1_11: size: 13830200 worked on by: 00110010 subfiles:
+      size: 13830200 #tuples: 1267708
+    1_1_1_11: size: 13925947 worked on by: 00110010 subfiles:
+      size: 13925947 #tuples: 1276501
+    1_3_1_11: size: 13628061 worked on by: 00110010 subfiles:
+      size: 13628061 #tuples: 1249189
+    1_0_2_11: size: 13672188 worked on by: 00110010 subfiles:
+      size: 13672188 #tuples: 1253259
+    1_2_2_11: size: 14003636 worked on by: 00110010 subfiles:
+      size: 14003636 #tuples: 1283613
+    1_1_2_11: size: 13861079 worked on by: 00110010 subfiles:
+      size: 13861079 #tuples: 1270579
+    1_0_3_11: size: 14002313 worked on by: 00110010 subfiles:
+      size: 14002313 #tuples: 1283491
+    1_3_2_11: size: 14019279 worked on by: 00110010 subfiles:
+      size: 14019279 #tuples: 1285072
+    1_2_3_11: size: 13685597 worked on by: 00110010 subfiles:
+      size: 13685597 #tuples: 1254477
+    1_1_3_11: size: 14052882 worked on by: 00110010 subfiles:
+      size: 14052882 #tuples: 1288160
+    1_0_4_11: size: 14023113 worked on by: 00110010 subfiles:
+      size: 14023113 #tuples: 1285389
+    1_3_3_11: size: 13800242 worked on by: 00110010 subfiles:
+      size: 13800242 #tuples: 1264973
+    1_2_4_11: size: 13792738 worked on by: 00110010 subfiles:
+      size: 13792738 #tuples: 1264314
+    1_1_4_11: size: 14118036 worked on by: 00110010 subfiles:
+      size: 14118036 #tuples: 1294103
+    1_0_5_11: size: 14127584 worked on by: 00110010 subfiles:
+      size: 14127584 #tuples: 1295015
+    1_2_5_11: size: 14037154 worked on by: 00110010 subfiles:
+      size: 14037154 #tuples: 1286716
+    1_3_4_11: size: 14032848 worked on by: 00110010 subfiles:
+      size: 14032848 #tuples: 1286272
+    1_1_5_11: size: 13970216 worked on by: 00110010 subfiles:
+      size: 13970216 #tuples: 1280550
+    1_0_6_11: size: 14054792 worked on by: 00110010 subfiles:
+      size: 14054792 #tuples: 1288319
+    1_2_6_11: size: 14173862 worked on by: 00110010 subfiles:
+      size: 14173862 #tuples: 1299206
+    1_3_5_11: size: 14131355 worked on by: 00110010 subfiles:
+      size: 14131355 #tuples: 1295355
+    1_1_6_11: size: 13965947 worked on by: 00110010 subfiles:
+      size: 13965947 #tuples: 1280188
+    1_0_7_11: size: 13945852 worked on by: 00110010 subfiles:
+      size: 13945852 #tuples: 1278378
+    1_2_7_11: size: 14204682 worked on by: 00110010 subfiles:
+      size: 14204682 #tuples: 1302090
+    1_3_6_11: size: 14106603 worked on by: 00110010 subfiles:
+      size: 14106603 #tuples: 1293065
+    1_1_7_11: size: 13948876 worked on by: 00110010 subfiles:
+      size: 13948876 #tuples: 1278606
+    1_3_7_11: size: 14244224 worked on by: 00110010 subfiles:
+      size: 14244224 #tuples: 1305681
+    spill_3_11: size: 6265941 worked on by: 00110010 subfiles:
+      size: 6265941 #tuples: 574376
+    spill_2_11: size: 10348686 worked on by: 00110010 subfiles:
+      size: 10348686 #tuples: 948617
+    spill_1_11: size: 8157945 worked on by: 00110010 subfiles:
+      size: 8157945 #tuples: 747794
+    spill_0_11: size: 12120519 worked on by: 00110010 subfiles:
+      size: 12120519 #tuples: 1111042
+  Partition: 12
+    1_0_0_12: size: 10090700 worked on by: 00000000 subfiles:
+      size: 10090700 #tuples: 924952
+    1_2_0_12: size: 11415182 worked on by: 00000000 subfiles:
+      size: 11415182 #tuples: 1046352
+    1_1_0_12: size: 13476117 worked on by: 00000000 subfiles:
+      size: 13476117 #tuples: 1235257
+    1_3_0_12: size: 14571410 worked on by: 00000000 subfiles:
+      size: 14571410 #tuples: 1335692
+    1_0_1_12: size: 13469331 worked on by: 00000000 subfiles:
+      size: 13469331 #tuples: 1234680
+    1_2_1_12: size: 13837366 worked on by: 00000000 subfiles:
+      size: 13837366 #tuples: 1268384
+    1_1_1_12: size: 13945226 worked on by: 00000000 subfiles:
+      size: 13945226 #tuples: 1278300
+    1_3_1_12: size: 13624106 worked on by: 00000000 subfiles:
+      size: 13624106 #tuples: 1248843
+    1_0_2_12: size: 13663351 worked on by: 00000000 subfiles:
+      size: 13663351 #tuples: 1252453
+    1_2_2_12: size: 14043833 worked on by: 00000000 subfiles:
+      size: 14043833 #tuples: 1287339
+    1_1_2_12: size: 13869550 worked on by: 00000000 subfiles:
+      size: 13869550 #tuples: 1271393
+    1_0_3_12: size: 14019629 worked on by: 00000000 subfiles:
+      size: 14019629 #tuples: 1285114
+    1_3_2_12: size: 14019970 worked on by: 00000000 subfiles:
+      size: 14019970 #tuples: 1285148
+    1_2_3_12: size: 13679649 worked on by: 00000000 subfiles:
+      size: 13679649 #tuples: 1253996
+    1_1_3_12: size: 14066128 worked on by: 00000000 subfiles:
+      size: 14066128 #tuples: 1289367
+    1_0_4_12: size: 14020202 worked on by: 00000000 subfiles:
+      size: 14020202 #tuples: 1285170
+    1_3_3_12: size: 13796684 worked on by: 00000000 subfiles:
+      size: 13796684 #tuples: 1264680
+    1_2_4_12: size: 13798032 worked on by: 00000000 subfiles:
+      size: 13798032 #tuples: 1264836
+    1_1_4_12: size: 14122207 worked on by: 00000000 subfiles:
+      size: 14122207 #tuples: 1294506
+    1_0_5_12: size: 14161714 worked on by: 00000000 subfiles:
+      size: 14161714 #tuples: 1298158
+    1_2_5_12: size: 14061045 worked on by: 00000000 subfiles:
+      size: 14061045 #tuples: 1288926
+    1_3_4_12: size: 14028169 worked on by: 00000000 subfiles:
+      size: 14028169 #tuples: 1285935
+    1_1_5_12: size: 13984769 worked on by: 00000000 subfiles:
+      size: 13984769 #tuples: 1281906
+    1_0_6_12: size: 14045591 worked on by: 00000000 subfiles:
+      size: 14045591 #tuples: 1287457
+    1_2_6_12: size: 14200973 worked on by: 00000000 subfiles:
+      size: 14200973 #tuples: 1301700
+    1_3_5_12: size: 14121191 worked on by: 00000000 subfiles:
+      size: 14121191 #tuples: 1294400
+    1_1_6_12: size: 13963921 worked on by: 00000000 subfiles:
+      size: 13963921 #tuples: 1280043
+    1_0_7_12: size: 13965566 worked on by: 00000000 subfiles:
+      size: 13965566 #tuples: 1280156
+    1_2_7_12: size: 14194782 worked on by: 00000000 subfiles:
+      size: 14194782 #tuples: 1301141
+    1_3_6_12: size: 14121256 worked on by: 00000000 subfiles:
+      size: 14121256 #tuples: 1294451
+    1_1_7_12: size: 13955657 worked on by: 00000000 subfiles:
+      size: 13955657 #tuples: 1279233
+    1_3_7_12: size: 14264171 worked on by: 00000000 subfiles:
+      size: 14264171 #tuples: 1307569
+    spill_3_12: size: 6280641 worked on by: 00000000 subfiles:
+      size: 6280641 #tuples: 575694
+    spill_2_12: size: 10358071 worked on by: 00000000 subfiles:
+      size: 10358071 #tuples: 949469
+    spill_1_12: size: 8142944 worked on by: 00000000 subfiles:
+      size: 8142944 #tuples: 746361
+    spill_0_12: size: 12138766 worked on by: 00000000 subfiles:
+      size: 12138766 #tuples: 1112675
+  Partition: 13
+    1_0_0_13: size: 10080317 worked on by: 00000000 subfiles:
+      size: 10080317 #tuples: 924033
+    1_2_0_13: size: 11389610 worked on by: 00000000 subfiles:
+      size: 11389610 #tuples: 1044003
+    1_1_0_13: size: 13476369 worked on by: 00000000 subfiles:
+      size: 13476369 #tuples: 1235274
+    1_3_0_13: size: 14573890 worked on by: 00000000 subfiles:
+      size: 14573890 #tuples: 1335866
+    1_0_1_13: size: 13467371 worked on by: 00000000 subfiles:
+      size: 13467371 #tuples: 1234497
+    1_2_1_13: size: 13849216 worked on by: 00000000 subfiles:
+      size: 13849216 #tuples: 1269482
+    1_1_1_13: size: 13918182 worked on by: 00000000 subfiles:
+      size: 13918182 #tuples: 1275760
+    1_3_1_13: size: 13613088 worked on by: 00000000 subfiles:
+      size: 13613088 #tuples: 1247866
+    1_0_2_13: size: 13668324 worked on by: 00000000 subfiles:
+      size: 13668324 #tuples: 1252872
+    1_2_2_13: size: 14030579 worked on by: 00000000 subfiles:
+      size: 14030579 #tuples: 1286137
+    1_1_2_13: size: 13875681 worked on by: 00000000 subfiles:
+      size: 13875681 #tuples: 1271941
+    1_0_3_13: size: 13993778 worked on by: 00000000 subfiles:
+      size: 13993778 #tuples: 1282694
+    1_3_2_13: size: 14004419 worked on by: 00000000 subfiles:
+      size: 14004419 #tuples: 1283748
+    1_2_3_13: size: 13672413 worked on by: 00000000 subfiles:
+      size: 13672413 #tuples: 1253255
+    1_1_3_13: size: 14055969 worked on by: 00000000 subfiles:
+      size: 14055969 #tuples: 1288455
+    1_0_4_13: size: 14020912 worked on by: 00000000 subfiles:
+      size: 14020912 #tuples: 1285196
+    1_3_3_13: size: 13774975 worked on by: 00000000 subfiles:
+      size: 13774975 #tuples: 1262629
+    1_2_4_13: size: 13790964 worked on by: 00000000 subfiles:
+      size: 13790964 #tuples: 1264179
+    1_1_4_13: size: 14138704 worked on by: 00000000 subfiles:
+      size: 14138704 #tuples: 1296004
+    1_0_5_13: size: 14141486 worked on by: 00000000 subfiles:
+      size: 14141486 #tuples: 1296276
+    1_2_5_13: size: 14035791 worked on by: 00000000 subfiles:
+      size: 14035791 #tuples: 1286559
+    1_3_4_13: size: 14041247 worked on by: 00000000 subfiles:
+      size: 14041247 #tuples: 1287118
+    1_1_5_13: size: 13986530 worked on by: 00000000 subfiles:
+      size: 13986530 #tuples: 1282052
+    1_0_6_13: size: 14052836 worked on by: 00000000 subfiles:
+      size: 14052836 #tuples: 1288133
+    1_2_6_13: size: 14180853 worked on by: 00000000 subfiles:
+      size: 14180853 #tuples: 1299837
+    1_3_5_13: size: 14129248 worked on by: 00000000 subfiles:
+      size: 14129248 #tuples: 1295136
+    1_1_6_13: size: 13949942 worked on by: 00000000 subfiles:
+      size: 13949942 #tuples: 1278691
+    1_0_7_13: size: 13947066 worked on by: 00000000 subfiles:
+      size: 13947066 #tuples: 1278420
+    1_2_7_13: size: 14232891 worked on by: 00000000 subfiles:
+      size: 14232891 #tuples: 1304634
+    1_3_6_13: size: 14104554 worked on by: 00000000 subfiles:
+      size: 14104554 #tuples: 1292868
+    1_1_7_13: size: 13943733 worked on by: 00000000 subfiles:
+      size: 13943733 #tuples: 1278136
+    1_3_7_13: size: 14272853 worked on by: 00000000 subfiles:
+      size: 14272853 #tuples: 1308297
+    spill_3_13: size: 6269015 worked on by: 00000000 subfiles:
+      size: 6269015 #tuples: 574642
+    spill_2_13: size: 10357463 worked on by: 00000000 subfiles:
+      size: 10357463 #tuples: 949450
+    spill_1_13: size: 8146284 worked on by: 00000000 subfiles:
+      size: 8146284 #tuples: 746720
+    spill_0_13: size: 12126190 worked on by: 00000000 subfiles:
+      size: 12126190 #tuples: 1111494
+  Partition: 14
+    1_0_0_14: size: 10079753 worked on by: 11111111 subfiles:
+      size: 10079753 #tuples: 923956
+    1_2_0_14: size: 11400933 worked on by: 11111111 subfiles:
+      size: 11400933 #tuples: 1045048
+    1_1_0_14: size: 13454049 worked on by: 11111111 subfiles:
+      size: 13454049 #tuples: 1233261
+    1_3_0_14: size: 14592662 worked on by: 11111111 subfiles:
+      size: 14592662 #tuples: 1337719
+    1_0_1_14: size: 13448112 worked on by: 11111111 subfiles:
+      size: 13448112 #tuples: 1232733
+    1_2_1_14: size: 13839975 worked on by: 11111111 subfiles:
+      size: 13839975 #tuples: 1268628
+    2_merge_4_14: size: 54018050 worked on by: 11111111 subfiles:
+      size: 54018050 #tuples: 4951652
+    1_1_1_14: size: 13915573 worked on by: 11111111 subfiles:
+      size: 13915573 #tuples: 1275612
+    1_3_1_14: size: 13618173 worked on by: 11111111 subfiles:
+      size: 13618173 #tuples: 1248294
+    1_0_2_14: size: 13673276 worked on by: 11111111 subfiles:
+      size: 13673276 #tuples: 1253335
+    1_2_2_14: size: 14030286 worked on by: 11111111 subfiles:
+      size: 14030286 #tuples: 1286128
+    1_1_2_14: size: 13877617 worked on by: 11111111 subfiles:
+      size: 13877617 #tuples: 1272134
+    2_merge_17_14: size: 93530060 worked on by: 11111111 subfiles:
+      size: 93530060 #tuples: 8573530
+    1_0_3_14: size: 14022923 worked on by: 11111111 subfiles:
+      size: 14022923 #tuples: 1285404
+    1_3_2_14: size: 14021835 worked on by: 11111111 subfiles:
+      size: 14021835 #tuples: 1285293
+    1_2_3_14: size: 13688761 worked on by: 11111111 subfiles:
+      size: 13688761 #tuples: 1254836
+    2_merge_21_14: size: 115509912 worked on by: 11111111 subfiles:
+      size: 109091841 #tuples: 10000000
+      size: 6418071 #tuples: 588350
+    1_1_3_14: size: 14053370 worked on by: 11111111 subfiles:
+      size: 14053370 #tuples: 1288179
+    1_0_4_14: size: 14010040 worked on by: 11111111 subfiles:
+      size: 14010040 #tuples: 1284244
+    1_3_3_14: size: 13804972 worked on by: 11111111 subfiles:
+      size: 13804972 #tuples: 1265460
+    1_2_4_14: size: 13804106 worked on by: 11111111 subfiles:
+      size: 13804106 #tuples: 1265375
+    1_1_4_14: size: 14142506 worked on by: 11111111 subfiles:
+      size: 14142506 #tuples: 1296303
+    1_0_5_14: size: 14161245 worked on by: 11111111 subfiles:
+      size: 14161245 #tuples: 1298058
+    2_merge_33_14: size: 134769882 worked on by: 11111111 subfiles:
+      size: 109094290 #tuples: 10000000
+      size: 25675592 #tuples: 2353568
+    1_2_5_14: size: 14039770 worked on by: 11111111 subfiles:
+      size: 14039770 #tuples: 1286963
+    1_3_4_14: size: 14045583 worked on by: 11111111 subfiles:
+      size: 14045583 #tuples: 1287563
+    1_1_5_14: size: 13948069 worked on by: 11111111 subfiles:
+      size: 13948069 #tuples: 1278609
+    1_0_6_14: size: 14049927 worked on by: 11111111 subfiles:
+      size: 14049927 #tuples: 1287893
+    1_2_6_14: size: 14193084 worked on by: 11111111 subfiles:
+      size: 14193084 #tuples: 1301022
+    1_3_5_14: size: 14134259 worked on by: 11111111 subfiles:
+      size: 14134259 #tuples: 1295597
+    1_1_6_14: size: 13949420 worked on by: 11111111 subfiles:
+      size: 13949420 #tuples: 1278677
+    1_0_7_14: size: 13958386 worked on by: 11111111 subfiles:
+      size: 13958386 #tuples: 1279470
+    2_merge_48_14: size: 154400966 worked on by: 11111111 subfiles:
+      size: 109116332 #tuples: 10000000
+      size: 45284634 #tuples: 4150989
+    1_2_7_14: size: 14197326 worked on by: 11111111 subfiles:
+      size: 14197326 #tuples: 1301416
+    1_3_6_14: size: 14129057 worked on by: 11111111 subfiles:
+      size: 14129057 #tuples: 1295155
+    1_1_7_14: size: 13960735 worked on by: 11111111 subfiles:
+      size: 13960735 #tuples: 1279652
+    2_merge_58_14: size: 161140488 worked on by: 00000000 subfiles:
+      size: 109145489 #tuples: 10000000
+      size: 51994999 #tuples: 4766060
+    1_3_7_14: size: 14252399 worked on by: 00000000 subfiles:
+      size: 14252399 #tuples: 1306441
+    spill_3_14: size: 6278066 worked on by: 00000000 subfiles:
+      size: 6278066 #tuples: 575507
+    spill_2_14: size: 10367715 worked on by: 00000000 subfiles:
+      size: 10367715 #tuples: 950337
+    spill_1_14: size: 8145176 worked on by: 00000000 subfiles:
+      size: 8145176 #tuples: 746631
+    spill_0_14: size: 12138189 worked on by: 00000000 subfiles:
+      size: 12138189 #tuples: 1112679
+  Partition: 15
+    1_0_0_15: size: 10060242 worked on by: 00000000 subfiles:
+      size: 10060242 #tuples: 922198
+    1_2_0_15: size: 11399958 worked on by: 00000000 subfiles:
+      size: 11399958 #tuples: 1045014
+    1_1_0_15: size: 13446361 worked on by: 00000000 subfiles:
+      size: 13446361 #tuples: 1232528
+    1_3_0_15: size: 14565263 worked on by: 00000000 subfiles:
+      size: 14565263 #tuples: 1335153
+    1_0_1_15: size: 13470569 worked on by: 00000000 subfiles:
+      size: 13470569 #tuples: 1234770
+    1_2_1_15: size: 13821812 worked on by: 00000000 subfiles:
+      size: 13821812 #tuples: 1267034
+    1_1_1_15: size: 13920366 worked on by: 00000000 subfiles:
+      size: 13920366 #tuples: 1276015
+    1_3_1_15: size: 13618023 worked on by: 00000000 subfiles:
+      size: 13618023 #tuples: 1248313
+    1_0_2_15: size: 13685121 worked on by: 00000000 subfiles:
+      size: 13685121 #tuples: 1254472
+    1_2_2_15: size: 14024171 worked on by: 00000000 subfiles:
+      size: 14024171 #tuples: 1285549
+    1_1_2_15: size: 13866949 worked on by: 00000000 subfiles:
+      size: 13866949 #tuples: 1271159
+    1_0_3_15: size: 13988251 worked on by: 00000000 subfiles:
+      size: 13988251 #tuples: 1282255
+    1_3_2_15: size: 14021081 worked on by: 00000000 subfiles:
+      size: 14021081 #tuples: 1285311
+    1_2_3_15: size: 13697328 worked on by: 00000000 subfiles:
+      size: 13697328 #tuples: 1255591
+    1_1_3_15: size: 14049101 worked on by: 00000000 subfiles:
+      size: 14049101 #tuples: 1287878
+    1_0_4_15: size: 14026995 worked on by: 00000000 subfiles:
+      size: 14026995 #tuples: 1285823
+    1_3_3_15: size: 13806178 worked on by: 00000000 subfiles:
+      size: 13806178 #tuples: 1265595
+    1_2_4_15: size: 13781081 worked on by: 00000000 subfiles:
+      size: 13781081 #tuples: 1263254
+    1_1_4_15: size: 14129704 worked on by: 00000000 subfiles:
+      size: 14129704 #tuples: 1295196
+    1_0_5_15: size: 14139500 worked on by: 00000000 subfiles:
+      size: 14139500 #tuples: 1296173
+    1_2_5_15: size: 14047339 worked on by: 00000000 subfiles:
+      size: 14047339 #tuples: 1287661
+    1_3_4_15: size: 14031678 worked on by: 00000000 subfiles:
+      size: 14031678 #tuples: 1286204
+    1_1_5_15: size: 13976088 worked on by: 00000000 subfiles:
+      size: 13976088 #tuples: 1281153
+    1_0_6_15: size: 14060193 worked on by: 00000000 subfiles:
+      size: 14060193 #tuples: 1288900
+    1_2_6_15: size: 14201183 worked on by: 00000000 subfiles:
+      size: 14201183 #tuples: 1301776
+    1_3_5_15: size: 14138485 worked on by: 00000000 subfiles:
+      size: 14138485 #tuples: 1296035
+    1_1_6_15: size: 13980058 worked on by: 00000000 subfiles:
+      size: 13980058 #tuples: 1281504
+    1_0_7_15: size: 13961071 worked on by: 00000000 subfiles:
+      size: 13961071 #tuples: 1279799
+    1_2_7_15: size: 14173977 worked on by: 00000000 subfiles:
+      size: 14173977 #tuples: 1299235
+    1_3_6_15: size: 14124518 worked on by: 00000000 subfiles:
+      size: 14124518 #tuples: 1294770
+    1_1_7_15: size: 13950701 worked on by: 00000000 subfiles:
+      size: 13950701 #tuples: 1278805
+    1_3_7_15: size: 14261617 worked on by: 00000000 subfiles:
+      size: 14261617 #tuples: 1307321
+    spill_3_15: size: 6273108 worked on by: 00000000 subfiles:
+      size: 6273108 #tuples: 575046
+    spill_2_15: size: 10389324 worked on by: 00000000 subfiles:
+      size: 10389324 #tuples: 952397
+    spill_1_15: size: 8146154 worked on by: 00000000 subfiles:
+      size: 8146154 #tuples: 746718
+    spill_0_15: size: 12130684 worked on by: 00000000 subfiles:
+      size: 12130684 #tuples: 1111988
+  Partition: 16
+    1_0_0_16: size: 10075235 worked on by: 00000000 subfiles:
+      size: 10075235 #tuples: 923587
+    1_2_0_16: size: 11406229 worked on by: 00000000 subfiles:
+      size: 11406229 #tuples: 1045606
+    1_1_0_16: size: 13463765 worked on by: 00000000 subfiles:
+      size: 13463765 #tuples: 1234173
+    1_3_0_16: size: 14567907 worked on by: 00000000 subfiles:
+      size: 14567907 #tuples: 1335383
+    1_0_1_16: size: 13479477 worked on by: 00000000 subfiles:
+      size: 13479477 #tuples: 1235635
+    1_2_1_16: size: 13832488 worked on by: 00000000 subfiles:
+      size: 13832488 #tuples: 1267980
+    1_1_1_16: size: 13901309 worked on by: 00000000 subfiles:
+      size: 13901309 #tuples: 1274318
+    1_3_1_16: size: 13607203 worked on by: 00000000 subfiles:
+      size: 13607203 #tuples: 1247371
+    1_0_2_16: size: 13702900 worked on by: 00000000 subfiles:
+      size: 13702900 #tuples: 1256088
+    1_2_2_16: size: 13985926 worked on by: 00000000 subfiles:
+      size: 13985926 #tuples: 1282035
+    1_1_2_16: size: 13870170 worked on by: 00000000 subfiles:
+      size: 13870170 #tuples: 1271436
+    1_0_3_16: size: 14021057 worked on by: 00000000 subfiles:
+      size: 14021057 #tuples: 1285248
+    1_3_2_16: size: 14001962 worked on by: 00000000 subfiles:
+      size: 14001962 #tuples: 1283500
+    1_2_3_16: size: 13673287 worked on by: 00000000 subfiles:
+      size: 13673287 #tuples: 1253390
+    1_1_3_16: size: 14055087 worked on by: 00000000 subfiles:
+      size: 14055087 #tuples: 1288362
+    1_0_4_16: size: 14017309 worked on by: 00000000 subfiles:
+      size: 14017309 #tuples: 1284911
+    1_3_3_16: size: 13797406 worked on by: 00000000 subfiles:
+      size: 13797406 #tuples: 1264784
+    1_2_4_16: size: 13761304 worked on by: 00000000 subfiles:
+      size: 13761304 #tuples: 1261392
+    1_1_4_16: size: 14125418 worked on by: 00000000 subfiles:
+      size: 14125418 #tuples: 1294750
+    1_0_5_16: size: 14127710 worked on by: 00000000 subfiles:
+      size: 14127710 #tuples: 1295119
+    1_2_5_16: size: 14029545 worked on by: 00000000 subfiles:
+      size: 14029545 #tuples: 1286028
+    1_3_4_16: size: 14032561 worked on by: 00000000 subfiles:
+      size: 14032561 #tuples: 1286347
+    1_1_5_16: size: 13985258 worked on by: 00000000 subfiles:
+      size: 13985258 #tuples: 1281955
+    1_0_6_16: size: 14041926 worked on by: 00000000 subfiles:
+      size: 14041926 #tuples: 1287187
+    1_2_6_16: size: 14191583 worked on by: 00000000 subfiles:
+      size: 14191583 #tuples: 1300899
+    1_3_5_16: size: 14137250 worked on by: 00000000 subfiles:
+      size: 14137250 #tuples: 1295862
+    1_1_6_16: size: 13925638 worked on by: 00000000 subfiles:
+      size: 13925638 #tuples: 1276537
+    1_0_7_16: size: 13975030 worked on by: 00000000 subfiles:
+      size: 13975030 #tuples: 1281089
+    1_2_7_16: size: 14197689 worked on by: 00000000 subfiles:
+      size: 14197689 #tuples: 1301460
+    1_3_6_16: size: 14111636 worked on by: 00000000 subfiles:
+      size: 14111636 #tuples: 1293505
+    1_1_7_16: size: 13944793 worked on by: 00000000 subfiles:
+      size: 13944793 #tuples: 1278231
+    1_3_7_16: size: 14235682 worked on by: 00000000 subfiles:
+      size: 14235682 #tuples: 1304954
+    spill_3_16: size: 6261995 worked on by: 00000000 subfiles:
+      size: 6261995 #tuples: 574044
+    spill_2_16: size: 10362314 worked on by: 00000000 subfiles:
+      size: 10362314 #tuples: 949831
+    spill_1_16: size: 8138202 worked on by: 00000000 subfiles:
+      size: 8138202 #tuples: 746017
+    spill_0_16: size: 12130960 worked on by: 00000000 subfiles:
+      size: 12130960 #tuples: 1112015
+  Partition: 17
+    1_0_0_17: size: 10085665 worked on by: 00000000 subfiles:
+      size: 10085665 #tuples: 924553
+    1_2_0_17: size: 11392995 worked on by: 00000000 subfiles:
+      size: 11392995 #tuples: 1044367
+    1_1_0_17: size: 13458246 worked on by: 00000000 subfiles:
+      size: 13458246 #tuples: 1233714
+    1_3_0_17: size: 14558685 worked on by: 00000000 subfiles:
+      size: 14558685 #tuples: 1334536
+    1_0_1_17: size: 13476478 worked on by: 00000000 subfiles:
+      size: 13476478 #tuples: 1235380
+    1_2_1_17: size: 13801039 worked on by: 00000000 subfiles:
+      size: 13801039 #tuples: 1265105
+    1_1_1_17: size: 13916077 worked on by: 00000000 subfiles:
+      size: 13916077 #tuples: 1275630
+    1_3_1_17: size: 13632321 worked on by: 00000000 subfiles:
+      size: 13632321 #tuples: 1249610
+    1_0_2_17: size: 13682831 worked on by: 00000000 subfiles:
+      size: 13682831 #tuples: 1254307
+    1_2_2_17: size: 14005402 worked on by: 00000000 subfiles:
+      size: 14005402 #tuples: 1283834
+    1_1_2_17: size: 13881587 worked on by: 00000000 subfiles:
+      size: 13881587 #tuples: 1272526
+    1_0_3_17: size: 14004773 worked on by: 00000000 subfiles:
+      size: 14004773 #tuples: 1283806
+    1_3_2_17: size: 14012538 worked on by: 00000000 subfiles:
+      size: 14012538 #tuples: 1284455
+    1_2_3_17: size: 13669284 worked on by: 00000000 subfiles:
+      size: 13669284 #tuples: 1253017
+    1_1_3_17: size: 14056212 worked on by: 00000000 subfiles:
+      size: 14056212 #tuples: 1288500
+    1_0_4_17: size: 14015483 worked on by: 00000000 subfiles:
+      size: 14015483 #tuples: 1284744
+    1_3_3_17: size: 13814900 worked on by: 00000000 subfiles:
+      size: 13814900 #tuples: 1266405
+    1_2_4_17: size: 13807421 worked on by: 00000000 subfiles:
+      size: 13807421 #tuples: 1265702
+    1_1_4_17: size: 14155974 worked on by: 00000000 subfiles:
+      size: 14155974 #tuples: 1297682
+    1_0_5_17: size: 14135976 worked on by: 00000000 subfiles:
+      size: 14135976 #tuples: 1295772
+    1_2_5_17: size: 14051649 worked on by: 00000000 subfiles:
+      size: 14051649 #tuples: 1288075
+    1_3_4_17: size: 14050148 worked on by: 00000000 subfiles:
+      size: 14050148 #tuples: 1287971
+    1_1_5_17: size: 13970051 worked on by: 00000000 subfiles:
+      size: 13970051 #tuples: 1280565
+    1_0_6_17: size: 14041858 worked on by: 00000000 subfiles:
+      size: 14041858 #tuples: 1287169
+    1_2_6_17: size: 14174194 worked on by: 00000000 subfiles:
+      size: 14174194 #tuples: 1299339
+    1_3_5_17: size: 14114481 worked on by: 00000000 subfiles:
+      size: 14114481 #tuples: 1293832
+    1_1_6_17: size: 13956539 worked on by: 00000000 subfiles:
+      size: 13956539 #tuples: 1279399
+    1_0_7_17: size: 13969343 worked on by: 00000000 subfiles:
+      size: 13969343 #tuples: 1280545
+    1_2_7_17: size: 14190857 worked on by: 00000000 subfiles:
+      size: 14190857 #tuples: 1300831
+    1_3_6_17: size: 14129726 worked on by: 00000000 subfiles:
+      size: 14129726 #tuples: 1295276
+    1_1_7_17: size: 13938916 worked on by: 00000000 subfiles:
+      size: 13938916 #tuples: 1277754
+    1_3_7_17: size: 14263087 worked on by: 00000000 subfiles:
+      size: 14263087 #tuples: 1307397
+    spill_3_17: size: 6270375 worked on by: 00000000 subfiles:
+      size: 6270375 #tuples: 574724
+    spill_2_17: size: 10381528 worked on by: 00000000 subfiles:
+      size: 10381528 #tuples: 951615
+    spill_1_17: size: 8143599 worked on by: 00000000 subfiles:
+      size: 8143599 #tuples: 746481
+    spill_0_17: size: 12112351 worked on by: 00000000 subfiles:
+      size: 12112351 #tuples: 1110303
+  Partition: 18
+    1_0_0_18: size: 10081381 worked on by: 11111111 subfiles:
+      size: 10081381 #tuples: 924070
+    1_2_0_18: size: 11414224 worked on by: 11111111 subfiles:
+      size: 11414224 #tuples: 1046244
+    1_1_0_18: size: 13456850 worked on by: 11111111 subfiles:
+      size: 13456850 #tuples: 1233538
+    1_3_0_18: size: 14579157 worked on by: 11111111 subfiles:
+      size: 14579157 #tuples: 1336383
+    1_0_1_18: size: 13463063 worked on by: 11111111 subfiles:
+      size: 13463063 #tuples: 1234129
+    1_2_1_18: size: 13839206 worked on by: 11111111 subfiles:
+      size: 13839206 #tuples: 1268564
+    1_1_1_18: size: 13912619 worked on by: 11111111 subfiles:
+      size: 13912619 #tuples: 1275288
+    1_3_1_18: size: 13620873 worked on by: 11111111 subfiles:
+      size: 13620873 #tuples: 1248539
+    1_0_2_18: size: 13673952 worked on by: 11111111 subfiles:
+      size: 13673952 #tuples: 1253378
+    1_2_2_18: size: 14026061 worked on by: 11111111 subfiles:
+      size: 14026061 #tuples: 1285707
+    2_merge_12_18: size: 86693221 worked on by: 11111111 subfiles:
+      size: 86693221 #tuples: 7946667
+    1_1_2_18: size: 13883820 worked on by: 11111111 subfiles:
+      size: 13883820 #tuples: 1272620
+    1_0_3_18: size: 14023842 worked on by: 11111111 subfiles:
+      size: 14023842 #tuples: 1285483
+    1_3_2_18: size: 14014136 worked on by: 11111111 subfiles:
+      size: 14014136 #tuples: 1284612
+    1_2_3_18: size: 13658745 worked on by: 11111111 subfiles:
+      size: 13658745 #tuples: 1252032
+    1_1_3_18: size: 14082098 worked on by: 11111111 subfiles:
+      size: 14082098 #tuples: 1290818
+    1_0_4_18: size: 14022726 worked on by: 11111111 subfiles:
+      size: 14022726 #tuples: 1285351
+    1_3_3_18: size: 13782646 worked on by: 11111111 subfiles:
+      size: 13782646 #tuples: 1263371
+    1_2_4_18: size: 13799687 worked on by: 11111111 subfiles:
+      size: 13799687 #tuples: 1264905
+    2_merge_28_18: size: 124092935 worked on by: 11111111 subfiles:
+      size: 109094115 #tuples: 10000000
+      size: 14998820 #tuples: 1374855
+    1_1_4_18: size: 14149059 worked on by: 11111111 subfiles:
+      size: 14149059 #tuples: 1297000
+    1_0_5_18: size: 14136674 worked on by: 11111111 subfiles:
+      size: 14136674 #tuples: 1295858
+    1_2_5_18: size: 14046798 worked on by: 11111111 subfiles:
+      size: 14046798 #tuples: 1287541
+    1_3_4_18: size: 14042522 worked on by: 11111111 subfiles:
+      size: 14042522 #tuples: 1287203
+    1_1_5_18: size: 13981786 worked on by: 11111111 subfiles:
+      size: 13981786 #tuples: 1281622
+    1_0_6_18: size: 14052280 worked on by: 11111111 subfiles:
+      size: 14052280 #tuples: 1288062
+    2_merge_40_18: size: 145848470 worked on by: 11111111 subfiles:
+      size: 109102753 #tuples: 10000000
+      size: 36745717 #tuples: 3368279
+    1_2_6_18: size: 14182769 worked on by: 11111111 subfiles:
+      size: 14182769 #tuples: 1300048
+    1_3_5_18: size: 14115163 worked on by: 11111111 subfiles:
+      size: 14115163 #tuples: 1293871
+    1_1_6_18: size: 13953566 worked on by: 11111111 subfiles:
+      size: 13953566 #tuples: 1279068
+    1_0_7_18: size: 13949483 worked on by: 11111111 subfiles:
+      size: 13949483 #tuples: 1278658
+    1_2_7_18: size: 14223647 worked on by: 11111111 subfiles:
+      size: 14223647 #tuples: 1303769
+    1_3_6_18: size: 14134919 worked on by: 00000000 subfiles:
+      size: 14134919 #tuples: 1295658
+    1_1_7_18: size: 13941518 worked on by: 00000000 subfiles:
+      size: 13941518 #tuples: 1277941
+    2_merge_54_18: size: 157960759 worked on by: 00000000 subfiles:
+      size: 109130696 #tuples: 10000000
+      size: 48830063 #tuples: 4475976
+    1_3_7_18: size: 14246871 worked on by: 00000000 subfiles:
+      size: 14246871 #tuples: 1305906
+    spill_3_18: size: 6279807 worked on by: 00000000 subfiles:
+      size: 6279807 #tuples: 575609
+    spill_2_18: size: 10373772 worked on by: 00000000 subfiles:
+      size: 10373772 #tuples: 950893
+    spill_1_18: size: 8153639 worked on by: 00000000 subfiles:
+      size: 8153639 #tuples: 747407
+    spill_0_18: size: 12136038 worked on by: 00000000 subfiles:
+      size: 12136038 #tuples: 1112434
+  Partition: 19
+    1_0_0_19: size: 10081153 worked on by: 00000000 subfiles:
+      size: 10081153 #tuples: 924105
+    1_2_0_19: size: 11416282 worked on by: 00000000 subfiles:
+      size: 11416282 #tuples: 1046489
+    1_1_0_19: size: 13460779 worked on by: 00000000 subfiles:
+      size: 13460779 #tuples: 1233949
+    1_3_0_19: size: 14535030 worked on by: 00000000 subfiles:
+      size: 14535030 #tuples: 1332417
+    1_0_1_19: size: 13490023 worked on by: 00000000 subfiles:
+      size: 13490023 #tuples: 1236583
+    1_2_1_19: size: 13828568 worked on by: 00000000 subfiles:
+      size: 13828568 #tuples: 1267621
+    1_1_1_19: size: 13922054 worked on by: 00000000 subfiles:
+      size: 13922054 #tuples: 1276145
+    1_3_1_19: size: 13638110 worked on by: 00000000 subfiles:
+      size: 13638110 #tuples: 1250123
+    1_0_2_19: size: 13675689 worked on by: 00000000 subfiles:
+      size: 13675689 #tuples: 1253560
+    1_2_2_19: size: 14004385 worked on by: 00000000 subfiles:
+      size: 14004385 #tuples: 1283733
+    1_1_2_19: size: 13864057 worked on by: 00000000 subfiles:
+      size: 13864057 #tuples: 1270871
+    1_0_3_19: size: 13996898 worked on by: 00000000 subfiles:
+      size: 13996898 #tuples: 1283085
+    1_3_2_19: size: 13989244 worked on by: 00000000 subfiles:
+      size: 13989244 #tuples: 1282294
+    1_2_3_19: size: 13685711 worked on by: 00000000 subfiles:
+      size: 13685711 #tuples: 1254558
+    1_1_3_19: size: 14054593 worked on by: 00000000 subfiles:
+      size: 14054593 #tuples: 1288304
+    1_0_4_19: size: 14010073 worked on by: 00000000 subfiles:
+      size: 14010073 #tuples: 1284249
+    1_3_3_19: size: 13785434 worked on by: 00000000 subfiles:
+      size: 13785434 #tuples: 1263696
+    1_2_4_19: size: 13800759 worked on by: 00000000 subfiles:
+      size: 13800759 #tuples: 1265058
+    1_1_4_19: size: 14125122 worked on by: 00000000 subfiles:
+      size: 14125122 #tuples: 1294815
+    1_0_5_19: size: 14123908 worked on by: 00000000 subfiles:
+      size: 14123908 #tuples: 1294725
+    1_2_5_19: size: 14031318 worked on by: 00000000 subfiles:
+      size: 14031318 #tuples: 1286179
+    1_3_4_19: size: 14030753 worked on by: 00000000 subfiles:
+      size: 14030753 #tuples: 1286173
+    1_1_5_19: size: 13971158 worked on by: 00000000 subfiles:
+      size: 13971158 #tuples: 1280742
+    1_0_6_19: size: 14056654 worked on by: 00000000 subfiles:
+      size: 14056654 #tuples: 1288508
+    1_2_6_19: size: 14191547 worked on by: 00000000 subfiles:
+      size: 14191547 #tuples: 1300860
+    1_3_5_19: size: 14140532 worked on by: 00000000 subfiles:
+      size: 14140532 #tuples: 1296225
+    1_1_6_19: size: 13966409 worked on by: 00000000 subfiles:
+      size: 13966409 #tuples: 1280234
+    1_0_7_19: size: 13950917 worked on by: 00000000 subfiles:
+      size: 13950917 #tuples: 1278815
+    1_2_7_19: size: 14192188 worked on by: 00000000 subfiles:
+      size: 14192188 #tuples: 1300917
+    1_3_6_19: size: 14115795 worked on by: 00000000 subfiles:
+      size: 14115795 #tuples: 1293924
+    1_1_7_19: size: 13938812 worked on by: 00000000 subfiles:
+      size: 13938812 #tuples: 1277739
+    1_3_7_19: size: 14240263 worked on by: 00000000 subfiles:
+      size: 14240263 #tuples: 1305329
+    spill_3_19: size: 6265791 worked on by: 00000000 subfiles:
+      size: 6265791 #tuples: 574351
+    spill_2_19: size: 10387182 worked on by: 00000000 subfiles:
+      size: 10387182 #tuples: 952143
+    spill_1_19: size: 8159273 worked on by: 00000000 subfiles:
+      size: 8159273 #tuples: 747931
+    spill_0_19: size: 12124625 worked on by: 00000000 subfiles:
+      size: 12124625 #tuples: 1111405
+Worker id: 2 locked: 0
