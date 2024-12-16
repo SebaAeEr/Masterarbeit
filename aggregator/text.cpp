@@ -2143,7 +2143,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             {
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = hmap->empty();
-                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
+                // std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
