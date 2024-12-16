@@ -3371,8 +3371,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
         size_t output_file_head = 0;
         std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
-        char m_partition = -1;
-        while (m_partition = getMergePartition(&minio_client) != -1)
+        char m_partition = getMergePartition(&minio_client);
+        while (m_partition != -1)
         {
             files.clear();
             getAllMergeFileNames(&minio_client, m_partition, &files);
@@ -3381,14 +3381,15 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 spills.push_back(std::vector<std::pair<int, size_t>>(0));
             }
             /* for (auto &name : files)
-           {
-               std::cout << std::get<0>(name) << ", ";
-           }
-           std::cout << std::endl;
-           std::string empty = "";
-           std::cout << "output file head: " << output_file_head << std::endl; */
+            {
+                std::cout << std::get<0>(name) << ", ";
+            }
+            std::cout << std::endl;
+            std::string empty = "";
+            std::cout << "output file head: " << output_file_head << std::endl; */
             auto m_spill = spills.size() == 1 ? spills[0] : spills[m_partition];
             merge(&emHashmap, &m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitMain, &output_file_head, -1, 0, output_fd);
+            m_partition = getMergePartition(&minio_client);
         }
         mana = getLockedMana(&minio_client, 0);
         for (auto &worker : mana.workers)
