@@ -3132,6 +3132,7 @@ char getMergePartition(Aws::S3::S3Client *minio_client)
             }
         }
     }
+    return partition;
 }
 
 // aggregate inputfilename and write results into outpufilename
