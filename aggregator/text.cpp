@@ -3012,7 +3012,16 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         }
         beggarWorker = get<1>(files);
         partition_id = get<2>(files);
-        partitions = partition_id;
+        manaFile mana = getMana(&minio_client);
+        for (auto &w : mana.workers)
+        {
+            if (w.id == beggarWorker)
+            {
+                partitions = w.partitions.size();
+                break;
+            }
+        }
+
         std::vector<std::pair<int, size_t>> empty(0);
         std::cout << "Worker: " << beggarWorker << "; Partition: " << (int)(partition_id) << "; merging files: ";
         for (auto &merge_file : get<0>(files))
