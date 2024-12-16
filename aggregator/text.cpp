@@ -87,7 +87,7 @@ size_t max_s3_spill_size = 10000000;
 unsigned long extra_mem = 0;
 unsigned long mainMem_usage = 0;
 bool deencode = true;
-bool mergePhase = true;
+bool mergePhase = false;
 bool set_partitions = true;
 unsigned long test_values[5];
 int partitions = -1;
