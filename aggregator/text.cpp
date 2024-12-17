@@ -3321,7 +3321,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
     std::cout << "Scanning finished with time: " << duration << "s. Scanned Lines: " << numLines << ". macroseconds/line: " << duration * 1000000 / numLines << " Overall spill: " << comb_spill_size << "B. Spill to Background Memory: " << temp_loc_spills << "B. Spill to S3: " << comb_spill_size - temp_loc_spills << std::endl;
-    log_file.sizes["scanTime"] = duration;
+    log_file.sizes["scanTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+    log_file.sizes["scanDuration"] = duration;
     log_file.sizes["colS3Spill"] = comb_spill_size - temp_loc_spills;
     log_file.sizes["colBackSpill"] = temp_loc_spills;
 
