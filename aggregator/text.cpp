@@ -223,7 +223,7 @@ void writeLogFile(logFile log_t)
         }
         output << "]}";
         if (t_counter < log_t.threads.size())
-                output << ",";
+            output << ",";
     }
     output << "]}";
     output.close();
@@ -3770,7 +3770,6 @@ int main(int argc, char **argv)
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
         std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
         log_size = false;
-        log_time = false;
     }
     if (tpc_sup != "-")
     {
