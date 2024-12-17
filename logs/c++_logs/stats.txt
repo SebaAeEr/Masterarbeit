@@ -70,8 +70,8 @@ Newnew:
 	
 
 2 Worker 4 Threads, 6 main, 0 Back, 20Part:
-1077s
-	merge: 432
-	scan: 585
-	merge hmap: 43
+959s
+	merge: 421
+	scan: 502
+	merge hmap: 27
   

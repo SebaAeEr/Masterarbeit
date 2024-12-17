@@ -67,6 +67,18 @@ struct manaFile
     std::vector<manaFileWorker> workers;
 };
 
+struct threadLog
+{
+    std::unordered_map<std::string, size_t> sizes;
+    std::vector<size_t> spillTimes;
+};
+
+struct logFile
+{
+    std::unordered_map<std::string, size_t> sizes;
+    std::vector<threadLog> threads;
+};
+
 static const int max_size = 2;
 std::string key_names[max_size];
 enum Operation op;
@@ -92,6 +104,7 @@ bool mergePhase = false;
 bool set_partitions = true;
 unsigned long test_values[5];
 int partitions = -1;
+logFile log_file;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -170,6 +183,43 @@ int writeString(char *mapping, const std::string &string)
         counter++;
     }
     return counter;
+}
+
+void writeLogFile(logFile log_t)
+{
+    std::ofstream output;
+    output.open(("logfile_" + date_now + ".csv").c_str());
+    output << "{";
+    for (auto &it : log_t.sizes)
+    {
+        output << '"';
+        output << it.first;
+        output << "\":";
+        output << it.second;
+        output << ",\n";
+    }
+    output << "\"Threads\":[\n";
+    for (auto &it : log_t.threads)
+    {
+        output << "{";
+        for (auto &itt : it.sizes)
+        {
+            output << '"';
+            output << itt.first;
+            output << "\":";
+            output << itt.second;
+            output << ",\n";
+        }
+        output << "\"spillTimes\":[\n";
+        for (auto &itt : it.spillTimes)
+        {
+            output << itt;
+            output << ",";
+        }
+        output << "]},";
+    }
+    output << "]}";
+    output.close();
 }
 
 std::string getManaVersion(Aws::S3::S3Client *minio_client)
@@ -619,6 +669,7 @@ void setPartitionNumber(size_t comb_hash_size)
     {
         partitions = 1;
     }
+    log_file.sizes["partitionNumber"] = partitions;
 }
 
 void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
@@ -1654,12 +1705,11 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
 
 void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit,
                  float &avg, std::vector<std::vector<std::pair<int, size_t>>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> *shared_diff, Aws::S3::S3Client *minio_client,
-                 std::atomic<unsigned long> &readBytes, unsigned long memLimitMain, std::atomic<unsigned long> &comb_spill_size)
+                 std::atomic<unsigned long> &readBytes, unsigned long memLimitBack, std::atomic<unsigned long> &comb_spill_size)
 {
     // Aws::S3::S3Client minio_client = init();
     //  hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
-    auto start_time = std::chrono::high_resolution_clock::now();
-    auto thread_time = std::chrono::high_resolution_clock::now();
+    auto thread_start_time = std::chrono::high_resolution_clock::now();
     int offset = 0;
     unsigned long spill_size = 0;
     if (addOffset)
@@ -1702,6 +1752,9 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     std::string spill_file_name;
     size_t comb_local_spill_size = 0;
     size_t temp_local_spill_size = 0;
+    threadLog threadLog;
+    threadLog.sizes["id"] = id;
+    threadLog.sizes["inputSize"] = size;
 
     // loop through entire mapping
     for (unsigned long i = 0; i < size + offset; i++)
@@ -1818,11 +1871,15 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                         }
                     }
                 }
+                threadLog.sizes["SpillSize"] += temp_spill_size;
+                threadLog.spillTimes.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count());
 
-                if (memLimitMain > mainMem_usage + temp_spill_size - temp_local_spill_size)
+                if (memLimitBack > mainMem_usage + temp_spill_size - temp_local_spill_size)
                 {
-                    if (memLimitMain < mainMem_usage + temp_spill_size * threadNumber)
+                    if (memLimitBack < mainMem_usage + temp_spill_size * threadNumber)
                     {
+                        threadLog.sizes["localS3Spill"]++;
+                        threadLog.sizes["s3SpillSize"] += temp_spill_size;
                         std::cout << "local + s3: " << (int)(id) << std::endl;
                         mainMem_usage += temp_spill_size - temp_local_spill_size;
                         temp_local_spill_size = temp_spill_size;
@@ -1849,6 +1906,8 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     }
                     else
                     {
+                        threadLog.sizes["localSpill"]++;
+                        threadLog.sizes["localSpillSize"] += temp_spill_size;
                         std::cout << "local: " << (int)(id) << std::endl;
                         spill_file_name = "";
                         spill_file_name += worker_id;
@@ -1869,6 +1928,8 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 }
                 else
                 {
+                    threadLog.sizes["s3Spill"]++;
+                    threadLog.sizes["s3SpillSize"] += temp_spill_size;
                     std::cout << "s3: " << (int)(id) << std::endl;
                     uName = "";
                     uName += worker_id;
@@ -1913,8 +1974,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     }
     try
     {
-        auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
+        auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_start_time).count()) / 1000000;
         std::cout << "Thread " << int(id) << " finished scanning. With time: " << duration << "s. Scanned Lines: " << numLinesLocal << ". microseconds/line: " << duration * 1000000 / numLinesLocal << ". Spilled with size: " << spill_size << std::endl;
+        threadLog.sizes["duration"] = duration;
+        log_file.threads.push_back(threadLog);
     }
     catch (std::exception &err)
     {
@@ -2013,6 +2076,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
         usleep(0);
     }
     std::cout << "Max Size: " << maxSize << "B." << std::endl;
+    log_file.sizes["maxMainUsage"] = maxSize;
     output.close();
 }
 
@@ -2025,7 +2089,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     {
         output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     } */
-    auto start_time = std::chrono::high_resolution_clock::now();
+    auto merge_start_time = std::chrono::high_resolution_clock::now();
     diff->exchange(0);
     // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
     unsigned long input_head_base = 0;
@@ -2259,6 +2323,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     if ((*bit) & (1 << (head % 8)))
                     {
                         unsigned long buf[number_of_longs];
+                        read_lines++;
                         if (deencode)
                         {
                             if (!locked)
@@ -2318,7 +2383,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         }
                         if (hmap->contains(keys))
                         {
-                            read_lines++;
 
                             std::array<unsigned long, max_size> temp = (*hmap)[keys];
 
@@ -2336,7 +2400,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         }
                         else if (!locked)
                         {
-                            read_lines++;
                             // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
                             hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
                             if (hmap->size() > comb_hash_size.load())
@@ -2535,6 +2598,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
             }
             newi = i - offset;
+
             if (newi > mapping_size)
             {
                 std::cout << "newi too big!! " << newi << std::endl;
@@ -2637,13 +2701,12 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             {
                 newi--;
                 i = newi + offset;
+                read_lines++;
                 // std::cout << "i: " << i << ", newi: " << newi << std::endl;
                 //  std::cout << "merging/adding" << std::endl;
                 //   Update count if customerkey is in hashmap and delete pair in spill
                 if (hmap->contains(keys))
                 {
-                    read_lines++;
-
                     std::array<unsigned long, max_size> temp = (*hmap)[keys];
 
                     for (int k = 0; k < value_number; k++)
@@ -2666,7 +2729,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
                 else if (!locked)
                 {
-                    read_lines++;
                     hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
                     if (hmap->size() > comb_hash_size.load())
                     {
@@ -2886,6 +2948,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             else
             {
+                log_file.sizes["linesRead"] += read_lines;
                 return true;
             }
         }
@@ -2936,8 +2999,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         }
     }
 
-    auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
+    auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
+    log_file.sizes["linesRead"] += read_lines;
+    log_file.sizes["linesWritten"] += written_lines;
     return 1;
 }
 
@@ -3164,7 +3229,7 @@ char getMergePartition(Aws::S3::S3Client *minio_client)
 }
 
 // aggregate inputfilename and write results into outpufilename
-int aggregate(std::string inputfilename, std::string outputfilename, size_t memLimit, bool measure_mem, Aws::S3::S3Client minio_client, size_t memLimitMain)
+int aggregate(std::string inputfilename, std::string outputfilename, size_t memLimit, bool measure_mem, Aws::S3::S3Client minio_client, size_t memLimitBack)
 {
     // Inits and decls
 
@@ -3210,19 +3275,19 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         sizePrinter = std::thread(printSize, std::ref(finished), memLimit, threadNumber, std::ref(comb_hash_size), &diff, &avg);
     }
 
-    auto start_time = std::chrono::high_resolution_clock::now();
+    // auto scan_start_time = std::chrono::high_resolution_clock::now();
     char id = 0;
 
     for (int i = 0; i < threadNumber - 1; i++)
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, id, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber,
-                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitMain, std::ref(comb_spill_size)));
+                                      std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitBack, std::ref(comb_spill_size)));
         id++;
     }
     emHashmaps[threadNumber - 1] = {};
     threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber,
-                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitMain, std::ref(comb_spill_size)));
+                                  std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitBack, std::ref(comb_spill_size)));
 
     while ((float)(readBytes.load()) / size < 0.99)
     {
@@ -3247,9 +3312,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         }
     }
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
-    std::cout << "Scanning finished with time: " << duration << "s. Scanned Lines: " << numLines << ". macroseconds/line: " << duration * 1000000 / numLines << " Overall spill: " << comb_spill_size << "B. Spill to Main Memory: " << temp_loc_spills << "B. Spill to S3: " << comb_spill_size - temp_loc_spills << std::endl;
+    std::cout << "Scanning finished with time: " << duration << "s. Scanned Lines: " << numLines << ". macroseconds/line: " << duration * 1000000 / numLines << " Overall spill: " << comb_spill_size << "B. Spill to Background Memory: " << temp_loc_spills << "B. Spill to S3: " << comb_spill_size - temp_loc_spills << std::endl;
+    log_file.sizes["scanTime"] = duration;
+    log_file.sizes["colS3Spill"] = comb_spill_size - temp_loc_spills;
+    log_file.sizes["colBackSpill"] = temp_loc_spills;
 
-    start_time = std::chrono::high_resolution_clock::now();
+    auto mergeH_start_time = std::chrono::high_resolution_clock::now();
     std::vector<std::thread> spill_threads;
     std::string empty = "";
     std::vector<std::string> uNames;
@@ -3296,14 +3364,16 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
     comb_hash_size.exchange(emHashmap.size());
     // delete[] emHashmaps;
-    duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
+    duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - mergeH_start_time).count()) / 1000000;
     std::cout << "Merging of hastables finished with time: " << duration << "s." << std::endl;
+    log_file.sizes["mergeHashTime"] = duration;
+
     finished++;
 
     if (mergePhase)
     {
-        start_time = std::chrono::high_resolution_clock::now();
-        helpMergePhase(memLimit, memLimitMain, minio_client, false, &emHashmap, comb_hash_size, diff, &avg, worker_id);
+        auto colmerge_start_time = std::chrono::high_resolution_clock::now();
+        helpMergePhase(memLimit, memLimitBack, minio_client, false, &emHashmap, comb_hash_size, diff, &avg, worker_id);
         std::cout << "Checking if spills are being worked on." << std::endl;
         bool isWorkedOn = true;
         while (isWorkedOn)
@@ -3328,10 +3398,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 }
             }
         }
-        duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
+        duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - colmerge_start_time).count()) / 1000000;
         std::cout << "Collective Merge ended with time: " << duration << "s." << std::endl;
+        log_file.sizes["mergeColTime"] = duration;
     }
-    start_time = std::chrono::high_resolution_clock::now();
+    auto merge_start_time = std::chrono::high_resolution_clock::now();
     // calc optimistic new avg to better fit spill files as: 8/avgLineLength * (hash_avg - avg)
     // float avglineLengtth = size / numLines.load();
     // avg = hash_avg + (avg - hash_avg) * (sizeof(int) * 2 / avglineLengtth) + 0.02;
@@ -3348,7 +3419,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
     // Open the outputfile to write results
     int output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
-    start_time = std::chrono::high_resolution_clock::now();
     unsigned long written_lines = 0;
     unsigned long read_lines = 0;
     comb_hash_size = emHashmap.size();
@@ -3388,7 +3458,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             std::string empty = "";
             std::cout << "output file head: " << output_file_head << std::endl; */
             auto m_spill = spills.size() == 1 ? spills[0] : spills[m_partition];
-            merge(&emHashmap, &m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitMain, &output_file_head, -1, 0, output_fd);
+            merge(&emHashmap, &m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, -1, 0, output_fd);
             m_partition = getMergePartition(&minio_client);
         }
         mana = getLockedMana(&minio_client, 0);
@@ -3410,8 +3480,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         // write hashmap to output file
         writeHashmap(&emHashmap, output_fd, 0, pagesize * 10);
     }
-    duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000000;
+    duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
+    log_file.sizes["mergeTime"] = duration;
 
     close(output_fd);
     if (measure_mem)
@@ -3599,7 +3670,7 @@ int main(int argc, char **argv)
 
     std::string tpc_sup = argv[2];
     std::string memLimit_string = argv[3];
-    std::string memLimitMain_string = argv[4];
+    std::string memLimitBack_string = argv[4];
     std::string threadNumber_string = argv[5];
     std::string tpc_query_string = argv[6];
     worker_id = *argv[7];
@@ -3614,7 +3685,7 @@ int main(int argc, char **argv)
     size_t memLimit = (std::stof(memLimit_string) - 0.01) * (1ul << 30);
 
     // memLimit -= 1ull << 20;
-    size_t memLimitMain = std::stof(memLimitMain_string) * (1ul << 30);
+    size_t memLimitBack = std::stof(memLimitBack_string) * (1ul << 30);
     pagesize = sysconf(_SC_PAGE_SIZE);
 
     switch (tpc_query)
@@ -3681,10 +3752,13 @@ int main(int argc, char **argv)
     // for more information about date/time format
     strftime(buf, sizeof(buf), "%m-%d_%H-%M", &tstruct);
     date_now = buf;
+    log_file.sizes.insert(std::make_pair("threadNumber", threadNumber));
+    log_file.sizes["mainLimit"] = memLimit;
+    log_file.sizes["backLimit"] = memLimitBack;
 
     if (co_output != "-")
     {
-        aggregate(co_output, agg_output, memLimit, true, minio_client, memLimitMain);
+        aggregate(co_output, agg_output, memLimit, true, minio_client, memLimitBack);
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
         std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
@@ -3699,8 +3773,9 @@ int main(int argc, char **argv)
     std::atomic_ulong diff = 0;
     float avg = 1;
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
-    helpMergePhase(memLimit, memLimitMain, minio_client, true, &hmap, comb_hash_size, diff, &avg);
+    helpMergePhase(memLimit, memLimitBack, minio_client, true, &hmap, comb_hash_size, diff, &avg);
     Aws::ShutdownAPI(options);
+    writeLogFile(log_file);
     return 1;
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
