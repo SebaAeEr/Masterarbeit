@@ -2225,10 +2225,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         // std::cout << "s3spillStart: " << s3spillStart_head << std::endl;
 
         int number_of_longs = key_number + value_number;
-        int i = s3spillFile_head;
+        int it_counter = s3spillFile_head;
 
         int bit_i = bit_head;
-        for (auto set_it = std::next(s3spillNames2->begin(), i); set_it != s3spillNames2->end(); set_it++)
+        for (auto set_it = std::next(s3spillNames2->begin(), it_counter); set_it != s3spillNames2->end(); set_it++)
         {
             // std::cout << "Reading " << get<0>(*set_it) << std::endl;
             firsts3File = hmap->empty();
@@ -2448,7 +2448,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                     if (!locked)
                                     {
                                         locked = true;
-                                        s3spillFile_head = i;
+                                        s3spillFile_head = it_counter;
                                         s3spillStart_head = head;
                                         bit_head = bit_i;
                                         subfile_head = sub_file_counter - 1;
@@ -2469,7 +2469,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                 {
                                     // std::cout << "Calc size: " << hmap->size() * (*avg) + base_size << " base_size: " << base_size << " hmap length " << hmap->size() << " memlimit: " << memLimit << std::endl;
                                     locked = true;
-                                    s3spillFile_head = i;
+                                    s3spillFile_head = it_counter;
                                     s3spillStart_head = head;
                                     bit_head = bit_i;
                                     subfile_head = sub_file_counter - 1;
@@ -2485,7 +2485,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     {
                         if (deencode)
                         {
-                            for (int i = 0; i < key_number + value_number; i++)
+                            for (int k = 0; k < number_of_longs; k++)
                             {
                                 char skip_bytes = spill.get();
                                 spill.ignore(skip_bytes);
@@ -3255,11 +3255,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // ankerl::unordered_dense::segmented_map<int, int> ankerlHashmap;
 
     // https://github.com/ktprime/emhash/tree/master
-    value_number = 1;
-    if (op == average)
-    {
-        value_number = 2;
-    }
 
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmaps[threadNumber];
     std::vector<std::vector<std::pair<int, size_t>>> spills(0);
