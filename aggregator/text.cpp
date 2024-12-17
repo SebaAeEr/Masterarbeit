@@ -188,7 +188,7 @@ int writeString(char *mapping, const std::string &string)
 void writeLogFile(logFile log_t)
 {
     std::ofstream output;
-    output.open(("logfile_" + date_now + ".csv").c_str());
+    output.open(("logfile_" + date_now + ".json").c_str());
     output << "{";
     for (auto &it : log_t.sizes)
     {
@@ -199,8 +199,10 @@ void writeLogFile(logFile log_t)
         output << ",\n";
     }
     output << "\"Threads\":[\n";
+    int t_counter = 0;
     for (auto &it : log_t.threads)
     {
+        t_counter++;
         output << "{";
         for (auto &itt : it.sizes)
         {
@@ -211,12 +213,17 @@ void writeLogFile(logFile log_t)
             output << ",\n";
         }
         output << "\"spillTimes\":[\n";
+        int counter = 0;
         for (auto &itt : it.spillTimes)
         {
             output << itt;
-            output << ",";
+            counter++;
+            if (counter < it.spillTimes.size())
+                output << ",";
         }
-        output << "]},";
+        output << "]}";
+        if (t_counter < log_t.threads.size())
+                output << ",";
     }
     output << "]}";
     output.close();
@@ -3775,7 +3782,10 @@ int main(int argc, char **argv)
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
     helpMergePhase(memLimit, memLimitBack, minio_client, true, &hmap, comb_hash_size, diff, &avg);
     Aws::ShutdownAPI(options);
-    writeLogFile(log_file);
+    if (log_time)
+    {
+        writeLogFile(log_file);
+    }
     return 1;
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
