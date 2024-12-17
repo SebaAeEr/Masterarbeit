@@ -3332,7 +3332,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
     for (int i = 0; i < threadNumber; i++)
     {
-        if ((comb_hash_size + emHashmaps[i].size()) * avg + base_size < memLimit * 0.9 && (emHashmap.size() + emHashmaps[i].size()) * avg + base_size < memLimit * 0.5)
+        /* if ((comb_hash_size + emHashmaps[i].size()) * avg + base_size < memLimit * 0.9 && (emHashmap.size() + emHashmaps[i].size()) * avg + base_size < memLimit * 0.5)
         {
             for (auto &tuple : emHashmaps[i])
             {
@@ -3354,11 +3354,11 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             avg = ((getPhyValue() * 1024 - base_size) / (float)(comb_hash_size));
         }
         else
-        {
-            std::string uName = "spill_" + std::to_string(i);
-            std::vector<std::pair<int, size_t>> local_files = std::vector<std::pair<int, size_t>>(partitions, {-1, 0});
-            spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], local_files, uName, &minio_client, worker_id, 0, i));
-        }
+        { */
+        std::string uName = "spill_" + std::to_string(i);
+        std::vector<std::pair<int, size_t>> local_files = std::vector<std::pair<int, size_t>>(partitions, {-1, 0});
+        spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], local_files, uName, &minio_client, worker_id, 0, i));
+        //}
         // delete &emHashmaps[i];
         // emHashmaps[i].clear();
     }
