@@ -816,10 +816,12 @@ def c_size_by_time():
     try:
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
-        f = open(os.path.join(directory, "times_12-13_19-27.csv"))
+        f = open(os.path.join(directory, "times_12-17_14-04.csv"))
+        jf = open(os.path.join(directory, "logfile_12-17_14-04.json"))
     except:
         print("File not found.")
     df = pd.read_csv(f)
+    jf = json.load(jf)
     # Step 2: Extract the columns you want to plot
     # Assuming the columns are named 'Column1' and 'Column2' (change these to match your CSV)
     scale = 2**30
@@ -842,6 +844,13 @@ def c_size_by_time():
     plt.plot(
         x, calc_y, label="calc overall size"
     )  # Line plot (you can change to scatter plot or others)
+
+    keys = ["scanTime", "mergeHashTime", "mergeTime"]
+    timecounter =0
+    for key in keys:
+        timecounter += jf[key]
+        plt.axvline(x=timecounter, color="red", linestyle ='--')
+        plt.text(timecounter, -0.002, key, color="red", ha="center")
     plt.xlabel("time in s")  # Label for x-axis
     plt.ylabel("size in GiB")  # Label for y-axis
     plt.title("size over time")  # Title of the plot

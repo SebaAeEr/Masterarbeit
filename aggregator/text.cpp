@@ -959,7 +959,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     if (mappedoutputFile == MAP_FAILED)
     {
 
-        std::cout << "Start: " << output_size << " + " << start_diff << " start_page: " << start_page << " filehandler: " << file << std::endl;
+        std::cout << "Start: " << output_size << " + " << start_diff << " start_page: " << start_page << " is fd valid? " << fcntl(file, F_GETFD) << std::endl;
         perror("Error mmapping the file in write Hashmap");
         close(file);
         exit(EXIT_FAILURE);
@@ -1984,6 +1984,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_start_time).count()) / 1000000;
         std::cout << "Thread " << int(id) << " finished scanning. With time: " << duration << "s. Scanned Lines: " << numLinesLocal << ". microseconds/line: " << duration * 1000000 / numLinesLocal << ". Spilled with size: " << spill_size << std::endl;
         threadLog.sizes["duration"] = duration;
+        threadLog.sizes["endTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
         log_file.threads.push_back(threadLog);
     }
     catch (std::exception &err)
@@ -3373,7 +3374,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // delete[] emHashmaps;
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - mergeH_start_time).count()) / 1000000;
     std::cout << "Merging of hastables finished with time: " << duration << "s." << std::endl;
-    log_file.sizes["mergeHashTime"] = duration;
+    log_file.sizes["mergeHashTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+    log_file.sizes["mergeHashDuration"] = duration;
 
     finished++;
 
@@ -3407,7 +3409,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         }
         duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - colmerge_start_time).count()) / 1000000;
         std::cout << "Collective Merge ended with time: " << duration << "s." << std::endl;
-        log_file.sizes["mergeColTime"] = duration;
+        log_file.sizes["mergeColTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+        log_file.sizes["mergeColDuration"] = duration;
     }
     auto merge_start_time = std::chrono::high_resolution_clock::now();
     // calc optimistic new avg to better fit spill files as: 8/avgLineLength * (hash_avg - avg)
@@ -3489,7 +3492,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
-    log_file.sizes["mergeTime"] = duration;
+    log_file.sizes["mergeDuration"] = duration;
+    log_file.sizes["mergeTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
 
     close(output_fd);
     if (measure_mem)
@@ -3769,6 +3773,7 @@ int main(int argc, char **argv)
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
         std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
+        log_file.sizes["queryDuration"] = duration;
         log_size = false;
     }
     if (tpc_sup != "-")
