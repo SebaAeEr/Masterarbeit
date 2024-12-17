@@ -2524,7 +2524,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     break;
                 }
             }
-            i++;
+            it_counter++;
         }
 
         // std::cout << "New round" << std::endl;
@@ -2852,7 +2852,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             finished_rows += s3spillStart_head * number_of_longs * sizeof(long);
             if (deencode)
             {
-                printProgressBar((finished_rows + i) / (float)(overall_s3spillsize + comb_spill_size));
+                printProgressBar((finished_rows + it_counter) / (float)(overall_s3spillsize + comb_spill_size));
             }
             else
             {
