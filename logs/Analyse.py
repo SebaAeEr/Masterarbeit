@@ -814,10 +814,10 @@ def analyse_1_6_13():
 
 def c_size_by_time():
     try:
-        directory = "c++_logs"
+        directory = "c++_logs/13"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
-        f = open(os.path.join(directory, "times_12-17_14-04.csv"))
-        jf = open(os.path.join(directory, "logfile_12-17_14-04.json"))
+        f = open(os.path.join(directory, "times_13_1_6_1_4.csv"))
+        jf = open(os.path.join(directory, "logfile_13_1_6_1_4.json"))
     except:
         print("File not found.")
     df = pd.read_csv(f)
@@ -846,11 +846,10 @@ def c_size_by_time():
     )  # Line plot (you can change to scatter plot or others)
 
     keys = ["scanTime", "mergeHashTime", "mergeTime"]
-    timecounter =0
     for key in keys:
-        timecounter += jf[key]
-        plt.axvline(x=timecounter, color="red", linestyle ='--')
-        plt.text(timecounter, -0.002, key, color="red", ha="center")
+        x_value = jf[key] / 1000000
+        plt.axvline(x=x_value, color="red", linestyle="--")
+        plt.text(x_value, -0.005, key, color="red", ha="center")
     plt.xlabel("time in s")  # Label for x-axis
     plt.ylabel("size in GiB")  # Label for y-axis
     plt.title("size over time")  # Title of the plot

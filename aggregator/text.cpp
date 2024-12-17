@@ -1139,9 +1139,9 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
 
             char byteArray[sizeof(long)];
             std::memcpy(byteArray, &it.first[i], sizeof(long));
-            for (int i = 0; i < l_bytes; i++)
+            for (int k = 0; k < l_bytes; k++)
             {
-                spill[counter] = byteArray[i];
+                spill[counter] = byteArray[k];
                 counter++;
             }
         }
@@ -1153,9 +1153,9 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
 
             char byteArray[sizeof(long)];
             std::memcpy(byteArray, &it.second[i], sizeof(long));
-            for (int i = 0; i < l_bytes; i++)
+            for (int k = 0; k < l_bytes; k++)
             {
-                spill[counter] = byteArray[i];
+                spill[counter] = byteArray[k];
                 counter++;
             }
         }
@@ -1372,9 +1372,9 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 char byteArray[sizeof(long)];
                 std::memcpy(byteArray, &it.first[i], sizeof(long));
                 //*in_streams[partition] << byteArray;
-                for (int i = 0; i < l_bytes; i++)
+                for (int k = 0; k < l_bytes; k++)
                 {
-                    *in_streams[partition] << byteArray[i];
+                    *in_streams[partition] << byteArray[k];
                 }
                 spill_mem_size_temp[partition] += l_bytes + 1;
             }
@@ -1386,9 +1386,9 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 char byteArray[sizeof(long)];
                 std::memcpy(byteArray, &it.second[i], sizeof(long));
                 //*in_streams[partition] << byteArray;
-                for (int i = 0; i < l_bytes; i++)
+                for (int k = 0; k < l_bytes; k++)
                 {
-                    *in_streams[partition] << byteArray[i];
+                    *in_streams[partition] << byteArray[k];
                 }
                 spill_mem_size_temp[partition] += l_bytes + 1;
             }
@@ -3626,7 +3626,10 @@ int test(std::string file1name, std::string file2name)
         if (!hashmap2.contains(it.first))
         {
             not_contained_keys++;
-            std::cout << "File 2 does not contain: " << it.first[0] << std::endl;
+            if (not_contained_keys < 50)
+            {
+                std::cout << "File 2 does not contain: " << it.first[0] << std::endl;
+            }
             same = false;
             /*  if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
              {
@@ -3636,7 +3639,10 @@ int test(std::string file1name, std::string file2name)
         if (std::abs(hashmap2[it.first] - it.second) > 0.001)
         {
             different_values++;
-            std::cout << "File 2 has different value for key: " << it.first[0] << "; File 1: " << it.second << "; File 2: " << hashmap2[it.first] << std::endl;
+            if (different_values < 50)
+            {
+                std::cout << "File 2 has different value for key: " << it.first[0] << "; File 1: " << it.second << "; File 2: " << hashmap2[it.first] << std::endl;
+            }
             same = false;
         }
     }
@@ -3645,7 +3651,10 @@ int test(std::string file1name, std::string file2name)
         if (!hashmap.contains(it.first))
         {
             not_contained_keys++;
-            std::cout << "File 1 does not contain: " << it.first[0] << std::endl;
+            if (not_contained_keys < 50)
+            {
+                std::cout << "File 1 does not contain: " << it.first[0] << std::endl;
+            }
             same = false;
             /* if (std::find(std::begin(test_values), std::end(test_values), it.first[0]) != std::end(test_values))
             {
