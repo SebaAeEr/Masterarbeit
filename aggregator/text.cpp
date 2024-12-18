@@ -1808,7 +1808,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             }
             if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
             {
-                std::cout << "hmap contains key: " << keys[0] << " value: " << (*hmap)[keys][0] << std::endl;
+                std::cout << "hmap contains key: " << keys[0] << " value: " << (*hmap)[keys][0] << ", " << (*hmap)[keys][1] << std::endl;
             }
         }
         else
@@ -1823,7 +1823,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             }
             if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
             {
-                std::cout << "Add key to hmap: " << keys[0] << " value: " << (*hmap)[keys][0] << std::endl;
+                std::cout << "Add key to hmap: " << keys[0] << " value: " << (*hmap)[keys][0] << ", " << (*hmap)[keys][1] << std::endl;
             }
         }
 
@@ -2403,7 +2403,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                             *bit &= ~(0x01 << (head % 8));
                             if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
                             {
-                                std::cout << "found key in Spill contained in hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
+                                std::cout << "found key in Spill contained in hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << ", " << (*hmap)[keys][1] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
                             }
                         }
                         else if (!locked)
@@ -2421,7 +2421,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                             *bit &= ~(0x01 << (head % 8));
                             if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
                             {
-                                std::cout << "found key in Spill added to hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
+                                std::cout << "found key in Spill added to hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << ", " << (*hmap)[keys][1] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
                             }
                             // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
                         }
