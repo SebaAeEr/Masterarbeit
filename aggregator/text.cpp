@@ -1940,6 +1940,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     }
                 }
                 threadLog.sizes["SpillSize"] += temp_spill_size;
+
                 threadLog.spillTimes.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count());
 
                 if (memLimitBack > mainMem_usage + temp_spill_size - temp_local_spill_size)
@@ -2007,6 +2008,14 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     std::string empty = "";
                     std::vector<std::pair<int, size_t>> spill_file = std::vector<std::pair<int, size_t>>(partitions, {-1, 0});
                     spillToMinio(hmap, spill_file, uName, minio_client, worker_id, 0, id);
+
+                    for (auto &test_value : test_values)
+                    {
+                        if (hmap->contains({test_value, 0}))
+                        {
+                            std::cout << "Spilling " << test_value << " to " << uName << " with value " << (*hmap)[{test_value, 0}][0] << ", " << (*hmap)[{test_value, 0}][1] << std::endl;
+                        }
+                    }
                 }
                 spill_number++;
 
