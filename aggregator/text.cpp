@@ -107,7 +107,7 @@ unsigned long mainMem_usage = 0;
 bool deencode = true;
 bool mergePhase = false;
 bool set_partitions = true;
-std::vector<unsigned long> test_values = {4429, 44291504};
+std::vector<unsigned long> test_values = {4429};
 int partitions = -1;
 logFile log_file;
 
@@ -3398,7 +3398,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     while ((float)(readBytes.load()) / size < 0.99)
     {
         // std::cout << readBytes.load() << std::endl;
-        printProgressBar((float)(readBytes.load()) / size);
+        // printProgressBar((float)(readBytes.load()) / size);
         usleep(100);
     }
     printProgressBar(1);
