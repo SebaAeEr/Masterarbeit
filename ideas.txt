@@ -1,2 +1,303 @@
-    size_t mergelinesRead;
-    size_t mergelinesWritten;
+ ./aggregator tpc_17_input_small.json tpc_17_output_small.json 6 0 4 17 1 true true
+Input file size: 65942275597
+t1 size: 16485568512 t2 size: 16485570061
+max_s3_spill_size: 10000000                                            ] 3 %
+Add key to hmap: 44291504 value: 49, 1                                 ] 3 %
+Set partition number to: 21                                            ] 4 %
+s3: 3
+Add key to hmap: 44291504 value: 32, 1                                 ] 6 %
+s3: 1>                                                                 ] 6 %
+Add key to hmap: 44291504 value: 9, 1                                  ] 6 %
+Add key to hmap: 4429 value: 3, 1                                      ] 6 %
+s3: 2>                                                                 ] 6 %
+Add key to hmap: 4429 value: 34, 1                                     ] 7 %
+s3: 0=>                                                                ] 7 %
+s3: 3==>                                                               ] 8 %
+s3: 1=====>                                                            ] 14 %
+s3: 2======>                                                           ] 14 %
+s3: 0======>                                                           ] 14 %
+Add key to hmap: 44291504 value: 15, 1                                 ] 15 %
+s3: 3======>                                                           ] 15 %
+Add key to hmap: 44291504 value: 43, 1                                 ] 17 %
+Add key to hmap: 4429 value: 9, 1                                      ] 18 %
+Add key to hmap: 4429 value: 42, 1                                     ] 18 %
+s3: 1==========>                                                       ] 20 %
+Add key to hmap: 4429 value: 25, 1                                     ] 20 %
+s3: 2===========>                                                      ] 21 %
+s3: 0===========>                                                      ] 22 %
+s3: 3===========>                                                      ] 22 %
+Add key to hmap: 4429 value: 36, 1                                     ] 22 %
+Add key to hmap: 44291504 value: 40, 1                                 ] 23 %
+s3: [=========1===>                                                    ] 25 %
+Add key to hmap: 4429 value: 16, 1                                     ] 26 %
+s3: 2================>                                                 ] 28 %
+Add key to hmap: 4429 value: 38, 1                                     ] 29 %
+s3: 0=================>                                                ] 30 %
+s3: 3==================>                                               ] 31 %
+Add key to hmap: 4429 value: 26, 1                                     ] 32 %
+s3: 1==================>                                               ] 32 %
+hmap contains key: 4429 value: 42, 2                                   ] 34 %
+s3: 2====================>                                             ] 34 %
+[=========================>              Add key to hmap:  44291504  value: 13,               1
+s3: 0======================>                                           ] 38 %
+s3: 3=======================>                                          ] 39 %
+s3: 1=======================>                                          ] 39 %
+Add key to hmap: 44291504 value: 35, 1                                 ] 39 %
+Add key to hmap: 44291504 value: 40, 1                                 ] 39 %
+Add key to hmap: 4429 value: 29, 1                                     ] 40 %
+Add key to hmap: 4429 value: 32, 1                                     ] 40 %
+s3: 2========================>                                         ] 41 %
+Add key to hmap: 44291504 value: 31, 1                                 ] 41 %
+hmap contains key: 44291504 value: 49, 2                               ] 45 %
+s3: 0===========================>                                      ] 45 %
+s3: 3===========================>                                      ] 45 %
+s3: 1============================>                                     ] 45 %
+s3: 2============================>                                     ] 46 %
+[Add key to hmap: =================4429= value: 22, =1                 ] 49 %
+Add key to hmap: 44291504 value: 50, 1                                 ] 50 %
+Add key to hmap: 4429 value: 31, 1===>                                 ] 52 %
+s3: 0================================>                                 ] 52 %
+s3: 3=================================>                                ] 53 %
+[============s3: =1===================>                                ] 53 %
+s3: 2=================================>                                ] 53 %
+s3: 0====================================>                             ] 58 %
+Add key to hmap: 4429 value: 17, 1========>                            ] 59 %
+s3: 3======================================>                           ] 60 %
+s3: 1======================================>                           ] 60 %
+s3: 2=======================================>                          ] 61 %
+s3: 0========================================>                         ] 63 %
+Add key to hmap: 44291504 value: 28, 1==========>                      ] 67 %
+s3: 3===========================================>                      ] 67 %
+Add key to hmap: 4429 value: 42, 1==============>                      ] 68 %
+s3: 1===========================================>                      ] 68 %
+s3: 2============================================>                     ] 69 %
+s3: 0============================================>                     ] 69 %
+Add key to hmap: 44291504 value: 25, 1============>                    ] 70 %
+hmap contains key: 44291504 value: 28, 2==========>                    ] 70 %
+s3: 3===============================================>                  ] 73 %
+Add key to hmap: 44291504 value: 21, 1===============>                 ] 75 %
+Add key to hmap: 4429 value: 6, 1====================>                 ] 75 %
+s3: 1=================================================>                ] 75 %
+s3: 2=================================================>                ] 76 %
+s3: 0==================================================>               ] 77 %
+Add key to hmap: 4429 value: 41, 1=====================>               ] 78 %
+s3: 3===================================================>              ] 79 %
+hmap contains key: 4429 value: 52, 2====================>              ] 79 %
+Add key to hmap: 44291504 value: 7, 1====================>             ] 80 %
+Add key to hmap: 44291504 value: 44, 1====================>            ] 81 %
+s3: 1=====================================================>            ] 82 %
+Add key to hmap: 4429 value: 4, 1===========================>          ] 84 %
+s3: 2=======================================================>          ] 84 %
+Add key to hmap: 4429 value: 23, 1==========================>          ] 84 %
+s3: 0=======================================================>          ] 84 %
+s3: 3========================================================>         ] 86 %
+Add key to hmap: 4429 value: 35, 1===========================>         ] 86 %
+s3: 1==========================================================>       ] 88 %
+Add key to hmap: 44291504 value: 1, 1==========================>       ] 89 %
+Add key to hmap: 4429 value: 12, 1=============================>       ] 89 %
+Add key to hmap: 44291504 value: 47, 1=========================>       ] 89 %
+hmap contains key: 4429 value: 69, 2=============================>     ] 91 %
+hmap contains key: 44291504 value: 66, 2=========================>     ] 92 %
+s3: 2============================================================>     ] 92 %
+s3: 0============================================================>     ] 92 %
+Add key to hmap: 4429 value: 35, 1================================>    ] 93 %
+s3: 3=============================================================>    ] 93 %
+1==================================================================>   s3: ] 94 %
+Add key to hmap: 44291504 value: 4, 1==============================>   ] 95 %
+Add key to hmap: 44291504 value: 37, 1=============================>   ] 95 %
+Add key to hmap: 4429 value: 23, 1==================================>  ] 96 %
+Add key to hmap: 4429 value: 4, 1===================================>  ] 96 %
+hmap contains key: 4429 value: 64, 2================================>  ] 96 %
+hmap contains key: 4429 value: 23, 2================================>  ] 96 %
+Thread 3 finished scanning. With time: 785.516s. Scanned Lines: 449997342. microseconds/line: 1.7456. Spilled with size: 8218172208
+hmap contains key: 44291504 value: 32, 2=============================> ] 98 %
+Thread 1 finished scanning. With time: 790.09s. Scanned Lines: 449997271. microseconds/line: 1.75577. Spilled with size: 8270785560
+[======================================================================] 100 %
+s3: 2
+s3: 0
+Thread 0 finished scanning. With time: 816.04s. Scanned Lines: 449997100. microseconds/line: 1.81343. Spilled with size: 8328926208
+Thread 2 finished scanning. With time: 817.327s. Scanned Lines: 449997378. microseconds/line: 1.81629. Spilled with size: 8269289304
+Scanning finished with time: 817.328s. Scanned Lines: 1799989091. macroseconds/line: 0.454074 Overall spill: 33087173280B. Spill to Background Memory: 0B. Spill to S3: 33087173280
+Merging of hastables finished with time: 15.1839s.
+
+Keeping bitmaps in mem with size: 8409180 Number of bitmaps: 60
+Stream buffer: 26705920                                                ] 0 %
+extra_mem 35115100
+Writing hmap with size: 2855474 s3spillFile_head: 0 s3spillStart_head_chars: 2209652 avg 1 base_size: 1592930396 locked: 0
+Merging Spills and writing output finished with time: 30.0812s. Written lines: 2855474. macroseconds/line: 10.5346 Read lines: 67273224. macroseconds/line: 0.44715
+
+Keeping bitmaps in mem with size: 8417548 Number of bitmaps: 60
+Stream buffer: 3768320                                                 ] 0 %
+extra_mem 12185868
+Writing hmap with size: 2858222 s3spillFile_head: 0 s3spillStart_head_chars: 2213132 avg 1 base_size: 1570001164 locked: 0
+Merging Spills and writing output finished with time: 29.5858s. Written lines: 2858222. macroseconds/line: 10.3511 Read lines: 67340159. macroseconds/line: 0.439348
+
+Keeping bitmaps in mem with size: 8415526 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8415526
+found key in Spill added to hashmap: 4429 value: 34, 1 In spill: 1_0_0_2_1
+found key in Spill contained in hashmap: 4429 value: 57, 3 In spill: 1_0_13_2_1
+found key in Spill contained in hashmap: 4429 value: 74, 4 In spill: 1_3_8_2_1
+found key in Spill contained in hashmap: 4429 value: 143, 6 In spill: 1_2_12_2_1
+found key in Spill contained in hashmap: 4429 value: 166, 7 In spill: 1_0_11_2_1
+found key in Spill contained in hashmap: 4429 value: 204, 8 In spill: 1_0_3_2_1
+found key in Spill contained in hashmap: 4429 value: 256, 10 In spill: 1_1_11_2_1
+found key in Spill contained in hashmap: 4429 value: 320, 12 In spill: 1_2_13_2_1
+found key in Spill contained in hashmap: 4429 value: 332, 13 In spill: 1_0_12_2_1
+found key in Spill contained in hashmap: 4429 value: 361, 14 In spill: 1_2_5_2_1
+found key in Spill contained in hashmap: 4429 value: 403, 16 In spill: 1_0_4_2_1
+found key in Spill contained in hashmap: 4429 value: 445, 17 In spill: 1_1_2_2_1
+found key in Spill contained in hashmap: 4429 value: 481, 18 In spill: 1_1_3_2_1
+found key in Spill contained in hashmap: 4429 value: 513, 19 In spill: 1_3_6_2_1
+found key in Spill contained in hashmap: 4429 value: 538, 20 In spill: 1_2_2_2_1
+found key in Spill contained in hashmap: 4429 value: 544, 21 In spill: 1_1_10_2_1
+found key in Spill contained in hashmap: 4429 value: 547, 22 In spill: 1_3_1_2_1
+found key in Spill contained in hashmap: 4429 value: 563, 23 In spill: 1_1_4_2_1
+found key in Spill contained in hashmap: 4429 value: 605, 24 In spill: 1_0_9_2_1
+found key in Spill contained in hashmap: 4429 value: 627, 25 In spill: 1_1_7_2_1
+found key in Spill contained in hashmap: 4429 value: 636, 26 In spill: 1_0_2_2_1
+found key in Spill contained in hashmap: 4429 value: 667, 27 In spill: 1_3_7_2_1
+found key in Spill contained in hashmap: 4429 value: 671, 28 In spill: 1_3_12_2_1
+found key in Spill contained in hashmap: 4429 value: 706, 29 In spill: 1_3_13_2_1
+Writing hmap with size: 2857427 s3spillFile_head: 0 s3spillStart_head_chars: 2215402 avg 1 base_size: 1566230822 locked: 0
+Merging Spills and writing output finished with time: 29.7929s. Written lines: 2857427. macroseconds/line: 10.4265 Read lines: 67323971. macroseconds/line: 0.442531
+
+Keeping bitmaps in mem with size: 8414358 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8414358
+Writing hmap with size: 2857356 s3spillFile_head: 0 s3spillStart_head_chars: 2218425 avg 1 base_size: 1566229654 locked: 0
+Merging Spills and writing output finished with time: 29.6024s. Written lines: 2857356. macroseconds/line: 10.3601 Read lines: 67314636. macroseconds/line: 0.439762
+
+Keeping bitmaps in mem with size: 8419813 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8419813
+Writing hmap with size: 2859044 s3spillFile_head: 0 s3spillStart_head_chars: 2216140 avg 1 base_size: 1566235109 locked: 0
+Merging Spills and writing output finished with time: 29.5294s. Written lines: 2859044. macroseconds/line: 10.3284 Read lines: 67358306. macroseconds/line: 0.438393
+
+Keeping bitmaps in mem with size: 8405912 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8405912
+Writing hmap with size: 2854348 s3spillFile_head: 0 s3spillStart_head_chars: 2214700 avg 1 base_size: 1566221208 locked: 0
+Merging Spills and writing output finished with time: 29.4784s. Written lines: 2854348. macroseconds/line: 10.3275 Read lines: 67247067. macroseconds/line: 0.438359
+
+Keeping bitmaps in mem with size: 8417336 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8417336
+found key in Spill added to hashmap: 44291504 value: 28, 2 In spill: 1_3_10_6_1
+found key in Spill contained in hashmap: 44291504 value: 29, 3 In spill: 1_2_12_6_1
+found key in Spill contained in hashmap: 44291504 value: 61, 5 In spill: 1_2_13_6_1
+found key in Spill contained in hashmap: 44291504 value: 105, 6 In spill: 1_0_11_6_1
+found key in Spill contained in hashmap: 44291504 value: 142, 7 In spill: 1_0_13_6_1
+found key in Spill contained in hashmap: 44291504 value: 208, 9 In spill: 1_0_12_6_1
+found key in Spill contained in hashmap: 44291504 value: 257, 11 In spill: 1_3_6_6_1
+found key in Spill contained in hashmap: 44291504 value: 292, 12 In spill: 1_0_5_6_1
+found key in Spill contained in hashmap: 44291504 value: 299, 13 In spill: 1_2_11_6_1
+found key in Spill contained in hashmap: 44291504 value: 339, 14 In spill: 1_2_5_6_1
+found key in Spill contained in hashmap: 44291504 value: 382, 15 In spill: 1_3_3_6_1
+found key in Spill contained in hashmap: 44291504 value: 422, 16 In spill: 1_1_3_6_1
+found key in Spill contained in hashmap: 44291504 value: 435, 17 In spill: 1_1_5_6_1
+found key in Spill contained in hashmap: 44291504 value: 463, 18 In spill: 1_0_9_6_1
+found key in Spill contained in hashmap: 44291504 value: 513, 19 In spill: 1_1_7_6_1
+found key in Spill contained in hashmap: 44291504 value: 534, 20 In spill: 1_2_10_6_1
+found key in Spill contained in hashmap: 44291504 value: 549, 21 In spill: 1_3_2_6_1
+found key in Spill contained in hashmap: 44291504 value: 558, 22 In spill: 1_2_0_6_1
+found key in Spill contained in hashmap: 44291504 value: 590, 23 In spill: 1_1_0_6_1
+found key in Spill contained in hashmap: 44291504 value: 639, 24 In spill: 1_3_0_6_1
+Writing hmap with size: 2857798 s3spillFile_head: 0 s3spillStart_head_chars: 2215765 avg 1 base_size: 1566232632 locked: 0
+Merging Spills and writing output finished with time: 29.8517s. Written lines: 2857798. macroseconds/line: 10.4457 Read lines: 67338486. macroseconds/line: 0.443309
+
+Keeping bitmaps in mem with size: 8408610 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8408610
+Writing hmap with size: 2854800 s3spillFile_head: 0 s3spillStart_head_chars: 2219221 avg 1 base_size: 1566223906 locked: 0
+Merging Spills and writing output finished with time: 29.8088s. Written lines: 2854800. macroseconds/line: 10.4416 Read lines: 67268667. macroseconds/line: 0.443131
+
+Keeping bitmaps in mem with size: 8418059 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8418059
+Writing hmap with size: 2858730 s3spillFile_head: 0 s3spillStart_head_chars: 2221897 avg 1 base_size: 1566233355 locked: 0
+Merging Spills and writing output finished with time: 29.8457s. Written lines: 2858730. macroseconds/line: 10.4402 Read lines: 67344281. macroseconds/line: 0.443181
+
+Keeping bitmaps in mem with size: 8418130 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8418130
+Writing hmap with size: 2858520 s3spillFile_head: 0 s3spillStart_head_chars: 2210560 avg 1 base_size: 1566233426 locked: 0
+Merging Spills and writing output finished with time: 29.7989s. Written lines: 2858520. macroseconds/line: 10.4246 Read lines: 67344827. macroseconds/line: 0.442482
+
+Keeping bitmaps in mem with size: 8414258 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8414258
+Writing hmap with size: 2856890 s3spillFile_head: 0 s3spillStart_head_chars: 2215953 avg 1 base_size: 1566229554 locked: 0
+Merging Spills and writing output finished with time: 29.6403s. Written lines: 2856890. macroseconds/line: 10.375 Read lines: 67313857. macroseconds/line: 0.44033
+
+Keeping bitmaps in mem with size: 8419551 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8419551
+Writing hmap with size: 2859070 s3spillFile_head: 0 s3spillStart_head_chars: 2213922 avg 1 base_size: 1566234847 locked: 0
+Merging Spills and writing output finished with time: 29.5794s. Written lines: 2859070. macroseconds/line: 10.3458 Read lines: 67356178. macroseconds/line: 0.439148
+
+Keeping bitmaps in mem with size: 8410843 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8410843
+Writing hmap with size: 2855646 s3spillFile_head: 0 s3spillStart_head_chars: 2222938 avg 1 base_size: 1566226139 locked: 0
+Merging Spills and writing output finished with time: 29.4491s. Written lines: 2855646. macroseconds/line: 10.3126 Read lines: 67286537. macroseconds/line: 0.437668
+
+Keeping bitmaps in mem with size: 8415593 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8415593
+Writing hmap with size: 2858147 s3spillFile_head: 0 s3spillStart_head_chars: 2217414 avg 1 base_size: 1566230889 locked: 0
+Merging Spills and writing output finished with time: 30.0724s. Written lines: 2858147. macroseconds/line: 10.5217 Read lines: 67324524. macroseconds/line: 0.446679
+
+Keeping bitmaps in mem with size: 8405788 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8405788
+Writing hmap with size: 2854401 s3spillFile_head: 0 s3spillStart_head_chars: 2213587 avg 1 base_size: 1566221084 locked: 0
+Merging Spills and writing output finished with time: 29.5645s. Written lines: 2854401. macroseconds/line: 10.3575 Read lines: 67246111. macroseconds/line: 0.439646
+
+Keeping bitmaps in mem with size: 8419322 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8419322
+Writing hmap with size: 2859133 s3spillFile_head: 0 s3spillStart_head_chars: 2214798 avg 1 base_size: 1566234618 locked: 0
+Merging Spills and writing output finished with time: 29.7614s. Written lines: 2859133. macroseconds/line: 10.4092 Read lines: 67354353. macroseconds/line: 0.441863
+
+Keeping bitmaps in mem with size: 8416272 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8416272
+Writing hmap with size: 2857535 s3spillFile_head: 0 s3spillStart_head_chars: 2219925 avg 1 base_size: 1566231568 locked: 0
+Merging Spills and writing output finished with time: 29.9147s. Written lines: 2857535. macroseconds/line: 10.4687 Read lines: 67329975. macroseconds/line: 0.4443
+
+Keeping bitmaps in mem with size: 8409465 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8409465
+Writing hmap with size: 2856143 s3spillFile_head: 0 s3spillStart_head_chars: 2214617 avg 1 base_size: 1566224761 locked: 0
+Merging Spills and writing output finished with time: 29.9102s. Written lines: 2856143. macroseconds/line: 10.4722 Read lines: 67275518. macroseconds/line: 0.444593
+
+Keeping bitmaps in mem with size: 8420846 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8420846
+Writing hmap with size: 2859511 s3spillFile_head: 0 s3spillStart_head_chars: 2214196 avg 1 base_size: 1566236142 locked: 0
+Merging Spills and writing output finished with time: 29.6791s. Written lines: 2859511. macroseconds/line: 10.3791 Read lines: 67366546. macroseconds/line: 0.440561
+
+Keeping bitmaps in mem with size: 8408080 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8408080
+Writing hmap with size: 2855255 s3spillFile_head: 0 s3spillStart_head_chars: 2212346 avg 1 base_size: 1566223376 locked: 0
+Merging Spills and writing output finished with time: 29.8436s. Written lines: 2855255. macroseconds/line: 10.4522 Read lines: 67264437. macroseconds/line: 0.443676
+
+Keeping bitmaps in mem with size: 8412124 Number of bitmaps: 60
+Stream buffer: 0                                                       ] 0 %
+extra_mem 8412124
+Writing hmap with size: 2856550 s3spillFile_head: 0 s3spillStart_head_chars: 2211496 avg 1 base_size: 1566227420 locked: 0
+Merging Spills and writing output finished with time: 30.053s. Written lines: 2856550. macroseconds/line: 10.5207 Read lines: 67296773. macroseconds/line: 0.446575
+Merging Spills and writing output finished with time: 653.315s. Written lines: 0. macroseconds/line: inf
+Max Size: 6069256192B.
+Aggregation finished. With time: 1487.45s. Checking results.
+first file scanned
+Scanning finished
+File 2 has different value for key: 4429; File 1: 24.3448; File 2: 24.7857
+File 2 has different value for key: 44291504; File 1: 26.625; File 2: 26.04
+File 2 has different value for key: 50171226; File 1: 29.0556; File 2: 28.75
+Files different! Not contained keys: 0, different values: 3
+getting file name
+finish
+Max Size: 1072844800B.

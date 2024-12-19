@@ -77,6 +77,10 @@ struct logFile
 {
     std::unordered_map<std::string, size_t> sizes;
     std::vector<threadLog> threads;
+    std::vector<size_t> get_lock_durs;
+    std::vector<size_t> get_mana_durs;
+    std::vector<size_t> write_mana_durs;
+    std::vector<std::pair<size_t, size_t>> write_file_durs;
 };
 
 static const int max_size = 2;
@@ -225,6 +229,55 @@ void writeLogFile(logFile log_t)
         if (t_counter < log_t.threads.size())
             output << ",";
     }
+
+    output << "],\n\"get_lock_dur\":[";
+    t_counter = 0;
+    for (auto &it : log_t.get_lock_durs)
+    {
+        t_counter++;
+        output << it;
+        if (t_counter < log_t.get_lock_durs.size())
+            output << ",";
+    }
+
+    output << "],\n\"write_mana_dur\":[";
+    t_counter = 0;
+    for (auto &it : log_t.write_mana_durs)
+    {
+        t_counter++;
+        output << it;
+        if (t_counter < log_t.write_mana_durs.size())
+            output << ",";
+    }
+
+    output << "],\n\"get_mana_dur\":[";
+    t_counter = 0;
+    for (auto &it : log_t.get_mana_durs)
+    {
+        t_counter++;
+        output << it;
+        if (t_counter < log_t.get_mana_durs.size())
+            output << ",";
+    }
+
+    output << "],\n\"write_file_dur\":[";
+    t_counter = 0;
+    for (auto &it : log_t.write_file_durs)
+    {
+        t_counter++;
+        output << it.first;
+        if (t_counter < log_t.write_file_durs.size())
+            output << ",";
+    }
+    output << "],\n\"write_file_size\":[";
+    t_counter = 0;
+    for (auto &it : log_t.write_file_durs)
+    {
+        t_counter++;
+        output << it.second;
+        if (t_counter < log_t.write_file_durs.size())
+            output << ",";
+    }
     output << "]}";
     output.close();
 }
@@ -253,6 +306,7 @@ std::string getManaVersion(Aws::S3::S3Client *minio_client)
 
 manaFile getMana(Aws::S3::S3Client *minio_client)
 {
+    auto get_start_time = std::chrono::high_resolution_clock::now();
     manaFile mana;
     Aws::S3::Model::GetObjectRequest request;
     request.SetBucket(bucketName);
@@ -351,11 +405,13 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         worker.partitions = partitions;
         mana.workers.push_back(worker);
     }
+    log_file.get_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - get_start_time).count());
     return mana;
 }
 
 bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
 {
+    auto write_start_time = std::chrono::high_resolution_clock::now();
     while (true)
     {
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -467,6 +523,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                     return false;
                 }
             }
+            log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
             return 1;
         }
         //}
@@ -499,6 +556,7 @@ bool writeLock(Aws::S3::S3Client *minio_client)
 
 manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
 {
+    auto lock_start_time = std::chrono::high_resolution_clock::now();
     while (true)
     {
         manaFile mana = getMana(minio_client);
@@ -524,6 +582,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             }
         }
     }
+    log_file.get_lock_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lock_start_time).count());
 }
 
 Aws::S3::S3Client init()
@@ -1293,6 +1352,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
 void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOStream> body, size_t size, std::string &name)
 {
+    auto write_start_time = std::chrono::high_resolution_clock::now();
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket(bucketName);
     request.SetKey(name);
@@ -1312,6 +1372,7 @@ void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOS
             break;
         }
     }
+    log_file.write_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count(), size});
 }
 
 void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
