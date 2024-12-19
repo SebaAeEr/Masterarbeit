@@ -1130,7 +1130,9 @@ unsigned long parseJson(char *mapping, unsigned long start, std::string keys[], 
                 (*lineObjects)[key] = "";
                 while (char_temp != ',' && char_temp != '}')
                 {
-                    (*lineObjects)[key] += char_temp;
+                    if(isdigit(char_temp)) {
+                        (*lineObjects)[key] += char_temp;
+                    }
                     i++;
                     char_temp = mapping[i];
                 }
