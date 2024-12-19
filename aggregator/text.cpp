@@ -1109,7 +1109,7 @@ int getPartition(std::array<unsigned long, max_size> key)
     return h % partitions;
 }
 
-unsigned long parseJson(char *mapping, unsigned long start, std::string keys[], std::unordered_map<std::string, std::string> *lineObjects, size_t limit, bool is_float = false)
+unsigned long parseJson(char *mapping, unsigned long start, std::string keys[], std::unordered_map<std::string, std::string> *lineObjects, size_t limit)
 {
     unsigned long i = start;
     while (true)
@@ -1130,7 +1130,7 @@ unsigned long parseJson(char *mapping, unsigned long start, std::string keys[], 
                 (*lineObjects)[key] = "";
                 while (char_temp != ',' && char_temp != '}')
                 {
-                    if (is_float || isdigit(char_temp))
+                    if (char_temp == '.' || isdigit(char_temp))
                     {
                         (*lineObjects)[key] += char_temp;
                     }
@@ -3639,7 +3639,7 @@ int test(std::string file1name, std::string file2name)
     std::array<unsigned long, max_size> keys;
     for (unsigned long i = 0; i < size; ++i)
     {
-        i = parseJson(mappedFile, i, coloumns, &lineObjects, size, true);
+        i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
         if (i == -1)
         {
             break;
@@ -3686,7 +3686,7 @@ int test(std::string file1name, std::string file2name)
     emhash8::HashMap<std::array<unsigned long, max_size>, float, decltype(hash), decltype(comp)> hashmap2;
     for (unsigned long i = 0; i < size; ++i)
     {
-        i = parseJson(mappedFile, i, coloumns, &lineObjects, size, true);
+        i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
         if (i == -1)
         {
             break;
