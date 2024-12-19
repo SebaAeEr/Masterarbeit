@@ -81,6 +81,7 @@ struct logFile
     std::vector<size_t> get_mana_durs;
     std::vector<size_t> write_mana_durs;
     std::vector<std::pair<size_t, size_t>> write_file_durs;
+    std::vector<std::pair<size_t, size_t>> get_file_durs;
 };
 
 static const int max_size = 2;
@@ -276,6 +277,25 @@ void writeLogFile(logFile log_t)
         t_counter++;
         output << it.second;
         if (t_counter < log_t.write_file_durs.size())
+            output << ",";
+    }
+    output << "],\n\"get_file_dur\":[";
+    t_counter = 0;
+    for (auto &it : log_t.get_file_durs)
+    {
+        t_counter++;
+        output << it.first;
+        if (t_counter < log_t.get_file_durs.size())
+            output << ",";
+    }
+
+    output << "],\n\"get_file_size\":[";
+    t_counter = 0;
+    for (auto &it : log_t.get_file_durs)
+    {
+        t_counter++;
+        output << it.second;
+        if (t_counter < log_t.get_file_durs.size())
             output << ",";
     }
     output << "]}";
@@ -578,11 +598,11 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                 // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
                 mana = getMana(minio_client);
                 // std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+                log_file.get_lock_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lock_start_time).count());
                 return mana;
             }
         }
     }
-    log_file.get_lock_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lock_start_time).count());
 }
 
 Aws::S3::S3Client init()
@@ -1120,6 +1140,17 @@ unsigned long parseJson(char *mapping, unsigned long start, std::string keys[], 
                 }
                 else
                 {
+                    if (std::find(std::begin(test_values), std::end(test_values), std::stol((*lineObjects)[keys[0]])) != std::end(test_values))
+                    {
+                        unsigned long temp = start;
+                        std::cout << "Json line: ";
+                        while (temp < i)
+                        {
+                            std::cout << mapping[temp];
+                            temp++;
+                        }
+                        std::cout << std::endl;
+                    }
                     return i;
                 }
             }
@@ -1869,7 +1900,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             }
             if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
             {
-                std::cout << "hmap contains key: " << keys[0] << " value: " << (*hmap)[keys][0] << ", " << (*hmap)[keys][1] << std::endl;
+                std::cout << "hmap contains key: " << keys[0] << " value: " << opValue << ", " << (*hmap)[keys][1] << std::endl;
             }
         }
         else
@@ -1884,7 +1915,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             }
             if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
             {
-                std::cout << "Add key to hmap: " << keys[0] << " value: " << (*hmap)[keys][0] << ", " << (*hmap)[keys][1] << std::endl;
+                std::cout << "Add key to hmap: " << keys[0] << " value: " << opValue << ", " << (*hmap)[keys][1] << std::endl;
             }
         }
 
@@ -2310,6 +2341,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             for (int sub_file_k = sub_file_counter; sub_file_k < get<2>(*set_it).size(); sub_file_k++)
             {
+                auto read_file_start = std::chrono::high_resolution_clock::now();
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = hmap->empty();
                 // std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
@@ -2332,6 +2364,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
                 // std::cout << "Reading spill: " << (*set_it).first << std::endl;
                 auto &spill = outcome.GetResult().GetBody();
+                log_file.get_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_file_start).count(), get<2>(*set_it)[sub_file_k].first});
                 // spill.rdbuf()->pubsetbuf(buffer, 1ull << 10);
                 //   spill.rdbuf()->
                 char *bitmap_mapping;

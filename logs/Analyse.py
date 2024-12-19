@@ -817,11 +817,11 @@ def c_size_by_time():
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
         f = open(os.path.join(directory, "times_12-17_16-21.csv"))
-        jf = open(os.path.join(directory, "logfile_12-17_16-21.json"))
+        jf = open(os.path.join(directory, "logfile_12-19_10-02.json"))
     except:
         print("File not found.")
     df = pd.read_csv(f)
-    jf = json.load(jf)
+    jf_data = json.load(jf)
     # Step 2: Extract the columns you want to plot
     # Assuming the columns are named 'Column1' and 'Column2' (change these to match your CSV)
     scale = 2**30
@@ -847,9 +847,10 @@ def c_size_by_time():
 
     keys = ["scanTime", "mergeHashTime", "mergeTime"]
     for key in keys:
-        x_value = jf[key] / 1000000
+        x_value = jf_data[key] / 1000000
         plt.axvline(x=x_value, color="red", linestyle="--")
         plt.text(x_value, -0.005, key, color="red", ha="center")
+
     plt.xlabel("time in s")  # Label for x-axis
     plt.ylabel("size in GiB")  # Label for y-axis
     plt.title("size over time")  # Title of the plot
@@ -857,6 +858,29 @@ def c_size_by_time():
 
     plt.figure(2)
     plt.plot(x, avg_y, label="Average")
+
+    get_mana_dur = jf_data["get_mana_dur"]
+    plt.figure(3)
+    plt.hist(get_mana_dur, bins=30, label="get_mana_dur")
+
+    write_mana_dur = jf_data["write_mana_dur"]
+    plt.figure(4)
+    plt.hist(write_mana_dur, bins=30, label="write_mana_dur")
+
+    get_lock_dur = jf_data["get_lock_dur"]
+    plt.figure(5)
+    plt.hist(get_lock_dur, bins=30, label="get_lock_dur")
+
+    write_file_dur = jf_data["write_file_dur"]
+    write_file_size = jf_data["write_file_size"]
+    write_file_dur.sort()
+    write_file_size.sort()
+    plt.figure(6)
+    plt.plot(write_file_dur, write_file_size, label="write file duration")
+
+    plt.figure(7)
+    plt.hist(write_file_dur, bins=30, label="write_file_dur")
+
     # Step 4: Show the plot
     plt.show()
 
