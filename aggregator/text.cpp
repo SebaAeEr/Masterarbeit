@@ -326,7 +326,7 @@ std::string getManaVersion(Aws::S3::S3Client *minio_client)
     }
 }
 
-void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<bool> &done, manaFile &return_value)
+void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<int> *done, manaFile &return_value)
 {
     Aws::S3::Model::GetObjectRequest request;
     request.SetBucket(bucketName);
@@ -422,15 +422,20 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<bool> &done, manaF
         worker.partitions = partitions;
         mana.workers.push_back(worker);
     }
-    if (!done)
+    if (done->load() > 0)
     {
         std::cout << "overwrite mana" << std::endl;
-        done.exchange(true);
+        done->exchange(done->load() * -1);
         return_value = mana;
     }
     else
     {
         std::cout << "already done" << std::endl;
+    }
+    done->fetch_add(1);
+    if (done->load() == 0)
+    {
+        delete done;
     }
     return;
 }
@@ -438,20 +443,21 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<bool> &done, manaF
 manaFile getMana(Aws::S3::S3Client *minio_client)
 {
     auto get_start_time = std::chrono::high_resolution_clock::now();
-    std::atomic<bool> done(false);
+    std::atomic<int> *done;
+    done->exchange(1);
     manaFile mana;
     std::cout << "get mana" << std::endl;
     if (straggler_removal)
     {
         std::vector<std::thread> threads;
-        while (!done)
+        while (done->load() > 0)
         {
             auto thread_get_start_time = std::chrono::high_resolution_clock::now();
-            threads.push_back(std::thread(getManaCall, minio_client, std::ref(done), std::ref(mana)));
+            threads.push_back(std::thread(getManaCall, minio_client, done, std::ref(mana)));
             size_t duration = 0;
             while (duration < 35000)
             {
-                if (done)
+                if (done->load() <= 0)
                 {
                     std::cout << "size " << threads.size() << std::endl;
                     for (auto &thread : threads)
@@ -462,6 +468,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
                 }
                 duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_get_start_time).count());
             }
+            done->fetch_add(1);
         }
     }
     else
