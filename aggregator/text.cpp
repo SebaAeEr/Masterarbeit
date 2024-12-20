@@ -444,7 +444,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     std::shared_ptr<std::atomic<bool>> done = std::make_shared<std::atomic<bool>>(false);
     // done->exchange(1);
     manaFile mana;
-    std::cout << "get mana" << std::endl;
+    // std::cout << "get mana" << std::endl;
     if (straggler_removal)
     {
         std::vector<std::thread> threads;
@@ -474,7 +474,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     }
     done.reset();
     log_file.get_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - get_start_time).count());
-    std::cout << "got mana" << std::endl;
+    // std::cout << "got mana" << std::endl;
     return mana;
 }
 
@@ -660,7 +660,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
         if (mana.worker_lock == 0)
         {
             // std::cout << "Trying to get lock: " << std::to_string((int)(thread_id)) << std::endl;
-            //manaFile mana = getMana(minio_client);
+            // manaFile mana = getMana(minio_client);
             mana.worker_lock = worker_id;
             mana.thread_lock = thread_id;
             if (!writeLock(minio_client))
@@ -673,8 +673,8 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
             if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
             {
-                //smana = getMana(minio_client);
-                // std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+                // mana = getMana(minio_client);
+                //  std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
                 log_file.get_lock_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lock_start_time).count());
                 return mana;
             }
