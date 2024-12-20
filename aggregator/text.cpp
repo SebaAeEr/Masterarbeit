@@ -447,12 +447,10 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
             {
                 if (done)
                 {
-                    std::cout << "done number of threads: " << threads.size() << std::endl;
                     for (auto &thread : threads)
                     {
                         thread.detach();
                     }
-                    std::cout << "done done " << mana.workers.size() << std::endl;
                     break;
                 }
                 duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_get_start_time).count());
