@@ -28,6 +28,7 @@
 #include <cmath>
 #include <time.h>
 #include <atomic>
+#include <future>
 
 enum Operation
 {
@@ -325,10 +326,8 @@ std::string getManaVersion(Aws::S3::S3Client *minio_client)
     }
 }
 
-manaFile getMana(Aws::S3::S3Client *minio_client)
+void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<bool> &done, manaFile *return_value)
 {
-    auto get_start_time = std::chrono::high_resolution_clock::now();
-    manaFile mana;
     Aws::S3::Model::GetObjectRequest request;
     request.SetBucket(bucketName);
     request.SetKey(manag_file_name);
@@ -349,12 +348,9 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
             break;
         }
     }
-    Aws::S3::Model::PutObjectRequest in_request;
-    in_request.SetBucket(bucketName);
-    in_request.SetKey(manag_file_name);
-    const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+    manaFile mana;
+
     auto &out_stream = outcome.GetResult().GetBody();
-    size_t out_size = outcome.GetResult().GetContentLength();
 
     mana.worker_lock = out_stream.get();
     mana.thread_lock = out_stream.get();
@@ -425,6 +421,45 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         }
         worker.partitions = partitions;
         mana.workers.push_back(worker);
+    }
+    if (!done)
+    {
+        *return_value = mana;
+        done.exchange(true);
+    }
+    return;
+}
+
+manaFile getMana(Aws::S3::S3Client *minio_client)
+{
+    auto get_start_time = std::chrono::high_resolution_clock::now();
+    std::atomic<bool> done(false);
+    manaFile mana;
+    if (straggler_removal)
+    {
+        std::vector<std::thread> threads;
+        while (!done)
+        {
+            auto thread_write_start_time = std::chrono::high_resolution_clock::now();
+            threads.push_back(std::thread(getManaCall, minio_client, std::ref(done), &mana));
+            size_t duration = 0;
+            while (duration < 35000)
+            {
+                if (done)
+                {
+                    for (auto &thread : threads)
+                    {
+                        thread.detach();
+                    }
+                    break;
+                }
+                duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_write_start_time).count());
+            }
+        }
+    }
+    else
+    {
+        getManaCall(minio_client, done, &mana);
     }
     log_file.get_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - get_start_time).count());
     return mana;
@@ -554,7 +589,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
         }
         std::atomic<bool> done(false);
         std::atomic<bool> return_value(false);
-        if (straggler_removal)
+        /* if (straggler_removal)
         {
             std::vector<std::thread> threads;
             while (!done)
@@ -577,9 +612,9 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
             }
         }
         else
-        {
-            writeManaCall(minio_client, in_stream, in_mem_size, freeLock, done, return_value);
-        }
+        { */
+        writeManaCall(minio_client, in_stream, in_mem_size, freeLock, done, return_value);
+        //}
         log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
         return return_value.load();
     }
