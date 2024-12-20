@@ -443,8 +443,8 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<int> *done, manaFi
 manaFile getMana(Aws::S3::S3Client *minio_client)
 {
     auto get_start_time = std::chrono::high_resolution_clock::now();
-    std::atomic<int> *done;
-    done->exchange(1);
+    std::atomic<int> *done = new std::atomic<int>(1);
+   // done->exchange(1);
     manaFile mana;
     std::cout << "get mana" << std::endl;
     if (straggler_removal)
