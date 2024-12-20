@@ -440,6 +440,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     auto get_start_time = std::chrono::high_resolution_clock::now();
     std::atomic<bool> done(false);
     manaFile mana;
+    std::cout << "get mana" << std::endl;
     if (straggler_removal)
     {
         std::vector<std::thread> threads;
