@@ -4040,10 +4040,7 @@ int main(int argc, char **argv)
         Aws::ShutdownAPI(options);
         return 1;
     }
-    Aws::S3::S3Client minio_client_2 = init();
-    printMana(&minio_client_2);
-    Aws::ShutdownAPI(options);
-    return 1;
+
 
     std::string tpc_sup = argv[2];
     std::string memLimit_string = argv[3];
