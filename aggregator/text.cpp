@@ -452,6 +452,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
             {
                 if (done)
                 {
+                    std::cout << "size " << threads.size() << std::endl;
                     for (auto &thread : threads)
                     {
                         thread.detach();
