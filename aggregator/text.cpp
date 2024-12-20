@@ -3908,7 +3908,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    Aws::S3::S3Client minio_client_2 = init();
+   /*  Aws::S3::S3Client minio_client_2 = init();
     worker_id = '1';
     initManagFile(&minio_client_2);
     std::cout << "printing mana" << std::endl;
@@ -3920,7 +3920,7 @@ int main(int argc, char **argv)
     writeMana(&minio_client_2, mana, true);
     printMana(&minio_client_2);
     Aws::ShutdownAPI(options);
-    return 1;
+    return 1; */
 
     std::string tpc_sup = argv[2];
     std::string memLimit_string = argv[3];
