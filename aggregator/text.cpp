@@ -427,7 +427,9 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<bool> &done, manaF
         std::cout << "overwrite mana" << std::endl;
         done.exchange(true);
         return_value = mana;
-    } else {
+    }
+    else
+    {
         std::cout << "already done" << std::endl;
     }
     return;
@@ -3896,6 +3898,18 @@ int main(int argc, char **argv)
         Aws::ShutdownAPI(options);
         return 1;
     }
+
+    Aws::S3::S3Client minio_client_2 = init();
+    initManagFile(&minio_client_2);
+    printMana(&minio_client_2);
+    manaFile mana = getMana(&minio_client_2);
+    partition p;
+    p.id = 1;
+    mana.workers[0].partitions.push_back(p);
+    writeMana(&minio_client_2, mana, true);
+    printMana(&minio_client_2);
+    Aws::ShutdownAPI(options);
+    return 1;
 
     std::string tpc_sup = argv[2];
     std::string memLimit_string = argv[3];
