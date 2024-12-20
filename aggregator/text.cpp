@@ -505,6 +505,119 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
     auto write_start_time = std::chrono::high_resolution_clock::now();
     while (true)
     {
+        Aws::S3::Model::PutObjectRequest in_request;
+        in_request.SetBucket(bucketName);
+        in_request.SetKey(manag_file_name);
+        const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+        size_t in_mem_size = 2;
+        if (freeLock)
+        {
+            char free = 0;
+            *in_stream << free;
+            *in_stream << free;
+        }
+        else
+        {
+            *in_stream << mana.worker_lock;
+            *in_stream << mana.thread_lock;
+        }
+        for (auto &worker : mana.workers)
+        {
+            in_mem_size += worker.length + sizeof(int) + 2;
+            *in_stream << worker.id;
+            char locked = worker.locked ? 1 : 0;
+            *in_stream << locked;
+            char length_buf[sizeof(int)];
+            std::memcpy(length_buf, &worker.length, sizeof(int));
+            for (int i = 0; i < sizeof(int); i++)
+            {
+                *in_stream << length_buf[i];
+            }
+            for (auto &partition : worker.partitions)
+            {
+                *in_stream << partition.id;
+                locked = partition.lock ? 1 : 0;
+                *in_stream << locked;
+                char int_buf[sizeof(int)];
+                int l_temp = partition.files.size();
+                std::memcpy(int_buf, &l_temp, sizeof(int));
+                //*in_stream << int_buf;
+                for (int i = 0; i < sizeof(int); i++)
+                {
+                    *in_stream << int_buf[i];
+                }
+                for (auto &file : partition.files)
+                {
+                    *in_stream << file.name;
+                    *in_stream << ',';
+                    l_temp = file.subfiles.size();
+                    std::memcpy(int_buf, &l_temp, sizeof(int));
+                    //*in_stream << int_buf;
+                    for (int i = 0; i < sizeof(int); i++)
+                    {
+                        *in_stream << int_buf[i];
+                    }
+                    char file_length_buf[sizeof(size_t)];
+                    std::memcpy(file_length_buf, &file.size, sizeof(size_t));
+                    //*in_stream << file_length_buf;
+                    for (int i = 0; i < sizeof(size_t); i++)
+                    {
+                        *in_stream << file_length_buf[i];
+                    }
+                    for (auto &sub_file : file.subfiles)
+                    {
+                        std::memcpy(file_length_buf, &sub_file.first, sizeof(size_t));
+                        // *in_stream << file_length_buf;
+                        for (int i = 0; i < sizeof(size_t); i++)
+                        {
+                            *in_stream << file_length_buf[i];
+                        }
+                        std::memcpy(file_length_buf, &sub_file.second, sizeof(size_t));
+                        //*in_stream << file_length_buf;
+                        for (int i = 0; i < sizeof(size_t); i++)
+                        {
+                            *in_stream << file_length_buf[i];
+                        }
+                    }
+                    // std::cout << "write Mana: " << std::bitset<8>(file.status) << " name: " << file.name << std::endl;
+                    *in_stream << file.status;
+                }
+            }
+        }
+
+        in_request.SetBody(in_stream);
+        in_request.SetContentLength(in_mem_size);
+        // in_request.SetWriteOffsetBytes(1000);
+
+        auto in_outcome = minio_client->PutObject(in_request);
+        if (!in_outcome.IsSuccess())
+        {
+            std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
+        }
+        else
+        {
+            if (freeLock)
+            {
+                Aws::S3::Model::DeleteObjectRequest delete_request;
+                delete_request.WithKey(lock_file_name).WithBucket(bucketName);
+                auto outcome = minio_client->DeleteObject(delete_request);
+                if (!outcome.IsSuccess())
+                {
+                    // std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+                    return false;
+                }
+            }
+            log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
+            return 1;
+        }
+    }
+}
+
+bool writeManaasdf(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
+{
+    auto write_start_time = std::chrono::high_resolution_clock::now();
+    while (true)
+    {
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         size_t in_mem_size = 2;
         if (freeLock)
@@ -700,7 +813,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                 return mana;
             }
         }
-        usleep(1000);
+        // usleep(1000);
     }
 }
 
@@ -3927,6 +4040,10 @@ int main(int argc, char **argv)
         Aws::ShutdownAPI(options);
         return 1;
     }
+    Aws::S3::S3Client minio_client_2 = init();
+    printMana(&minio_client_2);
+    Aws::ShutdownAPI(options);
+    return 1;
 
     std::string tpc_sup = argv[2];
     std::string memLimit_string = argv[3];
