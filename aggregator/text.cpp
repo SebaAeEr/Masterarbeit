@@ -444,7 +444,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     std::shared_ptr<std::atomic<bool>> done = std::make_shared<std::atomic<bool>>(false);
     // done->exchange(1);
     manaFile mana;
-    // std::cout << "get mana" << std::endl;
+    std::cout << "get mana" << std::endl;
     if (straggler_removal)
     {
         std::vector<std::thread> threads;
@@ -474,6 +474,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     }
     done.reset();
     log_file.get_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - get_start_time).count());
+    std::cout << "got mana" << std::endl;
     return mana;
 }
 
@@ -915,8 +916,8 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
         }
     }
     writeMana(minio_client, mana, true);
-    std::cout << "Printing mana:" << std::endl;
-    printMana(minio_client);
+    // std::cout << "Printing mana:" << std::endl;
+    // printMana(minio_client);
     return;
 }
 
