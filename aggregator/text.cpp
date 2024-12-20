@@ -424,8 +424,11 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<bool> &done, manaF
     }
     if (!done)
     {
-        return_value = mana;
+        std::cout << "overwrite mana" << std::endl;
         done.exchange(true);
+        return_value = mana;
+    } else {
+        std::cout << "already done" << std::endl;
     }
     return;
 }
