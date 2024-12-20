@@ -108,7 +108,7 @@ unsigned long mainMem_usage = 0;
 bool deencode = true;
 bool mergePhase = false;
 bool set_partitions = true;
-bool straggler_removal = false;
+bool straggler_removal = true;
 std::vector<unsigned long> test_values = {};
 int partitions = -1;
 logFile log_file;
@@ -326,7 +326,7 @@ std::string getManaVersion(Aws::S3::S3Client *minio_client)
     }
 }
 
-void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<bool> &done, manaFile *return_value)
+void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<bool> &done, manaFile &return_value)
 {
     Aws::S3::Model::GetObjectRequest request;
     request.SetBucket(bucketName);
@@ -424,7 +424,7 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<bool> &done, manaF
     }
     if (!done)
     {
-        *return_value = mana;
+        return_value = mana;
         done.exchange(true);
     }
     return;
@@ -441,7 +441,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         while (!done)
         {
             auto thread_get_start_time = std::chrono::high_resolution_clock::now();
-            threads.push_back(std::thread(getManaCall, minio_client, std::ref(done), &mana));
+            threads.push_back(std::thread(getManaCall, minio_client, std::ref(done), std::ref(mana)));
             size_t duration = 0;
             while (duration < 35000)
             {
@@ -459,7 +459,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     }
     else
     {
-        getManaCall(minio_client, done, &mana);
+        getManaCall(minio_client, done, mana);
     }
     log_file.get_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - get_start_time).count());
     return mana;
@@ -609,153 +609,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
             }
             log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
             return 1;
-        }
-    }
-}
-
-bool writeManaasdf(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
-{
-    auto write_start_time = std::chrono::high_resolution_clock::now();
-    while (true)
-    {
-        const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-        size_t in_mem_size = 2;
-        if (freeLock)
-        {
-            char free = 0;
-            *in_stream << free;
-            *in_stream << free;
-        }
-        else
-        {
-            *in_stream << mana.worker_lock;
-            *in_stream << mana.thread_lock;
-        }
-
-        for (auto &worker : mana.workers)
-        {
-            in_mem_size += worker.length + sizeof(int) + 2;
-            *in_stream << worker.id;
-            char locked = worker.locked ? 1 : 0;
-            *in_stream << locked;
-            char length_buf[sizeof(int)];
-            std::memcpy(length_buf, &worker.length, sizeof(int));
-            for (int i = 0; i < sizeof(int); i++)
-            {
-                *in_stream << length_buf[i];
-            }
-            for (auto &partition : worker.partitions)
-            {
-                *in_stream << partition.id;
-                locked = partition.lock ? 1 : 0;
-                *in_stream << locked;
-
-                char int_buf[sizeof(int)];
-                int l_temp = partition.files.size();
-                std::memcpy(int_buf, &l_temp, sizeof(int));
-                //*in_stream << int_buf;
-                for (int i = 0; i < sizeof(int); i++)
-                {
-                    *in_stream << int_buf[i];
-                }
-
-                for (auto &file : partition.files)
-                {
-                    *in_stream << file.name;
-                    *in_stream << ',';
-
-                    l_temp = file.subfiles.size();
-                    std::memcpy(int_buf, &l_temp, sizeof(int));
-                    //*in_stream << int_buf;
-                    for (int i = 0; i < sizeof(int); i++)
-                    {
-                        *in_stream << int_buf[i];
-                    }
-
-                    char file_length_buf[sizeof(size_t)];
-                    std::memcpy(file_length_buf, &file.size, sizeof(size_t));
-                    //*in_stream << file_length_buf;
-                    for (int i = 0; i < sizeof(size_t); i++)
-                    {
-                        *in_stream << file_length_buf[i];
-                    }
-
-                    for (auto &sub_file : file.subfiles)
-                    {
-                        std::memcpy(file_length_buf, &sub_file.first, sizeof(size_t));
-                        // *in_stream << file_length_buf;
-                        for (int i = 0; i < sizeof(size_t); i++)
-                        {
-                            *in_stream << file_length_buf[i];
-                        }
-                        std::memcpy(file_length_buf, &sub_file.second, sizeof(size_t));
-                        //*in_stream << file_length_buf;
-                        for (int i = 0; i < sizeof(size_t); i++)
-                        {
-                            *in_stream << file_length_buf[i];
-                        }
-                    }
-                    // std::cout << "write Mana: " << std::bitset<8>(file.status) << " name: " << file.name << std::endl;
-                    *in_stream << file.status;
-                }
-            }
-        }
-        /*std::atomic<bool> done(false);
-        std::atomic<bool> return_value(false);
-         if (straggler_removal)
-        {
-            std::vector<std::thread> threads;
-            while (!done)
-            {
-                auto thread_write_start_time = std::chrono::high_resolution_clock::now();
-                threads.push_back(std::thread(writeManaCall, minio_client, in_stream, in_mem_size, freeLock, std::ref(done), std::ref(return_value)));
-                size_t duration = 0;
-                while (duration < 800000)
-                {
-                    if (done)
-                    {
-                        for (auto &thread : threads)
-                        {
-                            thread.detach();
-                        }
-                        break;
-                    }
-                    duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_write_start_time).count());
-                }
-            }
-        }
-        else
-        {
-        writeManaCall(minio_client, in_stream, in_mem_size, freeLock, done, return_value);
-        } */
-        Aws::S3::Model::PutObjectRequest in_request;
-        in_request.SetBucket(bucketName);
-        in_request.SetKey(manag_file_name);
-        in_request.SetBody(in_stream);
-        in_request.SetContentLength(in_mem_size);
-        // in_request.SetWriteOffsetBytes(1000);
-
-        auto in_outcome = minio_client->PutObject(in_request);
-        if (!in_outcome.IsSuccess())
-        {
-            std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
-        }
-        else
-        {
-            if (freeLock)
-            {
-                Aws::S3::Model::DeleteObjectRequest delete_request;
-                delete_request.WithKey(lock_file_name).WithBucket(bucketName);
-                auto outcome = minio_client->DeleteObject(delete_request);
-                if (!outcome.IsSuccess())
-                {
-                    // std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
-                    log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
-                    return false;
-                }
-            }
-            log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
-            return true;
         }
     }
 }
