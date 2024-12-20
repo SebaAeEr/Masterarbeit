@@ -714,6 +714,41 @@ void printProgressBar(float progress)
     std::cout.flush();
 }
 
+void cleanup(Aws::S3::S3Client *minio_client)
+{
+    manaFile mana = getMana(minio_client);
+    for (auto &w : mana.workers)
+    {
+        if (w.id == worker_id)
+        {
+            for (auto &p : w.partitions)
+            {
+                for (auto &file : p.files)
+                {
+                    size_t counter = 0;
+                    for (auto &sub_file : file.subfiles)
+                    {
+                        Aws::S3::Model::DeleteObjectRequest request;
+                        request.WithKey(file.name + "_" + std::to_string(counter)).WithBucket(bucketName);
+                        while (true)
+                        {
+                            auto outcome = minio_client->DeleteObject(request);
+                            if (!outcome.IsSuccess())
+                            {
+                                std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 void encode(unsigned long l, std::vector<char> *res)
 {
     char l_bytes = l == 0 ? 0 : (static_cast<int>(log2(l)) + 8) / 8;
@@ -3940,6 +3975,7 @@ int main(int argc, char **argv)
     {
         writeLogFile(log_file);
     }
+    cleanup(&minio_client);
     return 1;
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
