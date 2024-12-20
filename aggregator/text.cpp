@@ -108,8 +108,8 @@ unsigned long mainMem_usage = 0;
 bool deencode = true;
 bool mergePhase = false;
 bool set_partitions = true;
-bool straggler_removal = false;
-std::vector<unsigned long> test_values = {4429};
+bool straggler_removal = true;
+std::vector<unsigned long> test_values = {};
 int partitions = -1;
 logFile log_file;
 
@@ -440,7 +440,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         std::vector<std::thread> threads;
         while (!done)
         {
-            auto thread_write_start_time = std::chrono::high_resolution_clock::now();
+            auto thread_get_start_time = std::chrono::high_resolution_clock::now();
             threads.push_back(std::thread(getManaCall, minio_client, std::ref(done), &mana));
             size_t duration = 0;
             while (duration < 35000)
@@ -452,10 +452,10 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
                     {
                         thread.detach();
                     }
-                    std::cout << "done done " << std::endl;
+                    std::cout << "done done " << mana.workers.size() << std::endl;
                     break;
                 }
-                duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_write_start_time).count());
+                duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_get_start_time).count());
             }
         }
     }
@@ -4007,12 +4007,13 @@ int main(int argc, char **argv)
     float avg = 1;
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
     helpMergePhase(memLimit, memLimitBack, minio_client, true, &hmap, comb_hash_size, diff, &avg);
+    cleanup(&minio_client);
     Aws::ShutdownAPI(options);
     if (log_time)
     {
         writeLogFile(log_file);
     }
-    cleanup(&minio_client);
+    
     return 1;
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
