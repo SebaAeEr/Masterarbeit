@@ -587,9 +587,9 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                 }
             }
         }
-        std::atomic<bool> done(false);
+        /*std::atomic<bool> done(false);
         std::atomic<bool> return_value(false);
-        /* if (straggler_removal)
+         if (straggler_removal)
         {
             std::vector<std::thread> threads;
             while (!done)
@@ -3539,7 +3539,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     while ((float)(readBytes.load()) / size < 0.99)
     {
         // std::cout << readBytes.load() << std::endl;
-        // printProgressBar((float)(readBytes.load()) / size);
+        printProgressBar((float)(readBytes.load()) / size);
         usleep(100);
     }
     printProgressBar(1);
