@@ -915,6 +915,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
         }
     }
     writeMana(minio_client, mana, true);
+    std::cout << "Printing mana:" << std::endl;
     printMana(minio_client);
     return;
 }
