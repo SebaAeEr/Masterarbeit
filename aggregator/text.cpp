@@ -326,7 +326,7 @@ std::string getManaVersion(Aws::S3::S3Client *minio_client)
     }
 }
 
-void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<int> *done, manaFile &return_value)
+void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bool>> done, manaFile &return_value)
 {
     Aws::S3::Model::GetObjectRequest request;
     request.SetBucket(bucketName);
@@ -422,42 +422,39 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::atomic<int> *done, manaFi
         worker.partitions = partitions;
         mana.workers.push_back(worker);
     }
-    if (done->load() > 0)
+    if (!done->load())
     {
         std::cout << "overwrite mana" << std::endl;
-        done->exchange(done->load() * -1);
+        done->exchange(true);
         return_value = mana;
     }
     else
     {
         std::cout << "already done" << std::endl;
     }
-    done->fetch_add(1);
-    if (done->load() == 0)
-    {
-        delete done;
-    }
+    std::cout << "use count: " << done.use_count() << std::endl;
+    done.reset();
     return;
 }
 
 manaFile getMana(Aws::S3::S3Client *minio_client)
 {
     auto get_start_time = std::chrono::high_resolution_clock::now();
-    std::atomic<int> *done = new std::atomic<int>(1);
-   // done->exchange(1);
+    std::shared_ptr<std::atomic<bool>> done = std::make_shared<std::atomic<bool>>(false);
+    // done->exchange(1);
     manaFile mana;
     std::cout << "get mana" << std::endl;
     if (straggler_removal)
     {
         std::vector<std::thread> threads;
-        while (done->load() > 0)
+        while (!done->load())
         {
             auto thread_get_start_time = std::chrono::high_resolution_clock::now();
             threads.push_back(std::thread(getManaCall, minio_client, done, std::ref(mana)));
             size_t duration = 0;
             while (duration < 35000)
             {
-                if (done->load() <= 0)
+                if (done->load())
                 {
                     std::cout << "size " << threads.size() << std::endl;
                     for (auto &thread : threads)
@@ -468,7 +465,6 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
                 }
                 duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_get_start_time).count());
             }
-            done->fetch_add(1);
         }
     }
     else
@@ -3908,19 +3904,19 @@ int main(int argc, char **argv)
         return 1;
     }
 
-   /*  Aws::S3::S3Client minio_client_2 = init();
-    worker_id = '1';
-    initManagFile(&minio_client_2);
-    std::cout << "printing mana" << std::endl;
-    printMana(&minio_client_2);
-    manaFile mana = getMana(&minio_client_2);
-    partition p;
-    p.id = 1;
-    mana.workers[0].partitions.push_back(p);
-    writeMana(&minio_client_2, mana, true);
-    printMana(&minio_client_2);
-    Aws::ShutdownAPI(options);
-    return 1; */
+    /*  Aws::S3::S3Client minio_client_2 = init();
+     worker_id = '1';
+     initManagFile(&minio_client_2);
+     std::cout << "printing mana" << std::endl;
+     printMana(&minio_client_2);
+     manaFile mana = getMana(&minio_client_2);
+     partition p;
+     p.id = 1;
+     mana.workers[0].partitions.push_back(p);
+     writeMana(&minio_client_2, mana, true);
+     printMana(&minio_client_2);
+     Aws::ShutdownAPI(options);
+     return 1; */
 
     std::string tpc_sup = argv[2];
     std::string memLimit_string = argv[3];
