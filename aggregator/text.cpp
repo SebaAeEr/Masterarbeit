@@ -461,6 +461,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
                     {
                         thread.detach();
                     }
+                    done.reset();
                     break;
                 }
                 duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_get_start_time).count());
