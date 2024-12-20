@@ -424,15 +424,15 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
     }
     if (!done->load())
     {
-        std::cout << "overwrite mana" << std::endl;
+        // std::cout << "overwrite mana" << std::endl;
         done->exchange(true);
         return_value = mana;
     }
     else
     {
-        std::cout << "already done" << std::endl;
+        // std::cout << "already done" << std::endl;
     }
-    std::cout << "use count: " << done.use_count() << std::endl;
+    // std::cout << "use count: " << done.use_count() << std::endl;
     done.reset();
     return;
 }
@@ -443,7 +443,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     std::shared_ptr<std::atomic<bool>> done = std::make_shared<std::atomic<bool>>(false);
     // done->exchange(1);
     manaFile mana;
-    std::cout << "get mana" << std::endl;
+    // std::cout << "get mana" << std::endl;
     if (straggler_removal)
     {
         std::vector<std::thread> threads;
@@ -456,7 +456,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
             {
                 if (done->load())
                 {
-                    std::cout << "size " << threads.size() << std::endl;
+                    // std::cout << "size " << threads.size() << std::endl;
                     for (auto &thread : threads)
                     {
                         thread.detach();
