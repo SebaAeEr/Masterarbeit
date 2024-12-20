@@ -862,14 +862,17 @@ def c_size_by_time():
     get_mana_dur = jf_data["get_mana_dur"]
     plt.figure(3)
     plt.hist(get_mana_dur, bins=30, label="get_mana_dur")
+    plt.title("get_mana_dur")
 
     write_mana_dur = jf_data["write_mana_dur"]
     plt.figure(4)
     plt.hist(write_mana_dur, bins=30, label="write_mana_dur")
+    plt.title("write_mana_dur")
 
     get_lock_dur = jf_data["get_lock_dur"]
     plt.figure(5)
     plt.hist(get_lock_dur, bins=30, label="get_lock_dur")
+    plt.title("get_lock_dur")
 
     write_file_dur = jf_data["write_file_dur"]
     write_file_size = jf_data["write_file_size"]
@@ -877,9 +880,11 @@ def c_size_by_time():
     write_file_size.sort()
     plt.figure(6)
     plt.plot(write_file_dur, write_file_size, label="write file duration")
+    plt.title("write file dur per size")
 
     plt.figure(7)
     plt.hist(write_file_dur, bins=30, label="write_file_dur")
+    plt.title("write file dur")
 
     # Step 4: Show the plot
     plt.show()

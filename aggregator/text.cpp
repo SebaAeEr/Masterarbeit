@@ -107,6 +107,7 @@ unsigned long mainMem_usage = 0;
 bool deencode = true;
 bool mergePhase = false;
 bool set_partitions = true;
+bool straggler_removal = true;
 std::vector<unsigned long> test_values = {4429};
 int partitions = -1;
 logFile log_file;
@@ -429,15 +430,46 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     return mana;
 }
 
+void writeManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<Aws::IOStream> in_stream, size_t size, bool freeLock, std::atomic<bool> &done, std::atomic<bool> &return_value)
+{
+    Aws::S3::Model::PutObjectRequest in_request;
+    in_request.SetBucket(bucketName);
+    in_request.SetKey(manag_file_name);
+    in_request.SetBody(in_stream);
+    in_request.SetContentLength(size);
+    // in_request.SetWriteOffsetBytes(1000);
+
+    auto in_outcome = minio_client->PutObject(in_request);
+    if (!in_outcome.IsSuccess())
+    {
+        std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << size << std::endl;
+    }
+    else
+    {
+        if (freeLock)
+        {
+            Aws::S3::Model::DeleteObjectRequest delete_request;
+            delete_request.WithKey(lock_file_name).WithBucket(bucketName);
+            auto outcome = minio_client->DeleteObject(delete_request);
+            if (!outcome.IsSuccess())
+            {
+                // std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+                return_value.exchange(false);
+                done.exchange(true);
+                return;
+            }
+        }
+        return_value.exchange(true);
+        done.exchange(true);
+        return;
+    }
+}
+
 bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
 {
     auto write_start_time = std::chrono::high_resolution_clock::now();
     while (true)
     {
-        auto start_time = std::chrono::high_resolution_clock::now();
-        Aws::S3::Model::PutObjectRequest in_request;
-        in_request.SetBucket(bucketName);
-        in_request.SetKey(manag_file_name);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         size_t in_mem_size = 2;
         if (freeLock)
@@ -520,33 +552,36 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                 }
             }
         }
-
-        in_request.SetBody(in_stream);
-        in_request.SetContentLength(in_mem_size);
-        // in_request.SetWriteOffsetBytes(1000);
-
-        auto in_outcome = minio_client->PutObject(in_request);
-        if (!in_outcome.IsSuccess())
+        std::atomic<bool> done(false);
+        std::atomic<bool> return_value(false);
+        if (straggler_removal)
         {
-            std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
+            std::vector<std::thread> threads;
+            while (!done)
+            {
+                auto thread_write_start_time = std::chrono::high_resolution_clock::now();
+                threads.push_back(std::thread(writeManaCall, minio_client, in_stream, in_mem_size, freeLock, std::ref(done), std::ref(return_value)));
+                size_t duration = 0;
+                while (duration < 800000)
+                {
+                    if (done)
+                    {
+                        for (auto &thread : threads)
+                        {
+                            thread.detach();
+                        }
+                        break;
+                    }
+                    duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_write_start_time).count());
+                }
+            }
         }
         else
         {
-            if (freeLock)
-            {
-                Aws::S3::Model::DeleteObjectRequest delete_request;
-                delete_request.WithKey(lock_file_name).WithBucket(bucketName);
-                auto outcome = minio_client->DeleteObject(delete_request);
-                if (!outcome.IsSuccess())
-                {
-                    // std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
-                    return false;
-                }
-            }
-            log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
-            return 1;
+            writeManaCall(minio_client, in_stream, in_mem_size, freeLock, done, return_value);
         }
-        //}
+        log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
+        return return_value.load();
     }
 }
 
@@ -2972,7 +3007,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
             }
-            if(!fcntl(output_fd, F_GETFD)) {
+            if (!fcntl(output_fd, F_GETFD))
+            {
                 output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
             }
             *output_file_head += writeHashmap(hmap, output_fd, *output_file_head, pagesize * 30);
