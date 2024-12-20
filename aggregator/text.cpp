@@ -651,6 +651,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
     auto lock_start_time = std::chrono::high_resolution_clock::now();
     while (true)
     {
+
         manaFile mana = getMana(minio_client);
         if (mana.worker_lock == 0)
         {
@@ -674,6 +675,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                 return mana;
             }
         }
+        usleep(1000);
     }
 }
 
@@ -4013,7 +4015,7 @@ int main(int argc, char **argv)
     {
         writeLogFile(log_file);
     }
-    
+
     return 1;
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
