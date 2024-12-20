@@ -108,7 +108,7 @@ unsigned long mainMem_usage = 0;
 bool deencode = true;
 bool mergePhase = false;
 bool set_partitions = true;
-bool straggler_removal = true;
+bool straggler_removal = false;
 std::vector<unsigned long> test_values = {4429};
 int partitions = -1;
 logFile log_file;
@@ -452,7 +452,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
                     {
                         thread.detach();
                     }
-                    std::cout << "done done "<< std::endl;
+                    std::cout << "done done " << std::endl;
                     break;
                 }
                 duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_write_start_time).count());
