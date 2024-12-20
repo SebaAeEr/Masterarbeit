@@ -453,7 +453,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
             auto thread_get_start_time = std::chrono::high_resolution_clock::now();
             threads.push_back(std::thread(getManaCall, minio_client, done, std::ref(mana)));
             size_t duration = 0;
-            while (duration < 35000)
+            while (duration < 350000)
             {
                 if (done->load())
                 {
