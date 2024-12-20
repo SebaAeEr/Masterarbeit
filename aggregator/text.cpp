@@ -108,7 +108,7 @@ unsigned long mainMem_usage = 0;
 bool deencode = true;
 bool mergePhase = false;
 bool set_partitions = true;
-bool straggler_removal = true;
+bool straggler_removal = false;
 std::vector<unsigned long> test_values = {};
 int partitions = -1;
 logFile log_file;
@@ -4040,7 +4040,6 @@ int main(int argc, char **argv)
         Aws::ShutdownAPI(options);
         return 1;
     }
-
 
     std::string tpc_sup = argv[2];
     std::string memLimit_string = argv[3];
