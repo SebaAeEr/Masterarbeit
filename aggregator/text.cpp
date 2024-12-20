@@ -2972,6 +2972,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
             }
+            if(!fcntl(output_fd, F_GETFD)) {
+                output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
+            }
             *output_file_head += writeHashmap(hmap, output_fd, *output_file_head, pagesize * 30);
             /*
                         if (hmap->size() > maxHashsize)
