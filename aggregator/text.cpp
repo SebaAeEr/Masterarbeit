@@ -3902,6 +3902,7 @@ int main(int argc, char **argv)
     }
 
     Aws::S3::S3Client minio_client_2 = init();
+    worker_id = 1;
     initManagFile(&minio_client_2);
     printMana(&minio_client_2);
     manaFile mana = getMana(&minio_client_2);
