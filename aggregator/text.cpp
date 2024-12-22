@@ -425,7 +425,7 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
     bool asdf = false;
     if (done->compare_exchange_strong(asdf, true))
     {
-        // std::cout << "overwrite mana" << std::endl;
+        std::cout << "overwrite mana. Mana worker size: " << mana.workers.size() << std::endl;
         // done->exchange(true);
         return_value = mana;
     }
@@ -479,7 +479,8 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     done.reset();
     log_file.get_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - get_start_time).count());
     // std::cout << "got mana" << std::endl;
-    if(mana.workers.size() == 0 ){
+    if (mana.workers.size() == 0)
+    {
         std::cout << "mana worker size == 0!" << std::endl;
     }
     return mana;
