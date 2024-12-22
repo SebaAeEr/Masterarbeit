@@ -3897,6 +3897,11 @@ int test(std::string file1name, std::string file2name)
     return 1;
 }
 
+constexpr unsigned int str2int(const char *str, int h = 0)
+{
+    return !str[h] ? 5381 : (str2int(str, h + 1) * 33) ^ str[h];
+}
+
 int main(int argc, char **argv)
 {
     Aws::SDKOptions options;
@@ -3926,15 +3931,108 @@ int main(int argc, char **argv)
      printMana(&minio_client_2);
      Aws::ShutdownAPI(options);
      return 1; */
+    std::string tpc_sup;
+    std::string memLimit_string;
+    std::string memLimitBack_string;
+    std::string threadNumber_string;
+    std::string tpc_query_string;
+    std::string log_size_string;
+    std::string log_time_string;
 
-    std::string tpc_sup = argv[2];
-    std::string memLimit_string = argv[3];
-    std::string memLimitBack_string = argv[4];
-    std::string threadNumber_string = argv[5];
-    std::string tpc_query_string = argv[6];
-    worker_id = *argv[7];
-    std::string log_size_string = argv[8];
-    std::string log_time_string = argv[9];
+    if (argc == 10)
+    {
+        tpc_sup = argv[2];
+        memLimit_string = argv[3];
+        memLimitBack_string = argv[4];
+        threadNumber_string = argv[5];
+        tpc_query_string = argv[6];
+        worker_id = *argv[7];
+        log_size_string = argv[8];
+        log_time_string = argv[9];
+    }
+    else
+    {
+
+        std::ifstream input("conf");
+        std::string line;
+        char del = ':';
+        while (getline(input, line))
+        {
+            std::stringstream ss(line);
+            std::string name;
+            getline(ss, name, del);
+            std::string value;
+            getline(ss, value, del);
+            switch (str2int(name.c_str()))
+            {
+            case str2int("tpc_query"):
+            {
+                tpc_query_string = value;
+                break;
+            }
+            case str2int("input_file"):
+            {
+                co_output = value;
+                break;
+            }
+            case str2int("test_file"):
+            {
+                tpc_sup = value;
+                break;
+            }
+            case str2int("mainLimit"):
+            {
+                memLimit_string = value;
+                break;
+            }
+            case str2int("backLimit"):
+            {
+                memLimitBack_string = value;
+                break;
+            }
+            case str2int("threadNumber"):
+            {
+                threadNumber_string = value;
+                break;
+            }
+            case str2int("log_size"):
+            {
+                log_size_string = value;
+                break;
+            }
+            case str2int("log_time"):
+            {
+                log_time_string = value;
+                break;
+            }
+            case str2int("worker_id"):
+            {
+                worker_id = value[0];
+                break;
+            }
+            case str2int("deencode"):
+            {
+                deencode = value.compare("true") == 0;
+                break;
+            }
+            case str2int("set_partitions"):
+            {
+                set_partitions = value.compare("true") == 0;
+                break;
+            }
+            case str2int("straggler_removal"):
+            {
+                straggler_removal = value.compare("true") == 0;
+                break;
+            }
+            case str2int("mergePhase"):
+            {
+                mergePhase = value.compare("true") == 0;
+                break;
+            }
+            }
+        }
+    }
 
     log_size = log_size_string.compare("true") == 0;
     log_time = log_time_string.compare("true") == 0;
@@ -4014,6 +4112,8 @@ int main(int argc, char **argv)
     log_file.sizes.insert(std::make_pair("threadNumber", threadNumber));
     log_file.sizes["mainLimit"] = memLimit;
     log_file.sizes["backLimit"] = memLimitBack;
+    log_file.sizes["tpc_query"] = tpc_query;
+    log_file.sizes["threadNumber"] = threadNumber;
 
     if (co_output != "-")
     {
