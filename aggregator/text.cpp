@@ -425,9 +425,10 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
     bool asdf = false;
     if (done->compare_exchange_strong(asdf, true))
     {
-        std::cout << "overwrite mana. Mana worker size: " << mana.workers.size() << std::endl;
+        
         // done->exchange(true);
         *return_value = mana;
+        std::cout << "overwrite mana. Mana worker size: " << mana.workers.size() << " mana in pointer: " << return_value->workers.size() << std::endl;
     }
     else
     {
