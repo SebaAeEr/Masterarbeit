@@ -485,7 +485,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     // done->exchange(1);
     manaFile mana;
     mana.worker_lock = -1;
-    bool donedone;
+    bool donedone  = false;
     // std::cout << "get mana" << std::endl;
     if (straggler_removal)
     {
