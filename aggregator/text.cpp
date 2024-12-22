@@ -3908,8 +3908,6 @@ int main(int argc, char **argv)
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
-    std::string co_output = argv[1];
-
     if (co_output.compare("status") == 0)
     {
         Aws::S3::S3Client minio_client_2 = init();
@@ -3938,9 +3936,11 @@ int main(int argc, char **argv)
     std::string tpc_query_string;
     std::string log_size_string;
     std::string log_time_string;
+    std::string co_output;
 
     if (argc == 10)
     {
+        co_output = argv[1];
         tpc_sup = argv[2];
         memLimit_string = argv[3];
         memLimitBack_string = argv[4];
