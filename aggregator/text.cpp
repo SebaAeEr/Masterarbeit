@@ -461,7 +461,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
                     while (mana.worker_lock == -1)
                     {
                     }
-                    std::cout << "size " << threads.size() << std::endl;
+                    // std::cout << "size " << threads.size() << std::endl;
                     for (auto &thread : threads)
                     {
                         thread.detach();
@@ -478,7 +478,10 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     }
     done.reset();
     log_file.get_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - get_start_time).count());
-    std::cout << "got mana" << std::endl;
+    // std::cout << "got mana" << std::endl;
+    if(mana.workers.size() == 0 ){
+        std::cout << "mana worker size == 0!" << std::endl;
+    }
     return mana;
 }
 
