@@ -444,6 +444,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     std::shared_ptr<std::atomic<bool>> done = std::make_shared<std::atomic<bool>>(false);
     // done->exchange(1);
     manaFile mana;
+    mana.worker_lock = -1;
     // std::cout << "get mana" << std::endl;
     if (straggler_removal)
     {
@@ -457,6 +458,9 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
             {
                 if (done->load())
                 {
+                    while (mana.worker_lock == -1)
+                    {
+                    }
                     // std::cout << "size " << threads.size() << std::endl;
                     for (auto &thread : threads)
                     {
