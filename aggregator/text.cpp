@@ -425,10 +425,48 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
     bool asdf = false;
     if (done->compare_exchange_strong(asdf, true))
     {
-        
+
         // done->exchange(true);
         *return_value = mana;
         std::cout << "overwrite mana. Mana worker size: " << mana.workers.size() << " mana in pointer: " << return_value->workers.size() << std::endl;
+
+        std::string status = mana.worker_lock == 0 ? "free" : std::to_string(mana.worker_lock);
+        std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(mana.thread_lock) << std::endl;
+        for (auto &worker : mana.workers)
+        {
+            std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
+            for (auto &partition : worker.partitions)
+            {
+                std::cout << "  Partition: " << (int)(partition.id) << ", locked: " << partition.lock << std::endl;
+                for (auto &file : partition.files)
+                {
+                    std::cout << "    " << file.name << ": size: " << file.size << " worked on by: " << std::bitset<8>(file.status) << " subfiles:" << std::endl;
+                    for (auto &sub_files : file.subfiles)
+                    {
+                        std::cout << "      size: " << sub_files.first << " #tuples: " << sub_files.second << std::endl;
+                    }
+                }
+            }
+        }
+
+        status = return_value->worker_lock == 0 ? "free" : std::to_string(return_value->worker_lock);
+        std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(return_value->thread_lock) << std::endl;
+        for (auto &worker : return_value->workers)
+        {
+            std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
+            for (auto &partition : worker.partitions)
+            {
+                std::cout << "  Partition: " << (int)(partition.id) << ", locked: " << partition.lock << std::endl;
+                for (auto &file : partition.files)
+                {
+                    std::cout << "    " << file.name << ": size: " << file.size << " worked on by: " << std::bitset<8>(file.status) << " subfiles:" << std::endl;
+                    for (auto &sub_files : file.subfiles)
+                    {
+                        std::cout << "      size: " << sub_files.first << " #tuples: " << sub_files.second << std::endl;
+                    }
+                }
+            }
+        }
     }
     else
     {
@@ -706,9 +744,17 @@ Aws::S3::S3Client init()
     return minio_client;
 }
 
-void printMana(Aws::S3::S3Client *minio_client)
+void printMana(Aws::S3::S3Client *minio_client, manaFile given_mana, bool usegetMana = true)
 {
-    manaFile mana = getMana(minio_client);
+    manaFile mana;
+    if (usegetMana)
+    {
+        mana = getMana(minio_client);
+    }
+    else
+    {
+        mana = given_mana;
+    }
     std::string status = mana.worker_lock == 0 ? "free" : std::to_string(mana.worker_lock);
     std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(mana.thread_lock) << std::endl;
     for (auto &worker : mana.workers)
@@ -926,7 +972,8 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
     }
     writeMana(minio_client, mana, true);
     // std::cout << "Printing mana:" << std::endl;
-    printMana(minio_client);
+    manaFile asdf;
+    printMana(minio_client, asdf);
     return;
 }
 
@@ -3919,7 +3966,8 @@ int main(int argc, char **argv)
         if (f.compare("status") == 0)
         {
             Aws::S3::S3Client minio_client_2 = init();
-            printMana(&minio_client_2);
+            manaFile asdf;
+            printMana(&minio_client_2, asdf);
             Aws::ShutdownAPI(options);
             return 1;
         }
