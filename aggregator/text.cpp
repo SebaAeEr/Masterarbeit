@@ -4118,6 +4118,10 @@ int main(int argc, char **argv)
     log_file.sizes["backLimit"] = memLimitBack;
     log_file.sizes["tpc_query"] = tpc_query;
     log_file.sizes["threadNumber"] = threadNumber;
+    log_file.sizes["deencode"] = deencode;
+    log_file.sizes["set_partitions"] = set_partitions;
+    log_file.sizes["mergePhase"] = mergePhase;
+    log_file.sizes["straggler_removal"] = straggler_removal;
 
     if (co_output != "-")
     {
