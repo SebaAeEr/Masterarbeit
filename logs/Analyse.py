@@ -817,7 +817,7 @@ def c_size_by_time():
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
         f = open(os.path.join(directory, "times_12-17_16-21.csv"))
-        jf = open(os.path.join(directory, "logfile_12-23_17-13.json"))
+        jf = open(os.path.join(directory, "logfile_12-23_18-34.json"))
     except:
         print("File not found.")
     df = pd.read_csv(f)
