@@ -647,11 +647,10 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                 }
             }
         }
-        std::cout << "putObject" << " minio_client: " << minio_client << std::endl;
+        std::cout << "putObject" << std::endl;
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
         // in_request.SetWriteOffsetBytes(1000);
-        std::cout << " minio_client: " << minio_client << std::endl;
         auto in_outcome = minio_client->PutObject(in_request);
         if (!in_outcome.IsSuccess())
         {
@@ -662,7 +661,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
 
             if (freeLock)
             {
-                std::cout << "deleteObject" << " minio_client: " << minio_client << std::endl;
+                std::cout << "deleteObject" << std::endl;
                 Aws::S3::Model::DeleteObjectRequest delete_request;
                 delete_request.WithKey(lock_file_name).WithBucket(bucketName);
                 auto outcome = minio_client->DeleteObject(delete_request);
@@ -933,9 +932,9 @@ void setPartitionNumber(size_t comb_hash_size)
 
 void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
 {
-    std::cout << "Get lock" << " minio_client: " << minio_client << " Thread id: " << thread_id << std::endl;
+    std::cout << "Get lock" << std::endl;
     manaFile mana = getLockedMana(minio_client, thread_id);
-    std::cout << "Got lock" << " minio_client: " << minio_client << " Thread id: " << thread_id << std::endl;
+    std::cout << "Got lock" << std::endl;
     for (auto &file : files)
     {
         bool parition_found = false;
@@ -981,7 +980,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
             }
         }
     }
-    std::cout << "writing mana" << " minio_client: " << minio_client << " Thread id: " << thread_id << std::endl;
+    std::cout << "writing mana" << std::endl;
     writeMana(minio_client, mana, true);
     // std::cout << "Printing mana:" << std::endl;
     // manaFile asdf;
@@ -3983,7 +3982,7 @@ constexpr unsigned int str2int(const char *str, int h = 0)
 int main(int argc, char **argv)
 {
     Aws::SDKOptions options;
-    // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
+    options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
     if (argc == 2)
