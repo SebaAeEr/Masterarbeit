@@ -112,6 +112,7 @@ bool straggler_removal = true;
 std::vector<unsigned long> test_values = {};
 int partitions = -1;
 logFile log_file;
+std::atomic<int> mana_writeThread_num = 0;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -493,7 +494,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
             auto thread_get_start_time = std::chrono::high_resolution_clock::now();
             threads.push_back(std::thread(getManaCall, minio_client, done, &mana, &donedone));
             size_t duration = 0;
-            while (duration < 350000)
+            while (duration < 65000)
             {
                 if (done->load())
                 {
@@ -940,6 +941,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                 if (worker.locked)
                 {
                     writeMana(minio_client, mana, true);
+                    mana_writeThread_num.fetch_sub(1);
                     return;
                 }
                 for (auto &partition : worker.partitions)
@@ -949,6 +951,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                         if (partition.lock)
                         {
                             writeMana(minio_client, mana, true);
+                            mana_writeThread_num.fetch_sub(1);
                             return;
                         }
                         partition.files.push_back(file.first);
@@ -975,6 +978,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
     // std::cout << "Printing mana:" << std::endl;
     manaFile asdf;
     // printMana(minio_client, asdf);
+    mana_writeThread_num.fetch_sub(1);
     return;
 }
 
@@ -1909,7 +1913,9 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
             files.push_back({file, i});
         }
     }
-    addFileToManag(minio_client, files, write_to_id, fileStatus);
+    std::thread thread(addFileToManag, minio_client, files, write_to_id, fileStatus);
+    mana_writeThread_num.fetch_add(1);
+    thread.detach();
 }
 
 void execOperation(std::array<unsigned long, max_size> *hashValue, int value)
@@ -3588,6 +3594,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         thread.join();
     }
     close(fd);
+    while (mana_writeThread_num.load() != 0)
+    {
+    }
     unsigned long temp_loc_spills = 0;
     for (auto &it : spills)
     {

@@ -817,7 +817,7 @@ def c_size_by_time():
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
         f = open(os.path.join(directory, "times_12-17_16-21.csv"))
-        jf = open(os.path.join(directory, "logfile_12-19_10-02.json"))
+        jf = open(os.path.join(directory, "logfile_12-23_17-13.json"))
     except:
         print("File not found.")
     df = pd.read_csv(f)
@@ -863,16 +863,22 @@ def c_size_by_time():
     plt.figure(3)
     plt.hist(get_mana_dur, bins=30, label="get_mana_dur")
     plt.title("get_mana_dur")
+    average = sum(get_mana_dur) / len(get_mana_dur)
+    print("get_mana_dur avg: " + str(average))
 
     write_mana_dur = jf_data["write_mana_dur"]
     plt.figure(4)
     plt.hist(write_mana_dur, bins=30, label="write_mana_dur")
     plt.title("write_mana_dur")
+    average = sum(write_mana_dur) / len(write_mana_dur)
+    print("write_mana_dur avg: " + str(average))
 
     get_lock_dur = jf_data["get_lock_dur"]
     plt.figure(5)
     plt.hist(get_lock_dur, bins=30, label="get_lock_dur")
     plt.title("get_lock_dur")
+    average = sum(get_lock_dur) / len(get_lock_dur)
+    print("get_lock_dur avg: " + str(average))
 
     write_file_dur = jf_data["write_file_dur"]
     write_file_size = jf_data["write_file_size"]
@@ -885,6 +891,11 @@ def c_size_by_time():
     plt.figure(7)
     plt.hist(write_file_dur, bins=30, label="write_file_dur")
     plt.title("write file dur")
+    average_1 = sum(write_file_dur) / len(write_file_dur)
+    print("write_file_dur avg: " + str(average_1))
+    average_2 = sum(write_file_size) / len(write_file_size)
+    print("write_file_size avg: " + str(average_2))
+    print("write_file_size / write_file_dur  avg: " + str(average_2 / average_1))
 
     # Step 4: Show the plot
     plt.show()
