@@ -942,6 +942,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                 {
                     writeMana(minio_client, mana, true);
                     mana_writeThread_num.fetch_sub(1);
+                    std::cout << "sub mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
                     return;
                 }
                 for (auto &partition : worker.partitions)
@@ -952,6 +953,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                         {
                             writeMana(minio_client, mana, true);
                             mana_writeThread_num.fetch_sub(1);
+                            std::cout << "sub mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
                             return;
                         }
                         partition.files.push_back(file.first);
@@ -979,6 +981,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
     manaFile asdf;
     // printMana(minio_client, asdf);
     mana_writeThread_num.fetch_sub(1);
+    std::cout << "sub mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
     return;
 }
 
@@ -1915,6 +1918,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     }
     std::thread thread(addFileToManag, minio_client, files, write_to_id, fileStatus);
     mana_writeThread_num.fetch_add(1);
+    std::cout << "adding mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
     thread.detach();
 }
 
@@ -3596,6 +3600,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     close(fd);
     while (mana_writeThread_num.load() != 0)
     {
+        std::cout << "mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
     }
     unsigned long temp_loc_spills = 0;
     for (auto &it : spills)
