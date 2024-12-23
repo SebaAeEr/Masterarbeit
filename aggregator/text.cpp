@@ -112,7 +112,8 @@ bool straggler_removal = true;
 std::vector<unsigned long> test_values = {};
 int partitions = -1;
 logFile log_file;
-std::atomic<int> mana_writeThread_num = 0;
+std::atomic<int> mana_writeThread_num(0);
+std::atomic<bool> local_mana_lock(false);
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -670,6 +671,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                     std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
                     return false;
                 }
+                local_mana_lock.exchange(false);
             }
             log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
             return 1;
@@ -704,30 +706,34 @@ bool writeLock(Aws::S3::S3Client *minio_client)
 manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
 {
     auto lock_start_time = std::chrono::high_resolution_clock::now();
+    bool asdf = false;
     while (true)
     {
-
-        manaFile mana = getMana(minio_client);
-        if (mana.worker_lock == 0)
+        if (local_mana_lock.compare_exchange_strong(asdf, true))
         {
-            // std::cout << "Trying to get lock: " << std::to_string((int)(thread_id)) << std::endl;
-            // manaFile mana = getMana(minio_client);
-            mana.worker_lock = worker_id;
-            mana.thread_lock = thread_id;
-            if (!writeLock(minio_client))
+            manaFile mana = getMana(minio_client);
+            if (mana.worker_lock == 0)
             {
-                // std::cout << "Failed getting lock: " << std::to_string((int)(thread_id)) << std::endl;
-                continue;
-            }
-            writeMana(minio_client, mana, false);
-            mana = getMana(minio_client);
-            // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
-            if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
-            {
-                // mana = getMana(minio_client);
-                //  std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
-                log_file.get_lock_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lock_start_time).count());
-                return mana;
+                // std::cout << "Trying to get lock: " << std::to_string((int)(thread_id)) << std::endl;
+                // manaFile mana = getMana(minio_client);
+                mana.worker_lock = worker_id;
+                mana.thread_lock = thread_id;
+                if (!writeLock(minio_client))
+                {
+                    // std::cout << "Failed getting lock: " << std::to_string((int)(thread_id)) << std::endl;
+                    local_mana_lock.exchange(false);
+                    continue;
+                }
+                writeMana(minio_client, mana, false);
+                mana = getMana(minio_client);
+                // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+                if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
+                {
+                    // mana = getMana(minio_client);
+                    //  std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+                    log_file.get_lock_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lock_start_time).count());
+                    return mana;
+                }
             }
         }
         // usleep(10);
