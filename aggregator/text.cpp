@@ -499,6 +499,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         std::vector<std::thread> threads;
         while (!done->load())
         {
+            std::cout << "starting thread" << std::endl;
             auto thread_get_start_time = std::chrono::high_resolution_clock::now();
             threads.push_back(std::thread(getManaCall, minio_client, done, &mana, &donedone));
             size_t duration = 0;
