@@ -584,7 +584,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
             *in_stream << mana.worker_lock;
             *in_stream << mana.thread_lock;
         }
-        std::cout << "worker size: "<<  mana.workers.size() << std::endl;
+        std::cout << "worker size: " << mana.workers.size() << std::endl;
         for (auto &worker : mana.workers)
         {
             in_mem_size += worker.length + sizeof(int) + 2;
@@ -597,7 +597,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
             {
                 *in_stream << length_buf[i];
             }
-             std::cout << "partitions size: "<<  worker.partitions.size() << std::endl;
+            std::cout << "partitions size: " << worker.partitions.size() << std::endl;
             for (auto &partition : worker.partitions)
             {
                 *in_stream << partition.id;
@@ -611,7 +611,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                 {
                     *in_stream << int_buf[i];
                 }
-                std::cout << "subfile size: "<<  partition.files.size() << std::endl;
+
                 for (auto &file : partition.files)
                 {
                     *in_stream << file.name;
@@ -650,7 +650,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                 }
             }
         }
-
+        std::cout << "putObject" << std::endl;
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
         // in_request.SetWriteOffsetBytes(1000);
@@ -662,8 +662,10 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
         }
         else
         {
+
             if (freeLock)
             {
+                std::cout << "deleteObject" << std::endl;
                 Aws::S3::Model::DeleteObjectRequest delete_request;
                 delete_request.WithKey(lock_file_name).WithBucket(bucketName);
                 auto outcome = minio_client->DeleteObject(delete_request);
