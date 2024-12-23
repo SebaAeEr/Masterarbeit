@@ -671,7 +671,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                     std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
                     return false;
                 }
-                std::cout << "Releasing lock" << std::endl;
                 local_mana_lock.exchange(false);
             }
             log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
@@ -712,7 +711,6 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
         bool asdf = false;
         if (local_mana_lock.compare_exchange_strong(asdf, true))
         {
-            std::cout << "Trying to get lock: " << std::to_string((int)(thread_id)) << std::endl;
             manaFile mana = getMana(minio_client);
             if (mana.worker_lock == 0)
             {
@@ -722,7 +720,6 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                 mana.thread_lock = thread_id;
                 if (!writeLock(minio_client))
                 {
-                    std::cout << "Failed getting lock: " << std::to_string((int)(thread_id)) << std::endl;
                     local_mana_lock.exchange(false);
                     continue;
                 }
@@ -1930,11 +1927,11 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
             files.push_back({file, i});
         }
     }
-    // std::thread thread(addFileToManag, minio_client, files, write_to_id, fileStatus);
-    addFileToManag(minio_client, files, write_to_id, fileStatus);
+    std::thread thread(addFileToManag, minio_client, files, write_to_id, fileStatus);
+    // addFileToManag(minio_client, files, write_to_id, fileStatus);
     mana_writeThread_num.fetch_add(1);
     std::cout << "adding mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
-    // thread.detach();
+    thread.detach();
 }
 
 void execOperation(std::array<unsigned long, max_size> *hashValue, int value)
