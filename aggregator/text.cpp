@@ -463,7 +463,7 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
         }
     } */
 
-    std::string status = return_value->worker_lock == 0 ? "free" : std::to_string(return_value->worker_lock);
+    /* std::string status = return_value->worker_lock == 0 ? "free" : std::to_string(return_value->worker_lock);
     std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(return_value->thread_lock) << std::endl;
     for (auto &worker : return_value->workers)
     {
@@ -480,7 +480,7 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
                 }
             }
         }
-    }
+    } */
 
     // std::cout << "use count: " << done.use_count() << std::endl;
     done.reset();
@@ -730,7 +730,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                 // std::cout << "Failed getting lock: " << std::to_string((int)(thread_id)) << std::endl;
                 continue;
             }
-            std::cout << "Wrtiting mana" << std::endl;
+            std::cout << "Setting mana lock" << std::endl;
             writeMana(minio_client, mana, false);
             std::cout << "Got mana" << std::endl;
             mana = getMana(minio_client);
