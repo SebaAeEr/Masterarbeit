@@ -2284,6 +2284,9 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     {
         std::cout << "Not able to print time: " << err.what() << std::endl;
     }
+    while (mana_writeThread_num.load() != 0)
+    {
+    }
 }
 
 void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> *diff, float *avg)
