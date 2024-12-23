@@ -567,7 +567,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
     auto write_start_time = std::chrono::high_resolution_clock::now();
     while (true)
     {
-        std::cout << "Writing mana" << std::endl;
         Aws::S3::Model::PutObjectRequest in_request;
         in_request.SetBucket(bucketName);
         in_request.SetKey(manag_file_name);
@@ -584,7 +583,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
             *in_stream << mana.worker_lock;
             *in_stream << mana.thread_lock;
         }
-        std::cout << "worker size: " << mana.workers.size() << std::endl;
         for (auto &worker : mana.workers)
         {
             in_mem_size += worker.length + sizeof(int) + 2;
@@ -597,7 +595,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
             {
                 *in_stream << length_buf[i];
             }
-            std::cout << "partitions size: " << worker.partitions.size() << std::endl;
             for (auto &partition : worker.partitions)
             {
                 *in_stream << partition.id;
@@ -650,11 +647,11 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                 }
             }
         }
-        std::cout << "putObject" << std::endl;
+        std::cout << "putObject" << " minio_client: " << minio_client << std::endl;
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
         // in_request.SetWriteOffsetBytes(1000);
-
+        std::cout << " minio_client: " << minio_client << std::endl;
         auto in_outcome = minio_client->PutObject(in_request);
         if (!in_outcome.IsSuccess())
         {
@@ -665,7 +662,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
 
             if (freeLock)
             {
-                std::cout << "deleteObject" << std::endl;
+                std::cout << "deleteObject" << " minio_client: " << minio_client << std::endl;
                 Aws::S3::Model::DeleteObjectRequest delete_request;
                 delete_request.WithKey(lock_file_name).WithBucket(bucketName);
                 auto outcome = minio_client->DeleteObject(delete_request);
@@ -936,9 +933,9 @@ void setPartitionNumber(size_t comb_hash_size)
 
 void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
 {
-    std::cout << "Get lock" << std::endl;
+    std::cout << "Get lock" << " minio_client: " << minio_client << " Thread id: " << thread_id << std::endl;
     manaFile mana = getLockedMana(minio_client, thread_id);
-    std::cout << "Got lock" << std::endl;
+    std::cout << "Got lock" << " minio_client: " << minio_client << " Thread id: " << thread_id << std::endl;
     for (auto &file : files)
     {
         bool parition_found = false;
@@ -984,7 +981,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
             }
         }
     }
-    std::cout << "writing mana" << std::endl;
+    std::cout << "writing mana" << " minio_client: " << minio_client << " Thread id: " << thread_id << std::endl;
     writeMana(minio_client, mana, true);
     // std::cout << "Printing mana:" << std::endl;
     // manaFile asdf;
@@ -1928,7 +1925,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     }
     std::thread thread(addFileToManag, minio_client, files, write_to_id, fileStatus);
     mana_writeThread_num.fetch_add(1);
-    std::cout << "adding mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
+    std::cout << "adding mana_writeThread_num: " << mana_writeThread_num.load() << " minio_client: " << minio_client << " Thread id: " << thread_id << std::endl;
     thread.detach();
 }
 
