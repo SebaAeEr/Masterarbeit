@@ -3607,10 +3607,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
     printProgressBar(1);
     std::cout << std::endl;
-    while (mana_writeThread_num.load() != 0)
-    {
-        // std::cout << "mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
-    }
 
     for (auto &thread : threads)
     {
@@ -3677,6 +3673,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     for (int i = 0; i < threadNumber; i++)
     {
         emHashmaps[i] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
+    }
+    while (mana_writeThread_num.load() != 0)
+    {
+        // std::cout << "mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
     }
     comb_hash_size.exchange(emHashmap.size());
     // delete[] emHashmaps;
