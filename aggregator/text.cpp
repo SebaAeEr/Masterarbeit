@@ -424,6 +424,12 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
             }
             worker.partitions = partitions;
             return_value->workers.push_back(worker);
+            std::cout << "Mana worker size: " << return_value->workers.size() << " added worker partitions: " << worker.partitions.size();
+            if (return_value->workers.size())
+            {
+                std::cout << " partitions in worker 0: " << return_value->workers[0].partitions.size();
+            }
+            std::cout << std::endl;
         }
         *donedone = true;
     }
