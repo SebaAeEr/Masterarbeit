@@ -567,6 +567,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
     auto write_start_time = std::chrono::high_resolution_clock::now();
     while (true)
     {
+        std::cout << "Writing mana" << std::endl;
         Aws::S3::Model::PutObjectRequest in_request;
         in_request.SetBucket(bucketName);
         in_request.SetKey(manag_file_name);
@@ -583,6 +584,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
             *in_stream << mana.worker_lock;
             *in_stream << mana.thread_lock;
         }
+        std::cout << "worker size: "<<  mana.workers.size() << std::endl;
         for (auto &worker : mana.workers)
         {
             in_mem_size += worker.length + sizeof(int) + 2;
@@ -595,6 +597,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
             {
                 *in_stream << length_buf[i];
             }
+             std::cout << "partitions size: "<<  worker.partitions.size() << std::endl;
             for (auto &partition : worker.partitions)
             {
                 *in_stream << partition.id;
@@ -608,6 +611,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                 {
                     *in_stream << int_buf[i];
                 }
+                std::cout << "subfile size: "<<  partition.files.size() << std::endl;
                 for (auto &file : partition.files)
                 {
                     *in_stream << file.name;
