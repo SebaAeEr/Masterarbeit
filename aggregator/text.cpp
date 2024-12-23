@@ -665,7 +665,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                 auto outcome = minio_client->DeleteObject(delete_request);
                 if (!outcome.IsSuccess())
                 {
-                    // std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+                    std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
                     return false;
                 }
             }
@@ -981,7 +981,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
     std::cout << "writing mana" << std::endl;
     writeMana(minio_client, mana, true);
     // std::cout << "Printing mana:" << std::endl;
-    manaFile asdf;
+    // manaFile asdf;
     // printMana(minio_client, asdf);
     mana_writeThread_num.fetch_sub(1);
     std::cout << "sub mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
