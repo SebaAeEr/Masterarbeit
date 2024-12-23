@@ -3988,7 +3988,7 @@ constexpr unsigned int str2int(const char *str, int h = 0)
 int main(int argc, char **argv)
 {
     Aws::SDKOptions options;
-    options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
+    // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
     if (argc == 2)
