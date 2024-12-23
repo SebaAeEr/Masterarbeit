@@ -348,131 +348,128 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
             break;
         }
     }
-    manaFile mana;
-
-    auto &out_stream = outcome.GetResult().GetBody();
-
-    mana.worker_lock = out_stream.get();
-    mana.thread_lock = out_stream.get();
-    mana.workers = {};
-    while (out_stream.peek() != EOF)
-    {
-        manaFileWorker worker;
-        char workerid = out_stream.get();
-        worker.id = workerid;
-        worker.locked = out_stream.get() == 1;
-        std::vector<partition> partitions = {};
-        int length;
-        char length_buf[sizeof(int)];
-        out_stream.read(length_buf, sizeof(int));
-        std::memcpy(&length, &length_buf, sizeof(int));
-        worker.length = length;
-        int head = 0;
-        while (head < length)
-        {
-            partition part;
-            part.id = out_stream.get();
-            part.lock = out_stream.get() == 1;
-            int part_length;
-            char part_length_buf[sizeof(int)];
-            out_stream.read(part_length_buf, sizeof(int));
-            std::memcpy(&part_length, &part_length_buf, sizeof(int));
-
-            std::vector<file> files = {};
-            for (int k = 0; k < part_length; k++)
-            {
-                file file;
-                char temp = out_stream.get();
-                std::string filename = "";
-                while (temp != ',')
-                {
-                    filename += temp;
-                    temp = out_stream.get();
-                }
-                file.name = filename;
-
-                int number;
-                out_stream.read(part_length_buf, sizeof(int));
-                std::memcpy(&number, &part_length_buf, sizeof(int));
-
-                size_t file_length;
-                char length_buf[sizeof(size_t)];
-                out_stream.read(length_buf, sizeof(size_t));
-                std::memcpy(&file_length, &length_buf, sizeof(size_t));
-                file.size = file_length;
-
-                for (char i = 0; i < number; i++)
-                {
-                    size_t sub_file_length;
-                    out_stream.read(length_buf, sizeof(size_t));
-                    std::memcpy(&sub_file_length, &length_buf, sizeof(size_t));
-                    size_t sub_file_tuples;
-                    out_stream.read(length_buf, sizeof(size_t));
-                    std::memcpy(&sub_file_tuples, &length_buf, sizeof(size_t));
-                    file.subfiles.push_back({sub_file_length, sub_file_tuples});
-                }
-                file.status = out_stream.get();
-                files.push_back(file);
-                head += sizeof(size_t) * number * 2 + sizeof(size_t) + filename.size() + 2 + sizeof(int);
-            }
-            part.files = files;
-            partitions.push_back(part);
-            head += sizeof(int) + 2;
-        }
-        worker.partitions = partitions;
-        mana.workers.push_back(worker);
-    }
     bool asdf = false;
     if (done->compare_exchange_strong(asdf, true))
     {
+        // manaFile mana;
 
-        // done->exchange(true);
-        *return_value = mana;
-        std::cout << "overwrite mana. Mana worker size: " << mana.workers.size() << " mana in pointer: " << return_value->workers.size() << std::endl;
+        auto &out_stream = outcome.GetResult().GetBody();
 
-        std::string status = mana.worker_lock == 0 ? "free" : std::to_string(mana.worker_lock);
-        std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(mana.thread_lock) << std::endl;
-        for (auto &worker : mana.workers)
+        return_value->worker_lock = out_stream.get();
+        return_value->thread_lock = out_stream.get();
+        return_value->workers = {};
+        while (out_stream.peek() != EOF)
         {
-            std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
-            for (auto &partition : worker.partitions)
+            manaFileWorker worker;
+            char workerid = out_stream.get();
+            worker.id = workerid;
+            worker.locked = out_stream.get() == 1;
+            std::vector<partition> partitions = {};
+            int length;
+            char length_buf[sizeof(int)];
+            out_stream.read(length_buf, sizeof(int));
+            std::memcpy(&length, &length_buf, sizeof(int));
+            worker.length = length;
+            int head = 0;
+            while (head < length)
             {
-                std::cout << "  Partition: " << (int)(partition.id) << ", locked: " << partition.lock << std::endl;
-                for (auto &file : partition.files)
-                {
-                    std::cout << "    " << file.name << ": size: " << file.size << " worked on by: " << std::bitset<8>(file.status) << " subfiles:" << std::endl;
-                    for (auto &sub_files : file.subfiles)
-                    {
-                        std::cout << "      size: " << sub_files.first << " #tuples: " << sub_files.second << std::endl;
-                    }
-                }
-            }
-        }
+                partition part;
+                part.id = out_stream.get();
+                part.lock = out_stream.get() == 1;
+                int part_length;
+                char part_length_buf[sizeof(int)];
+                out_stream.read(part_length_buf, sizeof(int));
+                std::memcpy(&part_length, &part_length_buf, sizeof(int));
 
-        status = return_value->worker_lock == 0 ? "free" : std::to_string(return_value->worker_lock);
-        std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(return_value->thread_lock) << std::endl;
-        for (auto &worker : return_value->workers)
-        {
-            std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
-            for (auto &partition : worker.partitions)
-            {
-                std::cout << "  Partition: " << (int)(partition.id) << ", locked: " << partition.lock << std::endl;
-                for (auto &file : partition.files)
+                std::vector<file> files = {};
+                for (int k = 0; k < part_length; k++)
                 {
-                    std::cout << "    " << file.name << ": size: " << file.size << " worked on by: " << std::bitset<8>(file.status) << " subfiles:" << std::endl;
-                    for (auto &sub_files : file.subfiles)
+                    file file;
+                    char temp = out_stream.get();
+                    std::string filename = "";
+                    while (temp != ',')
                     {
-                        std::cout << "      size: " << sub_files.first << " #tuples: " << sub_files.second << std::endl;
+                        filename += temp;
+                        temp = out_stream.get();
                     }
+                    file.name = filename;
+
+                    int number;
+                    out_stream.read(part_length_buf, sizeof(int));
+                    std::memcpy(&number, &part_length_buf, sizeof(int));
+
+                    size_t file_length;
+                    char length_buf[sizeof(size_t)];
+                    out_stream.read(length_buf, sizeof(size_t));
+                    std::memcpy(&file_length, &length_buf, sizeof(size_t));
+                    file.size = file_length;
+
+                    for (char i = 0; i < number; i++)
+                    {
+                        size_t sub_file_length;
+                        out_stream.read(length_buf, sizeof(size_t));
+                        std::memcpy(&sub_file_length, &length_buf, sizeof(size_t));
+                        size_t sub_file_tuples;
+                        out_stream.read(length_buf, sizeof(size_t));
+                        std::memcpy(&sub_file_tuples, &length_buf, sizeof(size_t));
+                        file.subfiles.push_back({sub_file_length, sub_file_tuples});
+                    }
+                    file.status = out_stream.get();
+                    files.push_back(file);
+                    head += sizeof(size_t) * number * 2 + sizeof(size_t) + filename.size() + 2 + sizeof(int);
                 }
+                part.files = files;
+                partitions.push_back(part);
+                head += sizeof(int) + 2;
             }
+            worker.partitions = partitions;
+            return_value->workers.push_back(worker);
         }
         *donedone = true;
     }
-    else
+
+    // done->exchange(true);
+    //*return_value = mana;
+    /* std::cout << "overwrite mana. Mana worker size: " << mana.workers.size() << " mana in pointer: " << return_value->workers.size() << std::endl;
+
+    std::string status = mana.worker_lock == 0 ? "free" : std::to_string(mana.worker_lock);
+    std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(mana.thread_lock) << std::endl;
+    for (auto &worker : mana.workers)
     {
-        // std::cout << "already done" << std::endl;
+        std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
+        for (auto &partition : worker.partitions)
+        {
+            std::cout << "  Partition: " << (int)(partition.id) << ", locked: " << partition.lock << std::endl;
+            for (auto &file : partition.files)
+            {
+                std::cout << "    " << file.name << ": size: " << file.size << " worked on by: " << std::bitset<8>(file.status) << " subfiles:" << std::endl;
+                for (auto &sub_files : file.subfiles)
+                {
+                    std::cout << "      size: " << sub_files.first << " #tuples: " << sub_files.second << std::endl;
+                }
+            }
+        }
+    } */
+
+    std::string status = return_value->worker_lock == 0 ? "free" : std::to_string(return_value->worker_lock);
+    std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(return_value->thread_lock) << std::endl;
+    for (auto &worker : return_value->workers)
+    {
+        std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
+        for (auto &partition : worker.partitions)
+        {
+            std::cout << "  Partition: " << (int)(partition.id) << ", locked: " << partition.lock << std::endl;
+            for (auto &file : partition.files)
+            {
+                std::cout << "    " << file.name << ": size: " << file.size << " worked on by: " << std::bitset<8>(file.status) << " subfiles:" << std::endl;
+                for (auto &sub_files : file.subfiles)
+                {
+                    std::cout << "      size: " << sub_files.first << " #tuples: " << sub_files.second << std::endl;
+                }
+            }
+        }
     }
+
     // std::cout << "use count: " << done.use_count() << std::endl;
     done.reset();
     return;
@@ -485,7 +482,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     // done->exchange(1);
     manaFile mana;
     mana.worker_lock = -1;
-    bool donedone  = false;
+    bool donedone = false;
     // std::cout << "get mana" << std::endl;
     if (straggler_removal)
     {
