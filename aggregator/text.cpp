@@ -520,7 +520,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         }
         while (!donedone)
         {
-            std::cout << "waiting" << std::endl;
+            usleep(10);
         }
         std::cout << "donedone" << std::endl;
     }
