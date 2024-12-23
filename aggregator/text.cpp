@@ -351,6 +351,7 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
     bool asdf = false;
     if (done->compare_exchange_strong(asdf, true))
     {
+        std::cout << "writing mana" << std::endl;
         // manaFile mana;
 
         auto &out_stream = outcome.GetResult().GetBody();
@@ -435,6 +436,7 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
             }
             std::cout << std::endl;
         }
+        std::cout << "setting donedone" << std::endl;
         *donedone = true;
     }
 
@@ -507,6 +509,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
             {
                 if (done->load())
                 {
+                    std::cout << "done" << std::endl;
                     // std::cout << "size " << threads.size() << std::endl;
                     for (auto &thread : threads)
                     {
@@ -520,6 +523,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         while (!donedone)
         {
         }
+        std::cout << "donedone" << std::endl;
     }
     else
     {
