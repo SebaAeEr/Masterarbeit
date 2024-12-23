@@ -719,12 +719,15 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             // manaFile mana = getMana(minio_client);
             mana.worker_lock = worker_id;
             mana.thread_lock = thread_id;
+            std::cout << "Getting lock" << std::endl;
             if (!writeLock(minio_client))
             {
                 // std::cout << "Failed getting lock: " << std::to_string((int)(thread_id)) << std::endl;
                 continue;
             }
+            std::cout << "Wrtiting mana" << std::endl;
             writeMana(minio_client, mana, false);
+            std::cout << "Got mana" << std::endl;
             mana = getMana(minio_client);
             // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
             if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
