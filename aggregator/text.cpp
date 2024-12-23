@@ -930,7 +930,9 @@ void setPartitionNumber(size_t comb_hash_size)
 
 void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
 {
+    std::cout << "Get lock" << std::endl;
     manaFile mana = getLockedMana(minio_client, thread_id);
+    std::cout << "Got lock" << std::endl;
     for (auto &file : files)
     {
         bool parition_found = false;
@@ -976,12 +978,14 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
             }
         }
     }
+    std::cout << "writing mana" << std::endl;
     writeMana(minio_client, mana, true);
     // std::cout << "Printing mana:" << std::endl;
     manaFile asdf;
     // printMana(minio_client, asdf);
     mana_writeThread_num.fetch_sub(1);
     std::cout << "sub mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
+    
     return;
 }
 
@@ -3600,7 +3604,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     close(fd);
     while (mana_writeThread_num.load() != 0)
     {
-        std::cout << "mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
+        // std::cout << "mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
     }
     unsigned long temp_loc_spills = 0;
     for (auto &it : spills)
