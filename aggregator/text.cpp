@@ -985,7 +985,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
     // printMana(minio_client, asdf);
     mana_writeThread_num.fetch_sub(1);
     std::cout << "sub mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
-    
+
     return;
 }
 
@@ -3596,16 +3596,17 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
     printProgressBar(1);
     std::cout << std::endl;
+    while (mana_writeThread_num.load() != 0)
+    {
+        // std::cout << "mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
+    }
 
     for (auto &thread : threads)
     {
         thread.join();
     }
     close(fd);
-    while (mana_writeThread_num.load() != 0)
-    {
-        // std::cout << "mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
-    }
+
     unsigned long temp_loc_spills = 0;
     for (auto &it : spills)
     {
