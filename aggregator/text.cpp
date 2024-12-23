@@ -937,9 +937,7 @@ void setPartitionNumber(size_t comb_hash_size)
 
 void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
 {
-    std::cout << "Get lock" << std::endl;
     manaFile mana = getLockedMana(minio_client, thread_id);
-    std::cout << "Got lock" << std::endl;
     for (auto &file : files)
     {
         bool parition_found = false;
@@ -951,7 +949,6 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                 {
                     writeMana(minio_client, mana, true);
                     mana_writeThread_num.fetch_sub(1);
-                    std::cout << "sub mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
                     return;
                 }
                 for (auto &partition : worker.partitions)
@@ -962,7 +959,6 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                         {
                             writeMana(minio_client, mana, true);
                             mana_writeThread_num.fetch_sub(1);
-                            std::cout << "sub mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
                             return;
                         }
                         partition.files.push_back(file.first);
@@ -985,14 +981,11 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
             }
         }
     }
-    std::cout << "writing mana" << std::endl;
     writeMana(minio_client, mana, true);
     // std::cout << "Printing mana:" << std::endl;
     // manaFile asdf;
     // printMana(minio_client, asdf);
     mana_writeThread_num.fetch_sub(1);
-    std::cout << "sub mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
-
     return;
 }
 
@@ -1930,7 +1923,6 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     std::thread thread(addFileToManag, minio_client, files, write_to_id, fileStatus);
     // addFileToManag(minio_client, files, write_to_id, fileStatus);
     mana_writeThread_num.fetch_add(1);
-    std::cout << "adding mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
     thread.detach();
 }
 
@@ -2288,9 +2280,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     catch (std::exception &err)
     {
         std::cout << "Not able to print time: " << err.what() << std::endl;
-    }
-    while (mana_writeThread_num.load() != 0)
-    {
     }
 }
 
@@ -3676,7 +3665,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
     while (mana_writeThread_num.load() != 0)
     {
-        // std::cout << "mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
     }
     comb_hash_size.exchange(emHashmap.size());
     // delete[] emHashmaps;
