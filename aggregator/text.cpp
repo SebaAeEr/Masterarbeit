@@ -1931,8 +1931,8 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     // std::thread thread(addFileToManag, minio_client, files, write_to_id, fileStatus);
     addFileToManag(minio_client, files, write_to_id, fileStatus);
     mana_writeThread_num.fetch_add(1);
-    std::cout << "adding mana_writeThread_num: " << mana_writeThread_num.load() << " minio_client: " << minio_client << " Thread id: " << thread_id << std::endl;
-    thread.detach();
+    std::cout << "adding mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
+    //thread.detach();
 }
 
 void execOperation(std::array<unsigned long, max_size> *hashValue, int value)
