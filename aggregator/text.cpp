@@ -727,7 +727,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                 return mana;
             }
         }
-        usleep(10);
+        // usleep(10);
     }
 }
 
@@ -974,7 +974,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
     writeMana(minio_client, mana, true);
     // std::cout << "Printing mana:" << std::endl;
     manaFile asdf;
-    printMana(minio_client, asdf);
+    // printMana(minio_client, asdf);
     return;
 }
 
