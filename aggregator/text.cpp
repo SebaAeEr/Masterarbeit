@@ -648,7 +648,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                 }
             }
         }
-        std::cout << "putObject" << std::endl;
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
         // in_request.SetWriteOffsetBytes(1000);
@@ -662,7 +661,6 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
 
             if (freeLock)
             {
-                std::cout << "deleteObject" << std::endl;
                 Aws::S3::Model::DeleteObjectRequest delete_request;
                 delete_request.WithKey(lock_file_name).WithBucket(bucketName);
                 auto outcome = minio_client->DeleteObject(delete_request);
