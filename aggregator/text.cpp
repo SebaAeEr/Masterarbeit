@@ -3056,7 +3056,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         }
     }
     extra_mem -= increase;
-    return true;
+    return !locked;
 }
 
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
@@ -3187,7 +3187,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             s3spillFile_head++;
             input_head_base++;
             subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3spillFile_head, &int_n, &int_n, &n, &n, &input_head_base,
-                    size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, false);
+                     size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, false);
 
             s3spillFile_head--;
             input_head_base--;
