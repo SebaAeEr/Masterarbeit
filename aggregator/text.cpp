@@ -3181,7 +3181,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, increase);
         increase = false;
-        if (s3spillFile_head + 1 < s3spillNames2->size() && input_head_base + 1 < spills->size())
+        if ((s3spillFile_head + 1 < s3spillNames2->size() || s3spillNames2->size() == 0) && (input_head_base + 1 < spills->size() || spills->size() == 0))
         {
             size_t n = 0;
             int int_n = 0;
