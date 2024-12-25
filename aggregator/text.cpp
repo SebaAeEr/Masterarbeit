@@ -3056,6 +3056,11 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         }
     }
     extra_mem -= increase;
+    if (add)
+    {
+        *s3spillFile_head = s3spillNames2->size() - 1;
+        *input_head_base = spills->size() - 1;
+    }
     return !locked;
 }
 
