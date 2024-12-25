@@ -2531,7 +2531,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     read_lines->fetch_add(1);
                     if (deencode)
                     {
-                        if (!locked)
+                        if (add && !locked)
                         {
                             *s3spillStart_head_chars = s3spillStart_head_chars_counter;
                         }
