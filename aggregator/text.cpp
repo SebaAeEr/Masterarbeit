@@ -3173,12 +3173,15 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     std::atomic<int> readNum;
 
     bool finished = false;
+    bool increase = true;
 
     while (!finished)
     {
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
-                            size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, true);
-        if(!finished) {
+                            size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, increase);
+        increase = false;
+        if (!finished)
+        {
             size_t n = 0;
             int int_n = 0;
             s3spillFile_head++;
