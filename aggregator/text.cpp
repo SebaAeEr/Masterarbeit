@@ -3177,6 +3177,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
     while (!finished)
     {
+        std::cout << "s3spillFile_head before adding: " << s3spillFile_head << std::endl;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, increase);
         increase = false;
@@ -3186,6 +3187,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             int int_n = 0;
             s3spillFile_head++;
             input_head_base++;
+            std::cout << "s3spillFile_head before merging: " << s3spillFile_head << std::endl;
             subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3spillFile_head, &int_n, &int_n, &n, &n, &input_head_base,
                      size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, false);
 
