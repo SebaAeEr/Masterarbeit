@@ -2390,6 +2390,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     unsigned long newi = 0;
     size_t mapping_size = 0;
     size_t comb_spill_size = 0;
+    size_t increase = 0;
 
     for (auto &it : *spills)
     {
@@ -2417,6 +2418,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         if (locked && add)
         {
+            extra_mem -= increase;
             return false;
         }
         // std::cout << "Reading " << get<0>(*set_it) << std::endl;
@@ -2495,7 +2497,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             unsigned long lower_index = 0;
             if (increase_size)
             {
-                size_t increase = size_after_init * 1024 * 100 + 1;
+                increase = size_after_init * 1024 * 100 + 1;
                 if (getPhyValue() < size_after_init)
                 {
                     increase = 0;
@@ -2774,6 +2776,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     }
                     if (locked && add)
                     {
+                        extra_mem -= increase;
                         return false;
                     }
                     unsigned long map_start;
@@ -3053,6 +3056,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             }
         }
     }
+    extra_mem -= increase;
     return true;
 }
 
