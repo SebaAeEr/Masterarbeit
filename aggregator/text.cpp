@@ -3313,7 +3313,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         }
 
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
-                            size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff);
+                            size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, false);
     }
     // char buffer[(int)((memLimit - size_after_init * 1024) * 0.1)];
 
