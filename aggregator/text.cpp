@@ -2423,6 +2423,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             file_counter++;
             if (!add && multiThread_merge && file_counter > merge_file_num)
             {
+                std::cout << "file limit reached: " << file_counter << std::endl;
                 extra_mem -= increase;
                 return false;
             }
@@ -3246,12 +3247,17 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         if (multiThread_merge)
         {
             std::vector<std::thread> threads;
+            std::vector<int> start_heads;
+            std::vector<int> start_bits;
+            std::vector<unsigned long> start_heads_local;
             int s3_start_head = s3spillFile_head;
             int start_bit_head = bit_head;
             while (s3_start_head < s3spillNames2->size())
             {
                 std::cout << "merging s3 start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
-                threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &int_n, &n, &n, &input_head_base,
+                start_heads.push_back(s3_start_head);
+                start_bits.push_back(start_bit_head);
+                threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &start_heads[start_heads.size() - 1], &start_bits[start_bits.size() - 1], &int_n, &n, &n, &input_head_base,
                                               size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, std::ref(comb_hash_size), diff, false));
 
                 temp_it = s3spillNames2->begin();
@@ -3268,7 +3274,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             while (input_head_base < comb_spill_size)
             {
                 std::cout << "merging local input_head_base: " << input_head_base << std::endl;
-                threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &int_n, &n, &n, &input_head_base,
+                start_heads_local.push_back(input_head_base);
+                threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &int_n, &n, &n, &start_heads_local[start_heads_local.size() - 1],
                                               size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, std::ref(comb_hash_size), diff, false));
                 addXtoLocalSpillHead(spills, &input_head_base, merge_file_num);
             }
