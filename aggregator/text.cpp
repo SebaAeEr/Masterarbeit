@@ -3246,16 +3246,28 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         {
             std::vector<std::thread> threads;
             int s3_start_head = s3spillFile_head;
+            int start_bit_head = bit_head;
             while (s3_start_head < s3spillNames2->size())
             {
-                threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &bit_head, &int_n, &n, &n, &input_head_base,
+                std::cout << "merging s3 start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
+                threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &int_n, &n, &n, &input_head_base,
                                               size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, std::ref(comb_hash_size), diff, false));
+
+                temp_it = s3spillNames2->begin();
+                std::advance(temp_it, s3_start_head);
+                for (int i = 0; i < merge_file_num; i++)
+                {
+                    start_bit_head += get<2>(*temp_it).size();
+                    temp_it++;
+                }
+
                 s3_start_head += merge_file_num;
             }
             addXtoLocalSpillHead(spills, &input_head_base, s3_start_head - s3spillNames2->size());
             while (input_head_base < comb_spill_size)
             {
-                threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &bit_head, &int_n, &n, &n, &input_head_base,
+                std::cout << "merging local input_head_base: " << input_head_base << std::endl;
+                threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &int_n, &n, &n, &input_head_base,
                                               size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, std::ref(comb_hash_size), diff, false));
                 addXtoLocalSpillHead(spills, &input_head_base, merge_file_num);
             }
