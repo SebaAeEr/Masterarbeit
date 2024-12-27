@@ -3218,7 +3218,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                  size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, false);
 
         s3spillFile_head--;
-        input_head_base--;
+        input_head_base = old_input_head_base;
         //}
 
         if (writeRes)
