@@ -115,7 +115,7 @@ int partitions = -1;
 logFile log_file;
 std::atomic<int> mana_writeThread_num(0);
 std::atomic<bool> local_mana_lock(false);
-int merge_file_num = 2;
+int merge_file_num = 5;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
