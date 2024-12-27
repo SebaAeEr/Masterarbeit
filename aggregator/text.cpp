@@ -3065,7 +3065,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     extra_mem -= increase;
     if (add)
     {
-        *input_head_base = spills->size();
+        *input_head_base = comb_spill_size;
     }
     return !locked;
 }
@@ -3188,7 +3188,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
     while (!finished)
     {
-        std::cout << "s3spillFile_head before adding: " << s3spillFile_head << std::endl;
+        std::cout << "s3spillFile_head before adding: " << s3spillFile_head << " input_head_base before adding: " << input_head_base << std::endl;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, increase);
         increase = false;
@@ -3197,7 +3197,22 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         size_t n = 0;
         int int_n = 0;
         s3spillFile_head++;
-        input_head_base++;
+        size_t old_input_head_base = input_head_base;
+        size_t sum;
+        for (auto &s : spills)
+        {
+            sum += s.second;
+            if (deencode && input_head_base < sum)
+            {
+                input_head_base = sum;
+                break;
+            }
+            else if (!deencode && input_head_base < sum / sizeof(long))
+            {
+                input_head_base = sum / sizeof(long);
+                break;
+            }
+        }
         std::cout << "s3spillFile_head before merging: " << s3spillFile_head << " input_head_base before merging: " << input_head_base << std::endl;
         subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3spillFile_head, &int_n, &int_n, &n, &n, &input_head_base,
                  size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, false);
