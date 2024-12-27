@@ -2413,251 +2413,274 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     std::array<unsigned long, max_size> values = {0, 0};
 
     int bit_i = *bit_head;
-    for (auto set_it = std::next(s3spillNames2->begin(), it_counter); set_it != s3spillNames2->end(); set_it++)
+    if (it_counter < s3spillNames2->size())
     {
-        if (locked && add)
+        for (auto set_it = std::next(s3spillNames2->begin(), it_counter); set_it != s3spillNames2->end(); set_it++)
         {
-            extra_mem -= increase;
-            return false;
-        }
-        // std::cout << "Reading " << get<0>(*set_it) << std::endl;
-        firsts3File = hmap->empty();
-        int sub_file_counter = 0;
+            if (locked && add)
+            {
+                extra_mem -= increase;
+                return false;
+            }
+            // std::cout << "Reading " << get<0>(*set_it) << std::endl;
+            firsts3File = hmap->empty();
+            int sub_file_counter = 0;
 
-        if (firsts3File)
-        {
-            sub_file_counter = *subfile_head;
-        }
-        for (int sub_file_k = sub_file_counter; sub_file_k < get<2>(*set_it).size(); sub_file_k++)
-        {
-            auto read_file_start = std::chrono::high_resolution_clock::now();
-            auto sub_file = get<2>(*set_it)[sub_file_k].second;
-            firsts3subFile = hmap->empty();
-            // std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
-            Aws::S3::Model::GetObjectRequest request;
-            request.SetBucket(bucketName);
-            request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
-            sub_file_counter++;
-            Aws::S3::Model::GetObjectOutcome outcome;
-            while (true)
+            if (firsts3File)
             {
-                outcome = minio_client->GetObject(request);
-                if (!outcome.IsSuccess())
-                {
-                    std::cout << "GetObject error " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter - 1) << " " << outcome.GetError().GetMessage() << std::endl;
-                }
-                else
-                {
-                    break;
-                }
+                sub_file_counter = *subfile_head;
             }
-            // std::cout << "Reading spill: " << (*set_it).first << std::endl;
-            auto &spill = outcome.GetResult().GetBody();
-            log_file.get_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_file_start).count(), get<2>(*set_it)[sub_file_k].first});
-            // spill.rdbuf()->pubsetbuf(buffer, 1ull << 10);
-            //   spill.rdbuf()->
-            char *bitmap_mapping;
-            std::vector<char> *bitmap_vector;
-            // std::cout << "first: " << s3spillBitmaps[bit_i].first << std::endl;
-            bool spilled_bitmap = (*s3spillBitmaps)[bit_i].first != -1;
-            if (!spilled_bitmap)
+            for (int sub_file_k = sub_file_counter; sub_file_k < get<2>(*set_it).size(); sub_file_k++)
             {
-                bitmap_vector = &(*s3spillBitmaps)[bit_i].second;
-            }
-            else
-            {
-                bitmap_mapping = static_cast<char *>(mmap(nullptr, std::ceil((float)(sub_file) / 8), PROT_WRITE | PROT_READ, MAP_SHARED, (*s3spillBitmaps)[bit_i].first, 0));
-                if (bitmap_mapping == MAP_FAILED)
+                auto read_file_start = std::chrono::high_resolution_clock::now();
+                auto sub_file = get<2>(*set_it)[sub_file_k].second;
+                firsts3subFile = hmap->empty();
+                // std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
+                Aws::S3::Model::GetObjectRequest request;
+                request.SetBucket(bucketName);
+                request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
+                sub_file_counter++;
+                Aws::S3::Model::GetObjectOutcome outcome;
+                while (true)
                 {
-                    perror("Error mmapping the file");
-                    exit(EXIT_FAILURE);
-                }
-                madvise(bitmap_mapping, std::ceil((float)(sub_file) / 8), MADV_SEQUENTIAL | MADV_WILLNEED);
-            }
-            // std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector->size() << std::endl;
-            unsigned long head = 0;
-            unsigned long s3spillStart_head_chars_counter = 0;
-            if (firsts3File && firsts3subFile)
-            {
-                head = *s3spillStart_head;
-                // std::cout << "First File" << std::endl;
-                if (deencode)
-                {
-                    spill.ignore(*s3spillStart_head_chars);
-                    s3spillStart_head_chars_counter = *s3spillStart_head_chars;
-                }
-                else
-                {
-                    spill.ignore((*s3spillStart_head) * sizeof(long) * number_of_longs);
-                }
-                // std::cout << "Load bitmap: " << i << " at index: " << head << std::endl;
-            }
-
-            unsigned long lower_index = 0;
-            if (increase_size)
-            {
-                increase = size_after_init * 1024 * 100 + 1;
-                if (getPhyValue() < size_after_init)
-                {
-                    increase = 0;
-                }
-                else
-                {
-                    increase = (getPhyValue() - size_after_init) * 1024;
-                }
-                std::cout << "Stream buffer: " << increase << std::endl;
-
-                extra_mem += increase;
-                std::cout << "extra_mem " << extra_mem << std::endl;
-                increase_size = false;
-            }
-            while (spill.peek() != EOF)
-            {
-                char *bit;
-                size_t index = std::floor(head / 8);
-                if (!spilled_bitmap)
-                {
-                    bit = &(*bitmap_vector)[index];
-                }
-                else
-                {
-                    bit = &bitmap_mapping[index];
-                }
-
-                // std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(*bit) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << ((*bit) & (1 << (head % 8))) << std::endl;
-                if ((*bit) & (1 << (head % 8)))
-                {
-                    unsigned long buf[number_of_longs];
-                    read_lines->fetch_add(1);
-                    if (deencode)
+                    outcome = minio_client->GetObject(request);
+                    if (!outcome.IsSuccess())
                     {
-                        if (add && !locked)
-                        {
-                            *s3spillStart_head_chars = s3spillStart_head_chars_counter;
-                        }
-                        for (int i = 0; i < number_of_longs; i++)
-                        {
-                            char l_bytes = spill.get();
-                            char char_buf[sizeof(long)];
-                            int counter = 0;
-                            while (counter < l_bytes)
-                            {
-                                char_buf[counter] = spill.get();
-                                counter++;
-                            }
-                            s3spillStart_head_chars_counter += l_bytes + 1;
-                            /* for (auto &it : char_buf)
-                            {
-                                std::cout << std::bitset<8>(it) << ", ";
-                            }
-                            std::cout << std::endl; */
-                            while (counter < sizeof(long))
-                            {
-                                char_buf[counter] = 0;
-                                counter++;
-                            }
-                            /* for (auto &it : char_buf)
-                            {
-                                std::cout << std::bitset<8>(it) << ", ";
-                            }
-                            std::cout << std::endl; */
-                            std::memcpy(&buf[i], &char_buf, sizeof(long));
-                        }
+                        std::cout << "GetObject error " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter - 1) << " " << outcome.GetError().GetMessage() << std::endl;
                     }
                     else
                     {
-                        char char_buf[sizeof(long) * number_of_longs];
-                        spill.read(char_buf, sizeof(long) * number_of_longs);
-                        std::memcpy(buf, &char_buf, sizeof(long) * number_of_longs);
-                    }
-                    if (!spill)
-                    {
                         break;
                     }
-
-                    // static_cast<unsigned long *>(static_cast<void *>(buf));
-                    // std::cout << buf[0] << ", " << buf[1] << std::endl;
-                    for (int k = 0; k < key_number; k++)
+                }
+                // std::cout << "Reading spill: " << (*set_it).first << std::endl;
+                auto &spill = outcome.GetResult().GetBody();
+                log_file.get_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_file_start).count(), get<2>(*set_it)[sub_file_k].first});
+                // spill.rdbuf()->pubsetbuf(buffer, 1ull << 10);
+                //   spill.rdbuf()->
+                char *bitmap_mapping;
+                std::vector<char> *bitmap_vector;
+                // std::cout << "first: " << s3spillBitmaps[bit_i].first << std::endl;
+                bool spilled_bitmap = (*s3spillBitmaps)[bit_i].first != -1;
+                if (!spilled_bitmap)
+                {
+                    bitmap_vector = &(*s3spillBitmaps)[bit_i].second;
+                }
+                else
+                {
+                    bitmap_mapping = static_cast<char *>(mmap(nullptr, std::ceil((float)(sub_file) / 8), PROT_WRITE | PROT_READ, MAP_SHARED, (*s3spillBitmaps)[bit_i].first, 0));
+                    if (bitmap_mapping == MAP_FAILED)
                     {
-                        keys[k] = buf[k];
+                        perror("Error mmapping the file");
+                        exit(EXIT_FAILURE);
+                    }
+                    madvise(bitmap_mapping, std::ceil((float)(sub_file) / 8), MADV_SEQUENTIAL | MADV_WILLNEED);
+                }
+                // std::cout << "Reading spill: " << (*s3spillNames)[i] << " with bitmap of size: " << bitmap_vector->size() << std::endl;
+                unsigned long head = 0;
+                unsigned long s3spillStart_head_chars_counter = 0;
+                if (firsts3File && firsts3subFile)
+                {
+                    head = *s3spillStart_head;
+                    // std::cout << "First File" << std::endl;
+                    if (deencode)
+                    {
+                        spill.ignore(*s3spillStart_head_chars);
+                        s3spillStart_head_chars_counter = *s3spillStart_head_chars;
+                    }
+                    else
+                    {
+                        spill.ignore((*s3spillStart_head) * sizeof(long) * number_of_longs);
+                    }
+                    // std::cout << "Load bitmap: " << i << " at index: " << head << std::endl;
+                }
+
+                unsigned long lower_index = 0;
+                if (increase_size)
+                {
+                    increase = size_after_init * 1024 * 100 + 1;
+                    if (getPhyValue() < size_after_init)
+                    {
+                        increase = 0;
+                    }
+                    else
+                    {
+                        increase = (getPhyValue() - size_after_init) * 1024;
+                    }
+                    std::cout << "Stream buffer: " << increase << std::endl;
+
+                    extra_mem += increase;
+                    std::cout << "extra_mem " << extra_mem << std::endl;
+                    increase_size = false;
+                }
+                while (spill.peek() != EOF)
+                {
+                    char *bit;
+                    size_t index = std::floor(head / 8);
+                    if (!spilled_bitmap)
+                    {
+                        bit = &(*bitmap_vector)[index];
+                    }
+                    else
+                    {
+                        bit = &bitmap_mapping[index];
                     }
 
-                    for (int k = 0; k < value_number; k++)
+                    // std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(*bit) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << ((*bit) & (1 << (head % 8))) << std::endl;
+                    if ((*bit) & (1 << (head % 8)))
                     {
-                        values[k] = buf[k + key_number];
-                    }
-                    while ((*writeLock))
-                    {
-                    }
-                    readNum->fetch_add(1);
-                    bool contained = hmap->contains(keys);
-                    readNum->fetch_sub(1);
-                    if (contained)
-                    {
+                        unsigned long buf[number_of_longs];
+                        read_lines->fetch_add(1);
+                        if (deencode)
+                        {
+                            if (add && !locked)
+                            {
+                                *s3spillStart_head_chars = s3spillStart_head_chars_counter;
+                            }
+                            for (int i = 0; i < number_of_longs; i++)
+                            {
+                                char l_bytes = spill.get();
+                                char char_buf[sizeof(long)];
+                                int counter = 0;
+                                while (counter < l_bytes)
+                                {
+                                    char_buf[counter] = spill.get();
+                                    counter++;
+                                }
+                                s3spillStart_head_chars_counter += l_bytes + 1;
+                                /* for (auto &it : char_buf)
+                                {
+                                    std::cout << std::bitset<8>(it) << ", ";
+                                }
+                                std::cout << std::endl; */
+                                while (counter < sizeof(long))
+                                {
+                                    char_buf[counter] = 0;
+                                    counter++;
+                                }
+                                /* for (auto &it : char_buf)
+                                {
+                                    std::cout << std::bitset<8>(it) << ", ";
+                                }
+                                std::cout << std::endl; */
+                                std::memcpy(&buf[i], &char_buf, sizeof(long));
+                            }
+                        }
+                        else
+                        {
+                            char char_buf[sizeof(long) * number_of_longs];
+                            spill.read(char_buf, sizeof(long) * number_of_longs);
+                            std::memcpy(buf, &char_buf, sizeof(long) * number_of_longs);
+                        }
+                        if (!spill)
+                        {
+                            break;
+                        }
 
-                        std::array<unsigned long, max_size> temp = (*hmap)[keys];
+                        // static_cast<unsigned long *>(static_cast<void *>(buf));
+                        // std::cout << buf[0] << ", " << buf[1] << std::endl;
+                        for (int k = 0; k < key_number; k++)
+                        {
+                            keys[k] = buf[k];
+                        }
 
                         for (int k = 0; k < value_number; k++)
                         {
-                            temp[k] += values[k];
+                            values[k] = buf[k + key_number];
                         }
-                        bool asdf = false;
-                        while (!writeLock->compare_exchange_strong(asdf, true))
+                        while ((*writeLock))
                         {
                         }
-                        while ((*readNum) > 0)
+                        readNum->fetch_add(1);
+                        bool contained = hmap->contains(keys);
+                        readNum->fetch_sub(1);
+                        if (contained)
                         {
-                        }
-                        (*hmap)[keys] = temp;
-                        writeLock->exchange(false);
 
-                        *bit &= ~(0x01 << (head % 8));
-                        if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
-                        {
-                            std::cout << "found key in Spill contained in hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << ", " << (*hmap)[keys][1] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
-                        }
-                    }
-                    else if (add && !locked)
-                    {
-                        // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
-                        hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
-                        if (hmap->size() > comb_hash_size.load())
-                        {
-                            comb_hash_size.fetch_add(1);
-                            /* if (comb_hash_size.load() % 100 == 0)
+                            std::array<unsigned long, max_size> temp = (*hmap)[keys];
+
+                            for (int k = 0; k < value_number; k++)
                             {
-                                *avg = (getPhyValue() - base_size) / comb_hash_size.load();
-                            } */
-                        }
-                        *bit &= ~(0x01 << (head % 8));
-                        if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
-                        {
-                            std::cout << "found key in Spill added to hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << ", " << (*hmap)[keys][1] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
-                        }
-                        // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
-                    }
-                    if (spilled_bitmap)
-                    {
-                        diff->exchange(index);
-                        if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
-                        {
-                            // std::cout << "spilling: " << head - lower_index << std::endl;
-                            unsigned long freed_space_temp = (index - lower_index) - ((index - lower_index) % pagesize);
-                            if (index - lower_index >= pagesize)
-                            {
-                                if (munmap(&bitmap_mapping[lower_index], freed_space_temp) == -1)
-                                {
-                                    std::cout << freed_space_temp << std::endl;
-                                    perror("Could not free memory of bitmap 1!");
-                                }
-                                // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(long) + input_head << std::endl;
-                                // Update Head to point at the new unfreed mapping space.
-                                lower_index += freed_space_temp;
+                                temp[k] += values[k];
                             }
-                            if (freed_space_temp < pagesize * 2)
+                            bool asdf = false;
+                            while (!writeLock->compare_exchange_strong(asdf, true))
                             {
+                            }
+                            while ((*readNum) > 0)
+                            {
+                            }
+                            (*hmap)[keys] = temp;
+                            writeLock->exchange(false);
+
+                            *bit &= ~(0x01 << (head % 8));
+                            if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
+                            {
+                                std::cout << "found key in Spill contained in hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << ", " << (*hmap)[keys][1] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
+                            }
+                        }
+                        else if (add && !locked)
+                        {
+                            // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
+                            hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
+                            if (hmap->size() > comb_hash_size.load())
+                            {
+                                comb_hash_size.fetch_add(1);
+                                /* if (comb_hash_size.load() % 100 == 0)
+                                {
+                                    *avg = (getPhyValue() - base_size) / comb_hash_size.load();
+                                } */
+                            }
+                            *bit &= ~(0x01 << (head % 8));
+                            if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
+                            {
+                                std::cout << "found key in Spill added to hashmap: " << keys[0] << " value: " << (*hmap)[keys][0] << ", " << (*hmap)[keys][1] << " In spill: " << (get<0>(*set_it) + "_" + std::to_string(sub_file_counter)) << std::endl;
+                            }
+                            // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
+                        }
+                        if (spilled_bitmap)
+                        {
+                            diff->exchange(index);
+                            if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
+                            {
+                                // std::cout << "spilling: " << head - lower_index << std::endl;
+                                unsigned long freed_space_temp = (index - lower_index) - ((index - lower_index) % pagesize);
+                                if (index - lower_index >= pagesize)
+                                {
+                                    if (munmap(&bitmap_mapping[lower_index], freed_space_temp) == -1)
+                                    {
+                                        std::cout << freed_space_temp << std::endl;
+                                        perror("Could not free memory of bitmap 1!");
+                                    }
+                                    // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(long) + input_head << std::endl;
+                                    // Update Head to point at the new unfreed mapping space.
+                                    lower_index += freed_space_temp;
+                                }
+                                if (freed_space_temp < pagesize * 2)
+                                {
+                                    if (add && !locked)
+                                    {
+                                        locked = true;
+                                        *s3spillFile_head = it_counter;
+                                        *s3spillStart_head = head;
+                                        *bit_head = bit_i;
+                                        *subfile_head = sub_file_counter - 1;
+                                    }
+                                    if (firsts3File)
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
+                            {
+
                                 if (add && !locked)
                                 {
+                                    // std::cout << "Calc size: " << hmap->size() * (*avg) + base_size << " base_size: " << base_size << " hmap length " << hmap->size() << " memlimit: " << memLimit << std::endl;
                                     locked = true;
                                     *s3spillFile_head = it_counter;
                                     *s3spillStart_head = head;
@@ -2673,73 +2696,56 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     }
                     else
                     {
-                        if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
+                        if (deencode)
                         {
-
-                            if (add && !locked)
+                            for (int k = 0; k < number_of_longs; k++)
                             {
-                                // std::cout << "Calc size: " << hmap->size() * (*avg) + base_size << " base_size: " << base_size << " hmap length " << hmap->size() << " memlimit: " << memLimit << std::endl;
-                                locked = true;
-                                *s3spillFile_head = it_counter;
-                                *s3spillStart_head = head;
-                                *bit_head = bit_i;
-                                *subfile_head = sub_file_counter - 1;
+                                char skip_bytes = spill.get();
+                                spill.ignore(skip_bytes);
+                                s3spillStart_head_chars_counter += skip_bytes + 1;
                             }
-                            if (firsts3File)
+                            if (!spill)
+                            {
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            spill.ignore(sizeof(long) * number_of_longs);
+                            if (!spill)
                             {
                                 break;
                             }
                         }
                     }
+                    head++;
                 }
-                else
+                // std::cout << "head: " << head * sizeof(long) * number_of_longs << ", spillsize: " << sub_file << std::endl;
+                if (spilled_bitmap)
                 {
-                    if (deencode)
+                    if (munmap(&bitmap_mapping[lower_index], std::ceil((float)(sub_file) / 8) - lower_index) == -1)
                     {
-                        for (int k = 0; k < number_of_longs; k++)
-                        {
-                            char skip_bytes = spill.get();
-                            spill.ignore(skip_bytes);
-                            s3spillStart_head_chars_counter += skip_bytes + 1;
-                        }
-                        if (!spill)
-                        {
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        spill.ignore(sizeof(long) * number_of_longs);
-                        if (!spill)
-                        {
-                            break;
-                        }
+                        std::cout << std::ceil((float)(get<1>(*set_it)) / 8) - lower_index << " lower_index: " << lower_index << std::endl;
+                        perror("Could not free memory of bitmap 2!");
                     }
                 }
-                head++;
-            }
-            // std::cout << "head: " << head * sizeof(long) * number_of_longs << ", spillsize: " << sub_file << std::endl;
-            if (spilled_bitmap)
-            {
-                if (munmap(&bitmap_mapping[lower_index], std::ceil((float)(sub_file) / 8) - lower_index) == -1)
+                bit_i++;
+                if (firsts3File && locked)
                 {
-                    std::cout << std::ceil((float)(get<1>(*set_it)) / 8) - lower_index << " lower_index: " << lower_index << std::endl;
-                    perror("Could not free memory of bitmap 2!");
+                    bit_i += get<2>(*set_it).size() - sub_file_counter;
+                    // std::cout << "Breaking because first file s3spillFile_head: " << s3spillFile_head << ",s3spillStart_head " << s3spillStart_head << ",bit_head " << bit_head << ", subfilehead: " << subfile_head << std::endl;
+                    break;
                 }
             }
-            bit_i++;
-            if (firsts3File && locked)
-            {
-                bit_i += get<2>(*set_it).size() - sub_file_counter;
-                // std::cout << "Breaking because first file s3spillFile_head: " << s3spillFile_head << ",s3spillStart_head " << s3spillStart_head << ",bit_head " << bit_head << ", subfilehead: " << subfile_head << std::endl;
-                break;
-            }
+            it_counter++;
         }
-        it_counter++;
+    }
+    if (add)
+    {
+        *s3spillFile_head = s3spillNames2->size();
     }
 
     // std::cout << "New round" << std::endl;
-
     // Go through entire mapping
     for (unsigned long i = *input_head_base; (!deencode && i < comb_spill_size / sizeof(long)) || (deencode && i < comb_spill_size); i++)
     {
@@ -3058,8 +3064,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     extra_mem -= increase;
     if (add)
     {
-        *s3spillFile_head = s3spillNames2->size() - 1;
-        *input_head_base = spills->size() - 1;
+        *input_head_base = spills->size();
     }
     return !locked;
 }
@@ -3186,8 +3191,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, increase);
         increase = false;
-        if ((s3spillFile_head + 1 < s3spillNames2->size() || s3spillNames2->size() == 0) && (input_head_base + 1 < spills->size() || spills->size() == 0))
-        {
+        /* if ((s3spillFile_head + 1 < s3spillNames2->size() || s3spillNames2->size() == 0) && (input_head_base + 1 < spills->size() || spills->size() == 0))
+        { */
             size_t n = 0;
             int int_n = 0;
             s3spillFile_head++;
@@ -3198,7 +3203,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
             s3spillFile_head--;
             input_head_base--;
-        }
+        //}
 
         if (writeRes)
         {
