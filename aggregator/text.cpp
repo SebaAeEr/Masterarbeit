@@ -109,11 +109,13 @@ bool deencode = true;
 bool mergePhase = false;
 bool set_partitions = true;
 bool straggler_removal = true;
+bool multiThread_merge = true;
 std::vector<unsigned long> test_values = {};
 int partitions = -1;
 logFile log_file;
 std::atomic<int> mana_writeThread_num(0);
 std::atomic<bool> local_mana_lock(false);
+int merge_file_num = 2;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -2391,6 +2393,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     size_t mapping_size = 0;
     size_t comb_spill_size = 0;
     size_t increase = 0;
+    int file_counter = 0;
 
     for (auto &it : *spills)
     {
@@ -2417,6 +2420,12 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         for (auto set_it = std::next(s3spillNames2->begin(), it_counter); set_it != s3spillNames2->end(); set_it++)
         {
+            file_counter++;
+            if (!add && file_counter > merge_file_num)
+            {
+                extra_mem -= increase;
+                return false;
+            }
             if (locked && add)
             {
                 extra_mem -= increase;
@@ -2435,7 +2444,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 auto read_file_start = std::chrono::high_resolution_clock::now();
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = hmap->empty();
-                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
+                // std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
@@ -2744,7 +2753,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         *s3spillFile_head = s3spillNames2->size();
     }
-    std::cout << "Merging local" << std::endl;
+    // std::cout << "Merging local" << std::endl;
 
     // std::cout << "New round" << std::endl;
     // Go through entire mapping
@@ -2779,6 +2788,12 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             perror("Could not free memory in merge 2_1!");
                         }
                         // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(long) << std::endl;
+                    }
+                    file_counter++;
+                    if (!add && file_counter > merge_file_num)
+                    {
+                        extra_mem -= increase;
+                        return false;
                     }
                     if (locked && add)
                     {
@@ -3070,6 +3085,33 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     return !locked;
 }
 
+void addXtoLocalSpillHead(std::vector<std::pair<int, size_t>> *spills, unsigned long *spill_head, int x)
+{
+    size_t sum = 0;
+    for (auto &s : (*spills))
+    {
+        sum += s.second;
+        if (deencode && *spill_head < sum)
+        {
+            *spill_head = sum;
+            x--;
+            if (x == 0)
+            {
+                break;
+            }
+        }
+        else if (!deencode && *spill_head < sum / sizeof(long))
+        {
+            *spill_head = sum / sizeof(long);
+            x--;
+            if (x == 0)
+            {
+                break;
+            }
+        }
+    }
+}
+
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
           float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename, std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client,
           bool writeRes, std::string &uName, size_t memMainLimit, size_t *output_file_head, char partition = -1, char beggarWorker = 0, int output_fd = -1)
@@ -3110,9 +3152,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     for (auto &it : *spills)
     {
         comb_spill_size += it.second;
-        std::cout << it.second << ", ";
+        // std::cout << it.second << ", ";
     }
-    std::cout << std::endl;
+    // std::cout << std::endl;
 
     int counter = 0;
     for (auto &name : *s3spillNames2)
@@ -3186,21 +3228,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     bool finished = false;
     bool increase = true;
 
-    std::cout << "Sizes: ";
-    for (auto &s : *spills)
-    {
-        std::cout << s.second << ", ";
-    }
-    std::cout  << std::endl;
-
     while (!finished)
     {
-        std::cout << "s3spillFile_head before adding: " << s3spillFile_head << " input_head_base before adding: " << input_head_base << std::endl;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, increase);
         increase = false;
-        /* if ((s3spillFile_head + 1 < s3spillNames2->size() || s3spillNames2->size() == 0) && (input_head_base + 1 < spills->size() || spills->size() == 0))
-        { */
         size_t n = 0;
         int int_n = 0;
         auto temp_it = s3spillNames2->begin();
@@ -3209,30 +3241,37 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         bit_head += bit_increase;
         s3spillFile_head++;
         size_t old_input_head_base = input_head_base;
-        size_t sum = 0;
-        for (auto &s : (*spills))
+        addXtoLocalSpillHead(spills, &input_head_base, 1);
+        if (multiThread_merge)
         {
-            sum += s.second;
-            if (deencode && input_head_base < sum)
+            std::vector<std::thread> threads;
+            int s3_start_head = s3spillFile_head;
+            while (s3_start_head < s3spillNames2->size())
             {
-                input_head_base = sum;
-                break;
+                threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &bit_head, &int_n, &n, &n, &input_head_base,
+                                              size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, std::ref(comb_hash_size), diff, false));
+                s3_start_head += merge_file_num;
             }
-            else if (!deencode && input_head_base < sum / sizeof(long))
+            addXtoLocalSpillHead(spills, &input_head_base, s3_start_head - s3spillNames2->size());
+            while (input_head_base < comb_spill_size)
             {
-                input_head_base = sum / sizeof(long);
-                break;
+                threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &bit_head, &int_n, &n, &n, &input_head_base,
+                                              size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, std::ref(comb_hash_size), diff, false));
+                addXtoLocalSpillHead(spills, &input_head_base, merge_file_num);
+            }
+            for (auto &thread : threads)
+            {
+                thread.join();
             }
         }
-        std::cout << "s3spillFile_head before merging: " << s3spillFile_head << " input_head_base before merging: " << input_head_base << std::endl;
-        subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3spillFile_head, &bit_head, &int_n, &n, &n, &input_head_base,
-                 size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, false);
-
+        else
+        {
+            subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3spillFile_head, &bit_head, &int_n, &n, &n, &input_head_base,
+                     size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, false);
+        }
         s3spillFile_head--;
         bit_head -= bit_increase;
-        // bit_head -= get<2>(std::advance(s3spillNames2->begin(), s3spillFile_head)).size();
         input_head_base = old_input_head_base;
-        //}
 
         if (writeRes)
         {
@@ -3259,11 +3298,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             if (deencode)
             {
-                std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " locked: " << locked << std::endl;
+                // std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " locked: " << locked << std::endl;
             }
             else
             {
-                std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
+                // std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
             }
             if (!fcntl(output_fd, F_GETFD))
             {
@@ -4976,6 +5015,10 @@ int main(int argc, char **argv)
             {
                 mergePhase = value.compare("true") == 0;
                 break;
+            }
+            case str2int("multiThread_merge"):
+            {
+                multiThread_merge = value.compare("true") == 0;
             }
             }
         }
