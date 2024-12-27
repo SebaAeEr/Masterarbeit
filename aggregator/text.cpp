@@ -3271,7 +3271,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
                 s3_start_head += merge_file_num;
             }
-            if (s3_start_head - s3spillNames2->size() > 0)
+            if (s3_start_head - s3spillNames2->size() > 0 && s3spillNames2->size() > 0)
             {
                 addXtoLocalSpillHead(spills, &input_head_base, s3_start_head - s3spillNames2->size());
             }
