@@ -2744,6 +2744,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         *s3spillFile_head = s3spillNames2->size();
     }
+    std::cout << "Merging local" << std::endl;
 
     // std::cout << "New round" << std::endl;
     // Go through entire mapping
@@ -3193,16 +3194,16 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         increase = false;
         /* if ((s3spillFile_head + 1 < s3spillNames2->size() || s3spillNames2->size() == 0) && (input_head_base + 1 < spills->size() || spills->size() == 0))
         { */
-            size_t n = 0;
-            int int_n = 0;
-            s3spillFile_head++;
-            input_head_base++;
-            std::cout << "s3spillFile_head before merging: " << s3spillFile_head << std::endl;
-            subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3spillFile_head, &int_n, &int_n, &n, &n, &input_head_base,
-                     size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, false);
+        size_t n = 0;
+        int int_n = 0;
+        s3spillFile_head++;
+        input_head_base++;
+        std::cout << "s3spillFile_head before merging: " << s3spillFile_head << " input_head_base before merging: " << input_head_base << std::endl;
+        subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3spillFile_head, &int_n, &int_n, &n, &n, &input_head_base,
+                 size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, false);
 
-            s3spillFile_head--;
-            input_head_base--;
+        s3spillFile_head--;
+        input_head_base--;
         //}
 
         if (writeRes)
