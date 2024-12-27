@@ -3199,7 +3199,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         s3spillFile_head++;
         size_t old_input_head_base = input_head_base;
         size_t sum;
-        for (auto &s : spills)
+        for (auto &s : (*spills))
         {
             sum += s.second;
             if (deencode && input_head_base < sum)
