@@ -3186,6 +3186,13 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     bool finished = false;
     bool increase = true;
 
+    std::cout << "Sizes: ";
+    for (auto &s : *spills)
+    {
+        std::cout << s.second << ", ";
+    }
+    std::cout  << std::endl;
+
     while (!finished)
     {
         std::cout << "s3spillFile_head before adding: " << s3spillFile_head << " input_head_base before adding: " << input_head_base << std::endl;
@@ -3202,7 +3209,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         bit_head += bit_increase;
         s3spillFile_head++;
         size_t old_input_head_base = input_head_base;
-        size_t sum;
+        size_t sum = 0;
         for (auto &s : (*spills))
         {
             sum += s.second;
