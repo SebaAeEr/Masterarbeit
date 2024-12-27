@@ -110,7 +110,7 @@ bool mergePhase = false;
 bool set_partitions = true;
 bool straggler_removal = true;
 bool multiThread_merge = true;
-std::vector<unsigned long> test_values = {4429504};
+std::vector<unsigned long> test_values = {4429504, 44291504};
 int partitions = -1;
 logFile log_file;
 std::atomic<int> mana_writeThread_num(0);
