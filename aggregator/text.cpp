@@ -122,7 +122,7 @@ bool mergePhase = false;
 bool set_partitions = true;
 bool straggler_removal = true;
 bool multiThread_merge = true;
-std::vector<unsigned long> test_values = {4429504, 44291504};
+std::vector<unsigned long> test_values = {};
 int partitions = -1;
 logFile log_file;
 std::atomic<int> mana_writeThread_num(0);
@@ -3275,13 +3275,31 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         // std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
         if (multiThread_merge)
         {
+            int mergefile_num = s3spillNames2->size() - s3spillFile_head;
+            size_t sum = 0;
+            int counter = 0;
+            for (auto &s : (*spills))
+            {
+                sum += s.second;
+                if (deencode && input_head_base < sum)
+                {
+                    mergefile_num += spills->size() - counter;
+                }
+                else if (!deencode && input_head_base < sum / sizeof(long))
+                {
+                    mergefile_num += spills->size() - counter;
+                }
+                counter++;
+            }
+            merge_file_num = mergefile_num / threadNumber;
+
             std::vector<std::thread> threads;
             std::vector<int> start_heads(std::ceil(s3spillNames2->size() / merge_file_num));
             std::vector<int> start_bits(std::ceil(s3spillNames2->size() / merge_file_num));
             std::vector<unsigned long> start_heads_local(std::ceil(spills->size() / merge_file_num));
             int s3_start_head = s3spillFile_head;
             int start_bit_head = bit_head;
-            int counter = 0;
+            counter = 0;
             while (s3_start_head < s3spillNames2->size())
             {
                 // std::cout << "merging s3 start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
