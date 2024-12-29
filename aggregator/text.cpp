@@ -2782,7 +2782,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         *s3spillFile_head = s3spillNames2->size();
     }
-    std::cout << "Merging local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
+    // std::cout << "Merging local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
 
     // std::cout << "New round" << std::endl;
     // Go through entire mapping
@@ -3291,7 +3291,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
                 counter++;
             }
-            merge_file_num = mergefile_num / threadNumber;
+            std::cout << "merge_file_numn: " << mergefile_num << std::endl;
+            merge_file_num = std::max(2, mergefile_num / threadNumber);
 
             std::vector<std::thread> threads;
             std::vector<int> start_heads(std::ceil(s3spillNames2->size() / merge_file_num));
