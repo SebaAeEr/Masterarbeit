@@ -74,6 +74,15 @@ struct threadLog
     std::vector<size_t> spillTimes;
 };
 
+struct testLog
+{
+    bool success;
+    int different_key_num;
+    bool different_tuple_num;
+    int tuple_outputFile;
+    int tuple_testFile;
+};
+
 struct logFile
 {
     std::unordered_map<std::string, size_t> sizes;
@@ -83,6 +92,9 @@ struct logFile
     std::vector<size_t> write_mana_durs;
     std::vector<std::pair<size_t, size_t>> write_file_durs;
     std::vector<std::pair<size_t, size_t>> get_file_durs;
+    testLog test;
+    bool failed;
+    std::string err_msg;
 };
 
 static const int max_size = 2;
@@ -201,6 +213,11 @@ void writeLogFile(logFile log_t)
     std::ofstream output;
     output.open(("logfile_" + date_now + ".json").c_str());
     output << "{";
+    output << "\"failed\":";
+    output << log_t.failed;
+    output << ",\"err_msg\":\"";
+    output << log_t.err_msg;
+    output << "\",";
     for (auto &it : log_t.sizes)
     {
         output << '"';
@@ -304,7 +321,18 @@ void writeLogFile(logFile log_t)
         if (t_counter < log_t.get_file_durs.size())
             output << ",";
     }
-    output << "]}";
+    output << "],\n\"test\":{\n\"success\":";
+    output << log_t.test.success;
+    output << ",\"different_keys_num\":";
+    output << log_t.test.different_key_num;
+    output << ",\"different_tuple_num\":";
+    output << log_t.test.different_tuple_num;
+    output << ",\"tuple_outputFile\":";
+    output << log_t.test.tuple_outputFile;
+    output << ",\"tuple_testFile\":";
+    output << log_t.test.tuple_testFile;
+    output << "}}";
+
     output.close();
 }
 
@@ -2445,7 +2473,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 auto read_file_start = std::chrono::high_resolution_clock::now();
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = hmap->empty();
-                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
+                // std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
@@ -3231,7 +3259,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
     while (!finished)
     {
-        //std::cout << "Start adding s3spillStart_head: " << s3spillStart_head << " bit_head: " << bit_head << std::endl;
+        // std::cout << "Start adding s3spillStart_head: " << s3spillStart_head << " bit_head: " << bit_head << std::endl;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, comb_hash_size, diff, increase);
         increase = false;
@@ -3244,7 +3272,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         s3spillFile_head++;
         size_t old_input_head_base = input_head_base;
         addXtoLocalSpillHead(spills, &input_head_base, 1);
-        //std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
+        // std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
         if (multiThread_merge)
         {
             std::vector<std::thread> threads;
@@ -3256,7 +3284,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             int counter = 0;
             while (s3_start_head < s3spillNames2->size())
             {
-                //std::cout << "merging s3 start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
+                // std::cout << "merging s3 start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
                 start_heads[counter] = s3_start_head;
                 start_bits[counter] = start_bit_head;
                 threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &start_heads[counter], &start_bits[counter], &int_n, &n, &n, &input_head_base,
@@ -3275,18 +3303,18 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             if (s3_start_head - s3spillNames2->size() > 0 && counter > 0)
             {
                 addXtoLocalSpillHead(spills, &input_head_base, s3_start_head - s3spillNames2->size());
-                //std::cout << "add local spill: " << s3_start_head - s3spillNames2->size() << " to: " << input_head_base << std::endl;
+                // std::cout << "add local spill: " << s3_start_head - s3spillNames2->size() << " to: " << input_head_base << std::endl;
             }
             counter = 0;
             while (input_head_base < comb_spill_size)
             {
-                //std::cout << "merging local input_head_base: " << input_head_base << std::endl;
+                // std::cout << "merging local input_head_base: " << input_head_base << std::endl;
                 start_heads_local[counter] = input_head_base;
                 threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &int_n, &n, &n, &start_heads_local[counter],
                                               size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, std::ref(comb_hash_size), diff, false));
                 counter++;
                 addXtoLocalSpillHead(spills, &input_head_base, merge_file_num);
-               // std::cout << "add local spill: " << merge_file_num << " to: " << input_head_base << std::endl;
+                // std::cout << "add local spill: " << merge_file_num << " to: " << input_head_base << std::endl;
             }
             for (auto &thread : threads)
             {
@@ -4842,12 +4870,17 @@ int test(std::string file1name, std::string file2name)
     munmap(mappedFile, size);
     close(fd2);
     std::cout << "Scanning finished" << std::endl;
+    testLog testlog;
+    testlog.tuple_outputFile = hashmap.size();
+    testlog.tuple_testFile = hashmap2.size();
+    testlog.different_tuple_num = hashmap.size() != hashmap2.size();
 
     if (hashmap2.size() != hashmap.size())
     {
         std::cout << "Files have different number of keys." << " File1: " << hashmap.size() << " File2: " << hashmap2.size() << std::endl;
         // return 0;
     }
+
     bool same = true;
     unsigned long not_contained_keys = 0;
     unsigned long different_values = 0;
@@ -4892,6 +4925,9 @@ int test(std::string file1name, std::string file2name)
             }
         }
     }
+    testlog.success = same;
+    testlog.different_key_num = different_values;
+    log_file.test = testlog;
     if (same)
     {
         std::cout << "Files are the Same!" << std::endl;
@@ -5126,8 +5162,9 @@ int main(int argc, char **argv)
     tstruct = *localtime(&now);
     // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
     // for more information about date/time format
-    strftime(buf, sizeof(buf), "%m-%d_%H-%M", &tstruct);
-    date_now = buf;
+    // strftime(buf, sizeof(buf), "%m-%d_%H-%M", &tstruct);
+    strftime(buf, sizeof(buf), "%H-%M", &tstruct);
+    date_now = tpc_query_string + "_" + memLimit_string + "_" + memLimitBack_string + "_" + threadNumber_string + "_" + buf;
     log_file.sizes.insert(std::make_pair("threadNumber", threadNumber));
     log_file.sizes["mainLimit"] = memLimit;
     log_file.sizes["backLimit"] = memLimitBack;
@@ -5137,25 +5174,52 @@ int main(int argc, char **argv)
     log_file.sizes["set_partitions"] = set_partitions;
     log_file.sizes["mergePhase"] = mergePhase;
     log_file.sizes["straggler_removal"] = straggler_removal;
+    log_file.sizes["multiThread_merge"] = multiThread_merge;
+    bool failed = false;
 
     if (co_output != "-")
     {
-        aggregate(co_output, agg_output, memLimit, true, minio_client, memLimitBack);
+        try
+        {
+            aggregate(co_output, agg_output, memLimit, true, minio_client, memLimitBack);
+        }
+        catch (std::exception &err)
+        {
+            std::cout << "conversion error on: " << err.what() << std::endl;
+            log_file.err_msg = err.what();
+            failed = true;
+        }
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
         std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
         log_file.sizes["queryDuration"] = duration;
+        log_file.failed = failed;
         log_size = false;
     }
-    if (tpc_sup != "-")
+    if (tpc_sup != "-" && !failed)
     {
-        test(agg_output, tpc_sup);
+        try
+        {
+            test(agg_output, tpc_sup);
+        }
+        catch (std::exception &err)
+        {
+            std::cout << "conversion error on: " << err.what() << std::endl;
+        }
     }
     std::atomic_ulong comb_hash_size = 0;
     std::atomic_ulong diff = 0;
     float avg = 1;
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
-    helpMergePhase(memLimit, memLimitBack, minio_client, true, &hmap, comb_hash_size, diff, &avg);
+    try
+    {
+        helpMergePhase(memLimit, memLimitBack, minio_client, true, &hmap, comb_hash_size, diff, &avg);
+    }
+    catch (std::exception &err)
+    {
+        std::cout << "conversion error on: " << err.what() << std::endl;
+    }
+
     cleanup(&minio_client);
     Aws::ShutdownAPI(options);
     if (log_time)
