@@ -3284,14 +3284,16 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 if (deencode && input_head_base < sum)
                 {
                     mergefile_num += spills->size() - counter;
+                    break;
                 }
                 else if (!deencode && input_head_base < sum / sizeof(long))
                 {
                     mergefile_num += spills->size() - counter;
+                    break;
                 }
                 counter++;
             }
-            std::cout << "merge_file_numn: " << mergefile_num << std::endl;
+            // std::cout << "merge_file_numn: " << mergefile_num << std::endl;
             merge_file_num = std::max(2, mergefile_num / threadNumber);
 
             std::vector<std::thread> threads;
