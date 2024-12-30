@@ -2581,7 +2581,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     for (auto &it : *spills)
     {
         comb_spill_size += it.second;
-       // std::cout << it.second << ", ";
+        // std::cout << it.second << ", ";
     }
 
     // std::cout << "write: " << emHashmap[{221877}][0] << std::endl;
@@ -2700,10 +2700,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     {
                         increase = (getPhyValue() - size_after_init) * 1024;
                     }
-                    //std::cout << "Stream buffer: " << increase << std::endl;
+                    // std::cout << "Stream buffer: " << increase << std::endl;
 
                     extra_mem += increase;
-                    //std::cout << "extra_mem " << extra_mem << std::endl;
+                    // std::cout << "extra_mem " << extra_mem << std::endl;
                     increase_size = false;
                 }
                 while (spill.peek() != EOF)
@@ -3355,7 +3355,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     }
     if (bitmap_size_sum > memLimit * 0.7)
     {
-        //std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
+        // std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
         for (auto &name : *s3spillNames2)
         {
             int counter = 0;
@@ -3402,7 +3402,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 s3spillBitmaps.push_back({-1, bitmap});
             }
         }
-        //std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() << std::endl;
+        // std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() << std::endl;
     }
     extra_mem = bitmap_size_sum;
     printProgressBar(0);
@@ -3456,9 +3456,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             merge_file_num = std::max(2, mergefile_num / threadNumber);
 
             std::vector<std::thread> threads;
-            std::vector<int> start_heads(std::ceil(s3spillNames2->size() / merge_file_num));
-            std::vector<int> start_bits(std::ceil(s3spillNames2->size() / merge_file_num));
-            std::vector<unsigned long> start_heads_local(std::ceil(spills->size() / merge_file_num));
+            std::vector<int> start_heads(s3spillNames2->size());
+            std::vector<int> start_bits(s3spillNames2->size());
+            std::vector<unsigned long> start_heads_local(spills->size());
             int s3_start_head = s3spillFile_head;
             int start_bit_head = bit_head;
             counter = 0;
@@ -4428,7 +4428,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     }
 
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
-    std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
+    // std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
     log_file.sizes["linesRead"] += read_lines;
     log_file.sizes["linesWritten"] += written_lines;
     return 1;
