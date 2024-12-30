@@ -2581,7 +2581,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     for (auto &it : *spills)
     {
         comb_spill_size += it.second;
-        std::cout << it.second << ", ";
+       // std::cout << it.second << ", ";
     }
 
     // std::cout << "write: " << emHashmap[{221877}][0] << std::endl;
@@ -2700,10 +2700,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     {
                         increase = (getPhyValue() - size_after_init) * 1024;
                     }
-                    std::cout << "Stream buffer: " << increase << std::endl;
+                    //std::cout << "Stream buffer: " << increase << std::endl;
 
                     extra_mem += increase;
-                    std::cout << "extra_mem " << extra_mem << std::endl;
+                    //std::cout << "extra_mem " << extra_mem << std::endl;
                     increase_size = false;
                 }
                 while (spill.peek() != EOF)
@@ -3355,7 +3355,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     }
     if (bitmap_size_sum > memLimit * 0.7)
     {
-        std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
+        //std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
         for (auto &name : *s3spillNames2)
         {
             int counter = 0;
@@ -3402,7 +3402,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 s3spillBitmaps.push_back({-1, bitmap});
             }
         }
-        std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() << std::endl;
+        //std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() << std::endl;
     }
     extra_mem = bitmap_size_sum;
     printProgressBar(0);
@@ -3513,26 +3513,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         if (writeRes)
         {
             written_lines += hmap->size();
-            unsigned long finished_rows = 0;
-            int counter = 0;
-            for (auto &name : *s3spillNames2)
-            {
-                if (counter >= s3spillFile_head)
-                {
-                    break;
-                }
-                finished_rows += get<1>(name);
-                counter++;
-            }
-            finished_rows += s3spillStart_head * (key_number + value_number) * sizeof(long);
-            if (deencode)
-            {
-                printProgressBar((finished_rows + s3spillFile_head) / (float)(overall_s3spillsize + comb_spill_size));
-            }
-            else
-            {
-                printProgressBar((finished_rows + input_head_base * sizeof(long)) / (float)(overall_s3spillsize + comb_spill_size));
-            }
             if (deencode)
             {
                 // std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " locked: " << locked << std::endl;
@@ -4892,8 +4872,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         size_t output_file_head = 0;
         std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
         char m_partition = getMergePartition(&minio_client);
+        int counter = 0;
         while (m_partition != -1)
         {
+            printProgressBar(counter / partitions);
             files.clear();
             getAllMergeFileNames(&minio_client, m_partition, &files);
             if (spills.size() == 0)
@@ -4910,6 +4892,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             auto m_spill = spills.size() == 1 ? spills[0] : spills[m_partition];
             merge(&emHashmap, &m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, -1, 0, output_fd);
             m_partition = getMergePartition(&minio_client);
+            counter++;
         }
         mana = getLockedMana(&minio_client, 0);
         for (auto &worker : mana.workers)
