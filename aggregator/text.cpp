@@ -2456,7 +2456,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             file_counter++;
             if (!add && multiThread_merge && file_counter > merge_file_num)
             {
-                std::cout << "file limit reached: " << file_counter << std::endl;
+                // std::cout << "file limit reached: " << file_counter << std::endl;
                 extra_mem -= increase;
                 return false;
             }
@@ -3391,6 +3391,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             if (!fcntl(output_fd, F_GETFD))
             {
+                std::cout << "reopening file handle" << std::endl;
                 output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
             }
             *output_file_head += writeHashmap(hmap, output_fd, *output_file_head, pagesize * 30);
@@ -4974,7 +4975,7 @@ constexpr unsigned int str2int(const char *str, int h = 0)
 
 int main(int argc, char **argv)
 {
-    // The file to be downloaded
+    /* // The file to be downloaded
     auto url = "s3a://131.159.16.208:9000";
     auto fileName = "trinobucket2/manag_file";
 
@@ -4983,11 +4984,9 @@ int main(int argc, char **argv)
 
     // Create an AnyBlob scheduler object for the group
     auto sendReceiverHandle = group.getHandle();
-
     // Create the provider for the corresponding filename
     bool https = false;
     auto provider = anyblob::cloud::Provider::makeProvider(url, https, "", "", &sendReceiverHandle);
-
     // Optionally init the specialized aws cache
     // provider->initCache(sendReceiverHandle);
 
@@ -5019,7 +5018,7 @@ int main(int argc, char **argv)
         std::string_view rawDataString(reinterpret_cast<const char *>(it.getData()) + it.getOffset(), it.getSize());
         std::cout << rawDataString << std::endl;
     }
-    return 0;
+    return 0; */
 
     Aws::SDKOptions options;
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
