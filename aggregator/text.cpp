@@ -1632,7 +1632,7 @@ void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOS
     size_t expected_time = size / average_write_speed;
     bool done;
 
-    if (straggler_removal)
+    /* if (straggler_removal)
     {
         std::vector<std::thread> threads;
         while (!done)
@@ -1656,9 +1656,9 @@ void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOS
         }
     }
     else
-    {
+    { */
         writeS3FileCall(minio_client, &request, name, size, &done);
-    }
+    //}
 
         log_file.writeCall_s3_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count(), size});
 }
