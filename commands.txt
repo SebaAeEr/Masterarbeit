@@ -60,3 +60,9 @@ export CMAKE_PREFIX_PATH=/hddSpace/erasmus/Masterarbeit/aggregator/aws
 
 mmap error size:
 799456123
+
+git clone --recursive https://github.com/durner/AnyBlob
+mkdir -p anybuild/Release
+cd anybuild/Release
+cmake -DCMAKE_BUILD_TYPE=Release ../../AnyBlob
+make -j16

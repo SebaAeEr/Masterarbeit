@@ -29,6 +29,9 @@
 #include <time.h>
 #include <atomic>
 #include <future>
+#include "cloud/provider.hpp"
+#include "network/tasked_send_receiver.hpp"
+#include "network/transaction.hpp"
 
 enum Operation
 {
@@ -90,8 +93,8 @@ struct logFile
     std::vector<size_t> get_lock_durs;
     std::vector<size_t> get_mana_durs;
     std::vector<size_t> write_mana_durs;
-    std::vector<std::pair<size_t, size_t>> write_file_durs;
-    std::vector<std::pair<size_t, size_t>> get_file_durs;
+    std::vector<std::pair<size_t, size_t>> writeCall_s3_file_durs;
+    std::vector<std::pair<size_t, size_t>> getCall_s3_file_durs;
     testLog test;
     bool failed;
     std::string err_msg;
@@ -284,41 +287,41 @@ void writeLogFile(logFile log_t)
             output << ",";
     }
 
-    output << "],\n\"write_file_dur\":[";
+    output << "],\n\"writeCall_s3_file_dur\":[";
     t_counter = 0;
-    for (auto &it : log_t.write_file_durs)
+    for (auto &it : log_t.writeCall_s3_file_durs)
     {
         t_counter++;
         output << it.first;
-        if (t_counter < log_t.write_file_durs.size())
+        if (t_counter < log_t.writeCall_s3_file_durs.size())
             output << ",";
     }
-    output << "],\n\"write_file_size\":[";
+    output << "],\n\"writeCall_s3_file_size\":[";
     t_counter = 0;
-    for (auto &it : log_t.write_file_durs)
+    for (auto &it : log_t.writeCall_s3_file_durs)
     {
         t_counter++;
         output << it.second;
-        if (t_counter < log_t.write_file_durs.size())
+        if (t_counter < log_t.writeCall_s3_file_durs.size())
             output << ",";
     }
-    output << "],\n\"get_file_dur\":[";
+    output << "],\n\"getCall_s3_file_dur\":[";
     t_counter = 0;
-    for (auto &it : log_t.get_file_durs)
+    for (auto &it : log_t.getCall_s3_file_durs)
     {
         t_counter++;
         output << it.first;
-        if (t_counter < log_t.get_file_durs.size())
+        if (t_counter < log_t.getCall_s3_file_durs.size())
             output << ",";
     }
 
-    output << "],\n\"get_file_size\":[";
+    output << "],\n\"getCall_s3_file_size\":[";
     t_counter = 0;
-    for (auto &it : log_t.get_file_durs)
+    for (auto &it : log_t.getCall_s3_file_durs)
     {
         t_counter++;
         output << it.second;
-        if (t_counter < log_t.get_file_durs.size())
+        if (t_counter < log_t.getCall_s3_file_durs.size())
             output << ",";
     }
     output << "],\n\"test\":{\n\"success\":";
@@ -1617,7 +1620,7 @@ void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOS
             break;
         }
     }
-    log_file.write_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count(), size});
+    log_file.writeCall_s3_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count(), size});
 }
 
 void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
@@ -2166,6 +2169,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             // compare estimation again to memLimit
             if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
             {
+                auto start_spill_time = std::chrono::high_resolution_clock::now();
                 // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;
                 //    Reset freed_space and update numHashRows so that Estimation stay correct
                 if (maxHmapSize < hmap->size())
@@ -2266,6 +2270,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     }
                 }
                 spill_number++;
+                threadLog.sizes["write_file_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_spill_time).count();
 
                 // std::cout << "Spilling ended" << std::endl;
                 hmap->clear();
@@ -2493,7 +2498,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 }
                 // std::cout << "Reading spill: " << (*set_it).first << std::endl;
                 auto &spill = outcome.GetResult().GetBody();
-                log_file.get_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_file_start).count(), get<2>(*set_it)[sub_file_k].first});
+                log_file.getCall_s3_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_file_start).count(), get<2>(*set_it)[sub_file_k].first});
                 // spill.rdbuf()->pubsetbuf(buffer, 1ull << 10);
                 //   spill.rdbuf()->
                 char *bitmap_mapping;
@@ -2567,6 +2572,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     // std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(*bit) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << ((*bit) & (1 << (head % 8))) << std::endl;
                     if ((*bit) & (1 << (head % 8)))
                     {
+                        auto read_tuple_start = std::chrono::high_resolution_clock::now();
                         unsigned long buf[number_of_longs];
                         read_lines->fetch_add(1);
                         if (deencode)
@@ -2614,6 +2620,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             break;
                         }
+                        log_file.sizes["get_tuple_dur"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
 
                         // static_cast<unsigned long *>(static_cast<void *>(buf));
                         // std::cout << buf[0] << ", " << buf[1] << std::endl;
@@ -4967,6 +4974,53 @@ constexpr unsigned int str2int(const char *str, int h = 0)
 
 int main(int argc, char **argv)
 {
+    // The file to be downloaded
+    auto url = "s3a://131.159.16.208:9000";
+    auto fileName = "trinobucket2/manag_file";
+
+    // Create a new task group
+    anyblob::network::TaskedSendReceiverGroup group;
+
+    // Create an AnyBlob scheduler object for the group
+    auto sendReceiverHandle = group.getHandle();
+
+    // Create the provider for the corresponding filename
+    bool https = false;
+    auto provider = anyblob::cloud::Provider::makeProvider(url, https, "", "", &sendReceiverHandle);
+
+    // Optionally init the specialized aws cache
+    // provider->initCache(sendReceiverHandle);
+
+    // Update the concurrency according to instance settings
+    auto config = provider->getConfig(sendReceiverHandle);
+    group.setConfig(config);
+
+    // Create the get request
+    anyblob::network::Transaction getTxn(provider.get());
+    getTxn.getObjectRequest(fileName);
+
+    // Retrieve the request synchronously with the scheduler object on this thread
+    getTxn.processSync(sendReceiverHandle);
+
+    for (const auto &it : getTxn)
+    {
+        // Check if the request was successful
+        if (!it.success())
+        {
+            std::cout << "Request was not successful!" << std::endl;
+            continue;
+        }
+        // Simple string_view interface
+        std::cout << it.getResult() << std::endl;
+
+        // Advanced raw interface
+        // Note that the data lies in the data buffer but after the offset to skip the HTTP header
+        // Note that the size is already without the header, so the full request has size + offset length
+        std::string_view rawDataString(reinterpret_cast<const char *>(it.getData()) + it.getOffset(), it.getSize());
+        std::cout << rawDataString << std::endl;
+    }
+    return 0;
+
     Aws::SDKOptions options;
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
@@ -5175,6 +5229,9 @@ int main(int argc, char **argv)
     }
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
+
+    bool it = argc == 3;
+    int it_number = it ? 1 : 5;
     initManagFile(&minio_client);
     start_time = std::chrono::high_resolution_clock::now();
     time_t now = time(0);

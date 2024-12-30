@@ -13,13 +13,16 @@ set(SERVICE_COMPONENTS s3)
 #include_directories(aws/src)
  
 #include_directories(jsoncpp/dist)
-include_directories(emhash) 
+include_directories(emhash)
+include("${PROJECT_SOURCE_DIR}/AnyBlob/anyblob.cmake")
+include_directories(SYSTEM ${ANYBLOB_INCLUDE_DIR})
 
 find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
 find_package(Threads REQUIRED)
 find_package(ZLIB QUIET)
+
 #add_library(Aws aws/include)
 #set_property(TARGET aggregator PROPERTY CXX_STANDART 23)
 #add_executable(aggregator text.cpp jsoncpp/dist/json/json.h jsoncpp/dist/json/json-forwards.h jsoncpp/dist/jsoncpp.cpp emhash/hash_table8.hpp)
 add_executable(aggregator text.cpp emhash/hash_table8.hpp)
-target_link_libraries(aggregator PUBLIC Threads::Threads ${AWSSDK_LINK_LIBRARIES})
+target_link_libraries(aggregator PUBLIC Threads::Threads ${AWSSDK_LINK_LIBRARIES} AnyBlob)

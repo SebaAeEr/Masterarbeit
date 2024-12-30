@@ -80,7 +80,8 @@
         "typeindex": "cpp",
         "variant": "cpp",
         "regex": "cpp",
-        "future": "cpp"
+        "future": "cpp",
+        "charconv": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "python.analysis.autoImportCompletions": true,
