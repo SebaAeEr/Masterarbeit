@@ -898,23 +898,23 @@ def c_size_by_time():
     print("write_file_size / write_file_dur  avg: " + str(average_2 / average_1))
 
     plt.figure(8)
-    
+
     write_file_sum = sum(write_file_dur) / (jf_data["threadNumber"] * 1000000)
-    get_file_sum = sum(jf_data["get_file_dur"])/ (jf_data["threadNumber"] * 1000000)
+    get_file_sum = sum(jf_data["get_file_dur"]) / (jf_data["threadNumber"] * 1000000)
     merge_dur = jf_data["mergeDuration"]
     scan_dur = jf_data["scanDuration"] - write_file_sum
     merge_hash_dur = jf_data["mergeHashDuration"] - get_file_sum
     times = [
-            {
-                "write_file_sum": np.array([write_file_sum]),
-                "scan_dur": np.array([scan_dur]),
-                "merge_hash_dur": np.array([merge_hash_dur]),
-                "get_file_sum": np.array([get_file_sum]),
-                "merge_dur": np.array([merge_dur]),
-                #   "Exchange": np.array(wall_time_exc[k][0]),
-            }
-        ]
-    
+        {
+            "write_file_sum": np.array([write_file_sum]),
+            "scan_dur": np.array([scan_dur]),
+            "merge_hash_dur": np.array([merge_hash_dur]),
+            "get_file_sum": np.array([get_file_sum]),
+            "merge_dur": np.array([merge_dur]),
+            #   "Exchange": np.array(wall_time_exc[k][0]),
+        }
+    ]
+
     makeBarFig(times, np.array(["X"]), "Wall time in min")
     dates = [write_file_sum, scan_dur, merge_hash_dur, get_file_sum, merge_dur]
     print(str(dates))

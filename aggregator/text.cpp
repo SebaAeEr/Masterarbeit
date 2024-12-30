@@ -131,6 +131,7 @@ logFile log_file;
 std::atomic<int> mana_writeThread_num(0);
 std::atomic<bool> local_mana_lock(false);
 int merge_file_num = 5;
+float average_write_speed = 1.5;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -1602,18 +1603,11 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
 
-void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOStream> body, size_t size, std::string &name)
+void writeS3FileCall(Aws::S3::S3Client *minio_client, Aws::S3::Model::PutObjectRequest *request, std::string &name, size_t size, bool*done)
 {
-    auto write_start_time = std::chrono::high_resolution_clock::now();
-    Aws::S3::Model::PutObjectRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(name);
-    request.SetBody(body);
-    request.SetContentLength(size);
-
     while (true)
     {
-        auto outcome = minio_client->PutObject(request);
+        auto outcome = minio_client->PutObject(*request);
 
         if (!outcome.IsSuccess())
         {
@@ -1624,7 +1618,49 @@ void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOS
             break;
         }
     }
-    log_file.writeCall_s3_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count(), size});
+    *done = true;
+}
+
+void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOStream> body, size_t size, std::string &name)
+{
+    auto write_start_time = std::chrono::high_resolution_clock::now();
+    Aws::S3::Model::PutObjectRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(name);
+    request.SetBody(body);
+    request.SetContentLength(size);
+    size_t expected_time = size / average_write_speed;
+    bool done;
+
+    if (straggler_removal)
+    {
+        std::vector<std::thread> threads;
+        while (!done)
+        {
+            auto thread_get_start_time = std::chrono::high_resolution_clock::now();
+            threads.push_back(std::thread(writeS3FileCall, minio_client, &request, std::ref(name), size, &done));
+            size_t duration = 0;
+            while (duration < expected_time)
+            {
+                if (done)
+                {
+                    // std::cout << "size " << threads.size() << std::endl;
+                    for (auto &thread : threads)
+                    {
+                        thread.detach();
+                    }
+                    break;
+                }
+                duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_get_start_time).count());
+            }
+        }
+    }
+    else
+    {
+        writeS3FileCall(minio_client, &request, name, size, &done);
+    }
+
+        log_file.writeCall_s3_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count(), size});
 }
 
 void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
