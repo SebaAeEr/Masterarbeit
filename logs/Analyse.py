@@ -816,8 +816,8 @@ def c_size_by_time():
     try:
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
-        f = open(os.path.join(directory, "times_12-25_13-21.csv"))
-        jf = open(os.path.join(directory, "logfile_12-23_18-34.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_14-44.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_14-44.json"))
     except:
         print("File not found.")
     df = pd.read_csv(f)
@@ -880,8 +880,8 @@ def c_size_by_time():
     average = sum(get_lock_dur) / len(get_lock_dur)
     print("get_lock_dur avg: " + str(average))
 
-    write_file_dur = jf_data["write_file_dur"]
-    write_file_size = jf_data["write_file_size"]
+    write_file_dur = jf_data["writeCall_s3_file_dur"]
+    write_file_size = jf_data["writeCall_s3_file_size"]
     write_file_dur.sort()
     write_file_size.sort()
     plt.figure(6)
@@ -899,25 +899,44 @@ def c_size_by_time():
 
     plt.figure(8)
 
-    write_file_sum = sum(write_file_dur) / (jf_data["threadNumber"] * 1000000)
-    get_file_sum = sum(jf_data["get_file_dur"]) / (jf_data["threadNumber"] * 1000000)
-    merge_dur = jf_data["mergeDuration"]
+    write_file_sum = 0
+    for thread in jf_data["Threads"]:
+        write_file_sum += thread["write_file_dur"]
+
+    write_file_sum /= jf_data["threadNumber"] * 1000000
+
+    get_file_sum = sum(jf_data["getCall_s3_file_dur"]) / (
+        jf_data["threadNumber"] * 1000000
+    )
+    read_tuple_sum = jf_data["get_tuple_dur"] / 1000000
+    write_output_sum = jf_data["write_output_dur"] / 1000000
+    merge_dur = jf_data["mergeDuration"] - (get_file_sum + write_output_sum)
     scan_dur = jf_data["scanDuration"] - write_file_sum
-    merge_hash_dur = jf_data["mergeHashDuration"] - get_file_sum
+    merge_hash_dur = jf_data["mergeHashDuration"]
+
     times = [
         {
             "write_file_sum": np.array([write_file_sum]),
             "scan_dur": np.array([scan_dur]),
             "merge_hash_dur": np.array([merge_hash_dur]),
             "get_file_sum": np.array([get_file_sum]),
+            "write_output_sum": np.array([write_output_sum]),
             "merge_dur": np.array([merge_dur]),
+            "read_tuple_sum": np.array([read_tuple_sum]),
             #   "Exchange": np.array(wall_time_exc[k][0]),
         }
     ]
 
     makeBarFig(times, np.array(["X"]), "Wall time in min")
-    dates = [write_file_sum, scan_dur, merge_hash_dur, get_file_sum, merge_dur]
-    print(str(dates))
+    dates = [
+        write_file_sum,
+        scan_dur,
+        merge_hash_dur,
+        get_file_sum,
+        merge_dur,
+        read_tuple_sum,
+    ]
+    print(str(times))
     # bottom = 0
     # for datum in dates:
     #     rects = plt.bar(

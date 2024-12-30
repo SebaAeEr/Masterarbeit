@@ -132,6 +132,7 @@ std::atomic<int> mana_writeThread_num(0);
 std::atomic<bool> local_mana_lock(false);
 int merge_file_num = 5;
 float average_write_speed = 1.5;
+bool isJson = false;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -766,6 +767,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                     return mana;
                 }
             }
+            local_mana_lock.exchange(false);
         }
         // usleep(10);
     }
@@ -1208,33 +1210,56 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
 unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, unsigned long start, unsigned long free_mem)
 {
     auto write_start_time = std::chrono::high_resolution_clock::now();
-
-    // Calc the output size for hmap.
     unsigned long output_size = 0;
-    for (auto &it : *hmap)
+    if (isJson)
     {
+        // Calc the output size for hmap.
+
+        for (auto &it : *hmap)
+        {
+            for (int i = 0; i < key_number; i++)
+            {
+                output_size += std::to_string(it.first[i]).length();
+            }
+
+            if (op != average)
+            {
+                output_size += std::to_string(it.second[0]).length();
+            }
+            else
+            {
+                output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
+            }
+        }
         for (int i = 0; i < key_number; i++)
         {
-            output_size += std::to_string(it.first[i]).length();
+            output_size += ("\"" + key_names[i] + "\":").length() * hmap->size();
         }
 
-        if (op != average)
-        {
-            output_size += std::to_string(it.second[0]).length();
-        }
-        else
-        {
-            output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
-        }
+        // unsigned long output_size_test = strlen(("\"custkey\":,\"_col1\":}").c_str())
+
+        output_size += (strlen("\"_col1\":") + 5 + key_number) * hmap->size();
     }
-    for (int i = 0; i < key_number; i++)
+    else
     {
-        output_size += ("\"" + key_names[i] + "\":").length() * hmap->size();
+        for (auto &it : *hmap)
+        {
+            for (int i = 0; i < key_number; i++)
+            {
+                output_size += std::to_string(it.first[i]).length();
+            }
+
+            if (op != average)
+            {
+                output_size += std::to_string(it.second[0]).length();
+            }
+            else
+            {
+                output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
+            }
+        }
+        output_size += hmap->size() * (key_number + value_number);
     }
-
-    // unsigned long output_size_test = strlen(("\"custkey\":,\"_col1\":}").c_str())
-
-    output_size += (strlen("\"_col1\":") + 5 + key_number) * hmap->size();
     // std::cout << "Output file size: " << output_size << std::endl;
 
     // Extend file file.
@@ -1267,23 +1292,35 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     unsigned long head = 0;
     for (auto &it : *hmap)
     {
-        mapped_count += writeString(&mappedoutputFile[mapped_count], "{");
+        if (isJson)
+        {
+            mapped_count += writeString(&mappedoutputFile[mapped_count], "{");
+        }
         // std::string temp_line = "{";
         for (int k = 0; k < key_number; k++)
         {
-            mapped_count += writeString(&mappedoutputFile[mapped_count], "\"");
-            mapped_count += writeString(&mappedoutputFile[mapped_count], key_names[k]);
-            mapped_count += writeString(&mappedoutputFile[mapped_count], "\":");
-            mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.first[k]));
-
-            // temp_line += "\"" + key_names[k] + "\":" + std::to_string(it.first[k]);
-            if (k + 1 < key_number)
+            if (isJson)
             {
-                // temp_line += ",";
+                mapped_count += writeString(&mappedoutputFile[mapped_count], "\"");
+                mapped_count += writeString(&mappedoutputFile[mapped_count], key_names[k]);
+                mapped_count += writeString(&mappedoutputFile[mapped_count], "\":");
+                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.first[k]));
+                if (k + 1 < key_number)
+                {
+                    // temp_line += ",";
+                    mapped_count += writeString(&mappedoutputFile[mapped_count], ",");
+                }
+            }
+            else
+            {
+                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.first[k]));
                 mapped_count += writeString(&mappedoutputFile[mapped_count], ",");
             }
         }
-        mapped_count += writeString(&mappedoutputFile[mapped_count], ",\"_col1\":");
+        if (isJson)
+        {
+            mapped_count += writeString(&mappedoutputFile[mapped_count], ",\"_col1\":");
+        }
         if (op != average)
         {
             // temp_line += ",\"_col1\":" + std::to_string(it.second[0]) + "}";
@@ -1294,7 +1331,11 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
             mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0] / (float)(it.second[1])));
             // temp_line += ",\"_col1\":" + std::to_string(it.second[0] / (float)(it.second[1])) + "}";
         }
-        mapped_count += writeString(&mappedoutputFile[mapped_count], "},\n");
+        if (isJson)
+        {
+            mapped_count += writeString(&mappedoutputFile[mapped_count], "},");
+        }
+        mapped_count += writeString(&mappedoutputFile[mapped_count], "\n");
         // std::cout << temp_line << std::endl;
         // for (auto &itt : temp_line)
         //{
@@ -1326,6 +1367,61 @@ int getPartition(std::array<unsigned long, max_size> key)
 {
     auto h = hash(key);
     return h % partitions;
+}
+
+unsigned long parseCVS(char *mapping, unsigned long start, std::string keys[], std::unordered_map<std::string, std::string> *lineObjects, size_t limit)
+{
+    unsigned long i = start;
+    while (true)
+    {
+        if (i > limit)
+        {
+            return ULONG_MAX;
+        }
+        // start reading a line when {
+        if (isdigit(mapping[i]))
+        {
+            int readingMode = 0;
+            while (true)
+            {
+                std::string key = keys[readingMode];
+                char char_temp = mapping[i];
+                (*lineObjects)[key] = "";
+                while (char_temp != ',' && char_temp != '\n')
+                {
+                    if (char_temp == '.' || isdigit(char_temp))
+                    {
+                        (*lineObjects)[key] += char_temp;
+                    }
+                    i++;
+                    char_temp = mapping[i];
+                }
+                if (char_temp != '\n')
+                {
+                    readingMode++;
+                }
+                else
+                {
+                    if (std::find(std::begin(test_values), std::end(test_values), std::stol((*lineObjects)[keys[0]])) != std::end(test_values))
+                    {
+                        unsigned long temp = start;
+                        std::cout << "Json line: ";
+                        while (temp < i)
+                        {
+                            std::cout << mapping[temp];
+                            temp++;
+                        }
+                        std::cout << std::endl;
+                    }
+                    return i;
+                }
+            }
+        }
+        else
+        {
+            i++;
+        }
+    }
 }
 
 unsigned long parseJson(char *mapping, unsigned long start, std::string keys[], std::unordered_map<std::string, std::string> *lineObjects, size_t limit)
@@ -1381,6 +1477,18 @@ unsigned long parseJson(char *mapping, unsigned long start, std::string keys[], 
         {
             i++;
         }
+    }
+}
+
+unsigned long readTuple(char *mapping, unsigned long start, std::string keys[], std::unordered_map<std::string, std::string> *lineObjects, size_t limit)
+{
+    if (isJson)
+    {
+        return parseJson(mapping, start, keys, lineObjects, limit);
+    }
+    else
+    {
+        return parseCVS(mapping, start, keys, lineObjects, limit);
     }
 }
 
@@ -1603,7 +1711,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
 
-void writeS3FileCall(Aws::S3::S3Client *minio_client, Aws::S3::Model::PutObjectRequest *request, std::string &name, size_t size, bool*done)
+void writeS3FileCall(Aws::S3::S3Client *minio_client, Aws::S3::Model::PutObjectRequest *request, std::string &name, size_t size, bool *done)
 {
     while (true)
     {
@@ -1657,10 +1765,10 @@ void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOS
     }
     else
     { */
-        writeS3FileCall(minio_client, &request, name, size, &done);
+    writeS3FileCall(minio_client, &request, name, size, &done);
     //}
 
-        log_file.writeCall_s3_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count(), size});
+    log_file.writeCall_s3_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count(), size});
 }
 
 void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
@@ -2118,7 +2226,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     // loop through entire mapping
     for (unsigned long i = 0; i < size + offset; i++)
     {
-        i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
+        i = readTuple(mappedFile, i, coloumns, &lineObjects, size);
         if (i == ULONG_MAX)
         {
             break;
@@ -2662,7 +2770,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             break;
                         }
-                        log_file.sizes["get_tuple_dur"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
+                        log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
 
                         // static_cast<unsigned long *>(static_cast<void *>(buf));
                         // std::cout << buf[0] << ", " << buf[1] << std::endl;
@@ -2935,6 +3043,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             diff->exchange((newi - input_head) * sizeof(long));
         }
         bool empty = false;
+        auto read_tuple_start = std::chrono::high_resolution_clock::now();
 
         if (deencode)
         {
@@ -3018,6 +3127,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 }
             }
         }
+        log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
         // std::cout << keys[0] << ", " << values[0] << std::endl;
         if (!empty)
         {
@@ -4867,7 +4977,7 @@ int test(std::string file1name, std::string file2name)
     std::array<unsigned long, max_size> keys;
     for (unsigned long i = 0; i < size; ++i)
     {
-        i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
+        i = readTuple(mappedFile, i, coloumns, &lineObjects, size);
         if (i == -1)
         {
             break;
@@ -4914,7 +5024,7 @@ int test(std::string file1name, std::string file2name)
     emhash8::HashMap<std::array<unsigned long, max_size>, float, decltype(hash), decltype(comp)> hashmap2;
     for (unsigned long i = 0; i < size; ++i)
     {
-        i = parseJson(mappedFile, i, coloumns, &lineObjects, size);
+        i = readTuple(mappedFile, i, coloumns, &lineObjects, size);
         if (i == -1)
         {
             break;
@@ -5295,6 +5405,8 @@ int main(int argc, char **argv)
     log_file.sizes["straggler_removal"] = straggler_removal;
     log_file.sizes["multiThread_merge"] = multiThread_merge;
     bool failed = false;
+    std::string suffix = "json";
+    isJson = co_output.substr(co_output.length() - suffix.length()) == suffix;
 
     if (co_output != "-")
     {
