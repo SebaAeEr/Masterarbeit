@@ -1206,6 +1206,8 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
 // Write hashmap hmap into file with head on start.
 unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, unsigned long start, unsigned long free_mem)
 {
+    auto write_start_time = std::chrono::high_resolution_clock::now();
+
     // Calc the output size for hmap.
     unsigned long output_size = 0;
     for (auto &it : *hmap)
@@ -1314,6 +1316,8 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     freed_mem += (output_size + start_diff) - head;
     // std::cout << "freed mem: " << freed_mem << " size: " << output_size + start_diff << std::endl;
     // std::cout << "Output file size: " << output_size << std::endl;
+    log_file.sizes["write_output_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count();
+
     return output_size;
 }
 
@@ -2204,10 +2208,12 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                         std::cout << "local + s3: " << (int)(id) << std::endl;
                         mainMem_usage += temp_spill_size - temp_local_spill_size;
                         temp_local_spill_size = temp_spill_size;
+                        auto start_wait_time = std::chrono::high_resolution_clock::now();
                         if (spillS3Thread)
                         {
                             minioSpiller.join();
                         }
+                        threadLog.sizes["wait_time"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_wait_time).count();
                         spill_file_name = "";
                         spill_file_name += worker_id;
                         spill_file_name += "_";
