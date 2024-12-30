@@ -5406,10 +5406,9 @@ int main(int argc, char **argv)
     log_file.sizes["multiThread_merge"] = multiThread_merge;
     bool failed = false;
     std::string suffix = "json";
-    isJson = co_output.substr(co_output.length() - suffix.length()) == suffix;
-
     if (co_output != "-")
     {
+        isJson = co_output.substr(co_output.length() - suffix.length()) == suffix;
         try
         {
             aggregate(co_output, agg_output, memLimit, true, minio_client, memLimitBack);

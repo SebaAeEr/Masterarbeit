@@ -898,6 +898,11 @@ def c_size_by_time():
     print("write_file_size / write_file_dur  avg: " + str(average_2 / average_1))
 
     plt.figure(8)
+    get_file_dur = jf_data["getCall_s3_file_dur"]
+    plt.hist(get_file_dur, bins=30, label="get_file_dur")
+    plt.title("get_file_dur")
+    average = sum(get_file_dur) / len(get_file_dur)
+    print("write_mana_dur avg: " + str(average))
 
     write_file_sum = 0
     for thread in jf_data["Threads"]:
