@@ -29,9 +29,9 @@
 #include <time.h>
 #include <atomic>
 #include <future>
-#include "cloud/provider.hpp"
+/* #include "cloud/provider.hpp"
 #include "network/tasked_send_receiver.hpp"
-#include "network/transaction.hpp"
+#include "network/transaction.hpp" */
 
 enum Operation
 {
