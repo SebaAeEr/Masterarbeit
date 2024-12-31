@@ -1209,7 +1209,7 @@ void getMergeFileName(emhash8::HashMap<std::array<unsigned long, max_size>, std:
 }
 
 // Write hashmap hmap into file with head on start.
-unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, unsigned long start, unsigned long free_mem)
+unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, unsigned long start, unsigned long free_mem, std::string &outputfilename)
 {
     auto write_start_time = std::chrono::high_resolution_clock::now();
     unsigned long output_size = 0;
@@ -1263,6 +1263,12 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
         output_size += hmap->size() * (key_number + value_number);
     }
     // std::cout << "Output file size: " << output_size << std::endl;
+
+    if (!fcntl(file, F_GETFD))
+    {
+        std::cout << "reopening file handle in writeHashmap" << std::endl;
+        file = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
+    }
 
     // Extend file file.
     lseek(file, start + output_size - 1, SEEK_SET);
@@ -3535,7 +3541,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             while (!writing_ouput.compare_exchange_strong(asdf, true))
             {
             }
-            *output_file_head += writeHashmap(hmap, output_fd, *output_file_head, pagesize * 30);
+            *output_file_head += writeHashmap(hmap, output_fd, *output_file_head, pagesize * 30, outputfilename);
             writing_ouput.exchange(false);
 
             hmap->clear();
@@ -4199,7 +4205,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         written_lines += emHashmap.size();
 
         // write hashmap to output file
-        writeHashmap(&emHashmap, output_fd, 0, pagesize * 10);
+        writeHashmap(&emHashmap, output_fd, 0, pagesize * 10, outputfilename);
     }
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
