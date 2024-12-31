@@ -4564,14 +4564,17 @@ int main(int argc, char **argv)
             case str2int("multiThread_subMerge"):
             {
                 multiThread_subMerge = value.compare("true") == 0;
+                break;
             }
             case str2int("multiThread_merge"):
             {
                 multiThread_merge = value.compare("true") == 0;
+                break;
             }
             }
         }
     }
+    std::cout << "multiThread_merge: " << multiThread_merge << std::endl;
 
     log_size = log_size_string.compare("true") == 0;
     log_time = log_time_string.compare("true") == 0;
