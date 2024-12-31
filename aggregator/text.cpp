@@ -3425,9 +3425,13 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         size_t n = 0;
         int int_n = 0;
         auto temp_it = s3spillNames2->begin();
-        std::advance(temp_it, s3spillFile_head);
-        int bit_increase = get<2>(*temp_it).size();
-        bit_head += bit_increase;
+        int bit_increase = 0;
+        if (s3spillFile_head < s3spillNames2->size())
+        {
+            std::advance(temp_it, s3spillFile_head);
+            bit_increase = get<2>(*temp_it).size();
+            bit_head += bit_increase;
+        }
         s3spillFile_head++;
         size_t old_input_head_base = input_head_base;
         addXtoLocalSpillHead(spills, &input_head_base, 1);
