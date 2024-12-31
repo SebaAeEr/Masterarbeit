@@ -4163,6 +4163,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         thread_ind_counter++;
                     }
                 }
+                std::cout << "newThread_ind: " << newThread_ind << std::endl;
                 merge_threads[newThread_ind] = std::thread(merge, &emHashmap, &m_spill, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &files,
                                                            &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], -1, 0, output_fd);
             }
@@ -4185,6 +4186,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         writeMana(&minio_client, mana, true);
         for (int i = 0; i < thread_number; i++)
         {
+            std::cout << "waiting for thread: " << i << std::endl;
             merge_threads[i].join();
         }
     }
