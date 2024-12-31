@@ -4116,7 +4116,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             {
                 spills.push_back(std::vector<std::pair<int, size_t>>(0));
             }
-            auto m_spill = spills.size() == 1 ? spills[0] : spills[m_partition];
+            auto *m_spill = spills.size() == 1 ? &spills[0] : &spills[m_partition];
 
             if (multiThread_merge)
             {
@@ -4155,7 +4155,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 std::cout << "output file head: " << output_file_head << std::endl; */
 
                 std::cout << "newThread_ind: " << newThread_ind << std::endl;
-                merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], &m_spill, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
+                merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], m_spill, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
                                                            &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], -1, 0, output_fd);
             }
             else
@@ -4170,7 +4170,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 std::cout << std::endl;
                 std::string empty = "";
                 std::cout << "output file head: " << output_file_head << std::endl; */
-                merge(&emHashmap, &m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, &mergeThreads_done[0], -1, 0, output_fd);
+                merge(&emHashmap, m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, &mergeThreads_done[0], -1, 0, output_fd);
             }
             m_partition = getMergePartition(&minio_client);
             counter++;
@@ -4589,7 +4589,6 @@ int main(int argc, char **argv)
             }
         }
     }
-    std::cout << "multiThread_merge: " << multiThread_merge << std::endl;
 
     log_size = log_size_string.compare("true") == 0;
     log_time = log_time_string.compare("true") == 0;
