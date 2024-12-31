@@ -3653,30 +3653,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         }
     }
 
-    if (writeRes)
-    {
-        for (auto &it : *s3spillNames2)
-        {
-            for (int k = 0; k < get<2>(it).size(); k++)
-            {
-                Aws::S3::Model::DeleteObjectRequest request;
-                request.WithKey(get<0>(it) + "_" + std::to_string(k)).WithBucket(bucketName);
-                while (true)
-                {
-                    auto outcome = minio_client->DeleteObject(request);
-                    if (!outcome.IsSuccess())
-                    {
-                        std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
     // std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
     log_file.sizes["linesRead"] += read_lines;
@@ -4133,6 +4109,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         int thread_number = 0;
         while (m_partition != -1)
         {
+            std::cout << "merging partition: " << (int)(m_partition) << std::endl;
             printProgressBar((float)(counter) / partitions);
             files.clear();
             getAllMergeFileNames(&minio_client, m_partition, &files);
