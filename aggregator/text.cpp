@@ -4127,7 +4127,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         int thread_number = 0;
         while (m_partition != -1)
         {
-            printProgressBar(counter / partitions);
+            printProgressBar((float)(counter) / partitions);
             files.clear();
             getAllMergeFileNames(&minio_client, m_partition, &files);
             if (spills.size() == 0)
@@ -4145,15 +4145,16 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             if (multiThread_merge)
             {
                 int newThread_ind = -1;
-                int thread_ind_counter = 0;
+
                 while (newThread_ind == -1)
                 {
+                    int thread_ind_counter = 0;
                     for (auto &d : mergeThreads_done)
                     {
                         if (d)
                         {
                             newThread_ind = thread_ind_counter;
-                            if (thread_number > 3)
+                            if (thread_number > threadNumber - 1)
                             {
                                 merge_threads[newThread_ind].join();
                                 thread_number--;
