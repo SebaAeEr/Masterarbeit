@@ -3993,6 +3993,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::string empty = "";
     std::vector<std::string> uNames;
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
+    std::vector<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>> merge_emHashmaps(threadNumber);
+
     for (int i = 0; i < threadNumber; i++)
     {
         /* if ((comb_hash_size + emHashmaps[i].size()) * avg + base_size < memLimit * 0.9 && (emHashmap.size() + emHashmaps[i].size()) * avg + base_size < memLimit * 0.5)
@@ -4164,7 +4166,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     }
                 }
                 std::cout << "newThread_ind: " << newThread_ind << std::endl;
-                merge_threads[newThread_ind] = std::thread(merge, &emHashmap, &m_spill, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &files,
+                merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], &m_spill, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &files,
                                                            &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], -1, 0, output_fd);
             }
             else
