@@ -4122,6 +4122,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
         std::vector<std::thread> merge_threads(threadNumber);
         std::vector<char> mergeThreads_done(threadNumber, 1);
+        int thread_number = 0;
         while (m_partition != -1)
         {
             printProgressBar(counter / partitions);
@@ -4150,10 +4151,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         if (d)
                         {
                             newThread_ind = thread_ind_counter;
-                            if (counter > 3)
+                            if (thread_number > 3)
                             {
                                 merge_threads[newThread_ind].join();
+                                thread_number--;
                             }
+                            thread_number++;
                             d = 0;
                             break;
                         }
@@ -4180,6 +4183,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             }
         }
         writeMana(&minio_client, mana, true);
+        for (int i = 0; i < thread_number; i++)
+        {
+            merge_threads[i].join();
+        }
     }
     else
     {
