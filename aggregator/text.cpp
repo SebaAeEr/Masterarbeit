@@ -2725,7 +2725,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     // std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(*bit) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << ((*bit) & (1 << (head % 8))) << std::endl;
                     if ((*bit) & (1 << (head % 8)))
                     {
-                        // auto read_tuple_start = std::chrono::high_resolution_clock::now();
+                        auto read_tuple_start = std::chrono::high_resolution_clock::now();
                         unsigned long buf[number_of_longs];
                         read_lines->fetch_add(1);
                         if (deencode)
@@ -2773,7 +2773,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             break;
                         }
-                        // log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
+                        log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
 
                         // static_cast<unsigned long *>(static_cast<void *>(buf));
                         // std::cout << buf[0] << ", " << buf[1] << std::endl;
@@ -3043,7 +3043,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             diff->exchange((newi - input_head) * sizeof(long));
         }
         bool empty = false;
-        auto read_tuple_start = std::chrono::high_resolution_clock::now();
+        // auto read_tuple_start = std::chrono::high_resolution_clock::now();
 
         if (deencode)
         {
@@ -3127,8 +3127,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 }
             }
         }
-        log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
-        //  std::cout << keys[0] << ", " << values[0] << std::endl;
+        // log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
+        //   std::cout << keys[0] << ", " << values[0] << std::endl;
         if (!empty)
         {
             newi--;
