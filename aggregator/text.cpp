@@ -2527,7 +2527,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             }
         }
         // if (base_size + (*avg) * comb_hash_size.load() > memLimit * 0.85 && size < memLimit * 0.8)
-        if (base_size + (*avg) * comb_hash_size.load() > size && comb_hash_size.load() > 0)
+        /* if (base_size + (*avg) * comb_hash_size.load() > size && comb_hash_size.load() > 0)
         {
             float temp_avg = (size - base_size) / (float)(comb_hash_size.load());
             if (std::abs(temp_avg - (*avg)) < 10)
@@ -2547,15 +2547,8 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
                     extra_mem += change;
                 }
             }
-            /* if (temp_avg < *avg)
-            {
-                *avg = temp_avg;
-            } */
-            // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " avg: " << *avg << " reservedMem: " << reservedMem << " (*extra_mem): " << (*extra_mem) << std::endl;
-            //*avg *= 1.2;
-            //  std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
             usleep(0);
-        }
+        } */
         old_size = size;
         usleep(0);
     }
