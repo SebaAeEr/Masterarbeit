@@ -3412,7 +3412,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
                 counter++;
             }
-            merge_file_num = std::max(2, std::ceil(mergefile_num / threadNumber));
+            merge_file_num = std::max(2, (int) (std::ceil(mergefile_num / threadNumber)));
             std::cout << "merge_file_numn: " << mergefile_num << std::endl;
 
             std::vector<std::thread> threads;
