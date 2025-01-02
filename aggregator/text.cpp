@@ -2465,7 +2465,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             newsize = getPhyValue() * 1024;
         }
         unsigned long reservedMem = diff->load();
-        if ((std::abs((long)((long)(comb_hash_size.load()) - old_comb_hash_size)) * (*avg) + reservedMem) * 5 < std::abs((long)((long)(size)-newsize)))
+        if ((std::abs((long)((long)(comb_hash_size.load()) - old_comb_hash_size)) * (*avg) + reservedMem) * 5 < std::abs((long)((long)(size)-newsize)) && extra_mem > -1 * (long)((long)(size)-newsize))
         {
             std::cout << "Adding to extra_mem + " << (long)((long)(size)-newsize) << " = ";
             extra_mem += (long)((long)(size)-newsize);
