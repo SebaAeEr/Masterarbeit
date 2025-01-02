@@ -2496,7 +2496,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             if (comb_hash_size.load() > 0 && size > memLimit * 0.7)
             {
                 float temp_avg = (size - base_size) / (float)(comb_hash_size.load());
-                if (std::abs(temp_avg - (*avg)) < 20 || *avg == 0)
+                if (std::abs(temp_avg - (*avg)) < 20 || *avg == 1)
                 {
                     *avg = temp_avg;
                 }
@@ -2529,10 +2529,27 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
         if (base_size + (*avg) * comb_hash_size.load() > size && comb_hash_size.load() > 0)
         {
             float temp_avg = (size - base_size) / (float)(comb_hash_size.load());
-            if (temp_avg < *avg)
+            if (std::abs(temp_avg - (*avg)) < 20)
             {
                 *avg = temp_avg;
             }
+            else
+            {
+
+                long change = (long)((long)(size) - (comb_hash_size.load() * (*avg) + base_size));
+                if (change + (long)(extra_mem) < 0)
+                {
+                    extra_mem = 0;
+                }
+                else
+                {
+                    extra_mem += change;
+                }
+            }
+            /* if (temp_avg < *avg)
+            {
+                *avg = temp_avg;
+            } */
             // std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " avg: " << *avg << " reservedMem: " << reservedMem << " (*extra_mem): " << (*extra_mem) << std::endl;
             //*avg *= 1.2;
             //  std::cout << "phy: " << size << " phymemBase: " << phyMemBase << " hash_avg: " << *avg << std::endl;
@@ -3026,7 +3043,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             diff->exchange((newi - input_head) * sizeof(long));
         }
         bool empty = false;
-        // auto read_tuple_start = std::chrono::high_resolution_clock::now();
+        auto read_tuple_start = std::chrono::high_resolution_clock::now();
 
         if (deencode)
         {
@@ -3110,7 +3127,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 }
             }
         }
-        // log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
+        log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
         //  std::cout << keys[0] << ", " << values[0] << std::endl;
         if (!empty)
         {
@@ -4032,17 +4049,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         log_file.sizes["mergeColDuration"] = duration;
     }
     auto merge_start_time = std::chrono::high_resolution_clock::now();
-    // calc optimistic new avg to better fit spill files as: 8/avgLineLength * (hash_avg - avg)
-    // float avglineLengtth = size / numLines.load();
-    // avg = hash_avg + (avg - hash_avg) * (sizeof(int) * 2 / avglineLengtth) + 0.02;
-    // avg = avg + (float)(sizeof(int) - avglineLengtth) / 1024;
-    // avg *= 8 / avglineLengtth;
-
-    // std::cout << "new avg: " << avg << " hashmap size: " << emHashmap.size() << " hash avg: " << hash_avg << std::endl;
 
     // Free up rest of mapping of input file and close the file
     close(fd);
-    // avg = 1;
 
     // std::cout << "Scanning finished." << std::endl;
 
@@ -4115,16 +4124,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
                 files.clear();
                 getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
-
-                /* for (auto &name : files)
-                {
-                    std::cout << std::get<0>(name) << ", ";
-                }
-                std::cout << std::endl;
-                std::string empty = "";
-                std::cout << "output file head: " << output_file_head << std::endl; */
-
-                // std::cout << "newThread_ind: " << newThread_ind << std::endl;
                 merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], m_spill, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
                                                            &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], -1, 0);
             }
