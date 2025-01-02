@@ -4111,6 +4111,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                             newThread_ind = thread_ind_counter;
                             if (thread_number > threadNumber - 1)
                             {
+                                std::cout << "Joining thread: " << newThread_ind << std::endl;
                                 merge_threads[newThread_ind].join();
                                 thread_number--;
                             }
@@ -4121,6 +4122,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         thread_ind_counter++;
                     }
                 }
+                std::cout << "newThread_ind: " << newThread_ind << std::endl;
 
                 files.clear();
                 getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
