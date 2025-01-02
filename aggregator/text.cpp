@@ -4081,6 +4081,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
         std::vector<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(threadNumber);
         std::vector<size_t> max_HashSizes(threadNumber, 0);
+        std::vector<char> thread_bitmap(threadNumber, 0);
         char m_partition = getMergePartition(&minio_client);
         int counter = 0;
 
@@ -4109,7 +4110,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         if (d)
                         {
                             newThread_ind = thread_ind_counter;
-                            if (thread_number > threadNumber - 1)
+                            if (thread_bitmap[newThread_ind] == 1)
                             {
                                 std::cout << "Joining thread: " << newThread_ind << std::endl;
                                 merge_threads[newThread_ind].join();
@@ -4117,6 +4118,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                             }
                             thread_number++;
                             d = 0;
+                            thread_bitmap[newThread_ind] = 1;
                             break;
                         }
                         thread_ind_counter++;
