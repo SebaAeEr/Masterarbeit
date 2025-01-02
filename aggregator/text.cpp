@@ -3396,7 +3396,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         // std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
         if (multiThread_subMerge)
         {
-            int mergefile_num = std::max(0, s3spillNames2->size() - s3spillFile_head);
+            int mergefile_num = std::max(0, (int)(s3spillNames2->size() - s3spillFile_head));
             size_t sum = 0;
             int counter = 0;
             for (auto &s : (*spills))
