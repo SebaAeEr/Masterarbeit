@@ -2571,12 +2571,12 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             if (!add && multiThread_subMerge && file_counter > merge_file_num)
             {
                 // std::cout << "file limit reached: " << file_counter << std::endl;
-                extra_mem -= increase;
+                // extra_mem -= increase;
                 return false;
             }
             if (locked && add)
             {
-                extra_mem -= increase;
+                // extra_mem -= increase;
                 return false;
             }
             // std::cout << "Reading " << get<0>(*set_it) << std::endl;
@@ -2939,12 +2939,12 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     file_counter++;
                     if (!add && multiThread_subMerge && file_counter > merge_file_num)
                     {
-                        extra_mem -= increase;
+                        // extra_mem -= increase;
                         return false;
                     }
                     if (locked && add)
                     {
-                        extra_mem -= increase;
+                        // extra_mem -= increase;
                         return false;
                     }
                     unsigned long map_start;
@@ -3223,7 +3223,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             }
         }
     }
-    extra_mem -= increase;
+    // extra_mem -= increase;
     if (add)
     {
         *input_head_base = comb_spill_size;
@@ -3374,7 +3374,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
     while (!finished)
     {
-        std::cout << "Start adding s3spillStart_head: " << s3spillStart_head << " bit_head: " << bit_head << std::endl;
+        // std::cout << "Start adding s3spillStart_head: " << s3spillStart_head << " bit_head: " << bit_head << std::endl;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size);
         increase = false;
