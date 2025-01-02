@@ -2466,13 +2466,6 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
         {
             newsize = getPhyValue() * 1024;
         }
-
-        if ((std::abs((long)((long)(comb_hash_size.load()) - old_comb_hash_size)) * (*avg) + reservedMem) * 5 < std::abs((long)((long)(size)-newsize)) && extra_mem > -1 * (long)((long)(size)-newsize))
-        {
-            std::cout << "Adding to extra_mem + " << (long)((long)(size)-newsize) << " = ";
-            extra_mem += (long)((long)(size)-newsize);
-            std::cout << extra_mem << std::endl;
-        }
         reservedMem = diff->load();
         old_comb_hash_size = comb_hash_size.load();
 
@@ -2502,7 +2495,16 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             }
             if (comb_hash_size.load() > 0 && size > memLimit * 0.7)
             {
-                *avg = (size - base_size) / (float)(comb_hash_size.load());
+                float temp_avg = (size - base_size) / (float)(comb_hash_size.load());
+                if (std::abs(temp_avg - (*avg)) < 10)
+                {
+                    *avg = temp_avg;
+                }
+                else
+                {
+                    extra_mem += std::min((long)((long)(size) - (comb_hash_size.load() * (*avg) + base_size)), (long)((long)(-1) * extra_mem));
+                }
+
                 if (first)
                 {
                     max_s3_spill_size = std::min(comb_hash_size.load(), max_s3_spill_size);
