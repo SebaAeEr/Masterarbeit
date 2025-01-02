@@ -29,6 +29,7 @@
 #include <time.h>
 #include <atomic>
 #include <future>
+#include <mutex>
 /* #include "cloud/provider.hpp"
 #include "network/tasked_send_receiver.hpp"
 #include "network/transaction.hpp" */
@@ -130,11 +131,11 @@ std::vector<unsigned long> test_values = {};
 int partitions = -1;
 logFile log_file;
 std::atomic<int> mana_writeThread_num(0);
-std::atomic<bool> local_mana_lock(false);
+std::mutex local_mana_lock;
 int merge_file_num = 5;
 float average_write_speed = 1.5;
 bool isJson = false;
-std::atomic<bool> writing_ouput(false);
+std::mutex writing_ouput;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -468,48 +469,6 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
         *donedone = true;
     }
 
-    // done->exchange(true);
-    //*return_value = mana;
-    /* std::cout << "overwrite mana. Mana worker size: " << mana.workers.size() << " mana in pointer: " << return_value->workers.size() << std::endl;
-
-    std::string status = mana.worker_lock == 0 ? "free" : std::to_string(mana.worker_lock);
-    std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(mana.thread_lock) << std::endl;
-    for (auto &worker : mana.workers)
-    {
-        std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
-        for (auto &partition : worker.partitions)
-        {
-            std::cout << "  Partition: " << (int)(partition.id) << ", locked: " << partition.lock << std::endl;
-            for (auto &file : partition.files)
-            {
-                std::cout << "    " << file.name << ": size: " << file.size << " worked on by: " << std::bitset<8>(file.status) << " subfiles:" << std::endl;
-                for (auto &sub_files : file.subfiles)
-                {
-                    std::cout << "      size: " << sub_files.first << " #tuples: " << sub_files.second << std::endl;
-                }
-            }
-        }
-    } */
-
-    /* std::string status = return_value->worker_lock == 0 ? "free" : std::to_string(return_value->worker_lock);
-    std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(return_value->thread_lock) << std::endl;
-    for (auto &worker : return_value->workers)
-    {
-        std::cout << "Worker id: " << worker.id << " locked: " << worker.locked << std::endl;
-        for (auto &partition : worker.partitions)
-        {
-            std::cout << "  Partition: " << (int)(partition.id) << ", locked: " << partition.lock << std::endl;
-            for (auto &file : partition.files)
-            {
-                std::cout << "    " << file.name << ": size: " << file.size << " worked on by: " << std::bitset<8>(file.status) << " subfiles:" << std::endl;
-                for (auto &sub_files : file.subfiles)
-                {
-                    std::cout << "      size: " << sub_files.first << " #tuples: " << sub_files.second << std::endl;
-                }
-            }
-        }
-    } */
-
     // std::cout << "use count: " << done.use_count() << std::endl;
     done.reset();
     return;
@@ -706,7 +665,8 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                     std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
                     return false;
                 }
-                local_mana_lock.exchange(false);
+                // local_mana_lock.exchange(false);
+                local_mana_lock.unlock();
             }
             log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
             return 1;
@@ -741,35 +701,33 @@ bool writeLock(Aws::S3::S3Client *minio_client)
 manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
 {
     auto lock_start_time = std::chrono::high_resolution_clock::now();
+    // std::lock_guard<std::mutex> lock(local_mana_lock);
+    local_mana_lock.lock();
     while (true)
     {
         bool asdf = false;
-        if (local_mana_lock.compare_exchange_strong(asdf, true))
+        manaFile mana = getMana(minio_client);
+        if (mana.worker_lock == 0)
         {
-            manaFile mana = getMana(minio_client);
-            if (mana.worker_lock == 0)
+            // std::cout << "Trying to get lock: " << std::to_string((int)(thread_id)) << std::endl;
+            // manaFile mana = getMana(minio_client);
+            mana.worker_lock = worker_id;
+            mana.thread_lock = thread_id;
+            if (!writeLock(minio_client))
             {
-                // std::cout << "Trying to get lock: " << std::to_string((int)(thread_id)) << std::endl;
-                // manaFile mana = getMana(minio_client);
-                mana.worker_lock = worker_id;
-                mana.thread_lock = thread_id;
-                if (!writeLock(minio_client))
-                {
-                    local_mana_lock.exchange(false);
-                    continue;
-                }
-                writeMana(minio_client, mana, false);
-                mana = getMana(minio_client);
-                // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
-                if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
-                {
-                    // mana = getMana(minio_client);
-                    //  std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
-                    log_file.get_lock_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lock_start_time).count());
-                    return mana;
-                }
+                // local_mana_lock.exchange(false);
+                continue;
             }
-            local_mana_lock.exchange(false);
+            writeMana(minio_client, mana, false);
+            mana = getMana(minio_client);
+            // std::cout << "Lock received by: " << std::to_string((int)(thread_id)) << " old thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+            if (mana.worker_lock == worker_id && mana.thread_lock == thread_id)
+            {
+                // mana = getMana(minio_client);
+                //  std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+                log_file.get_lock_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lock_start_time).count());
+                return mana;
+            }
         }
         // usleep(10);
     }
@@ -2573,7 +2531,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
               std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2,
               std::vector<std::pair<int, std::vector<char>>> *s3spillBitmaps, std::vector<std::pair<int, size_t>> *spills, bool add, int *s3spillFile_head,
               int *bit_head, int *subfile_head, size_t *s3spillStart_head, size_t *s3spillStart_head_chars, size_t *input_head_base, size_t size_after_init, std::atomic<size_t> *read_lines,
-              Aws::S3::S3Client *minio_client, std::atomic<bool> *writeLock, std::atomic<int> *readNum, float *avg, float memLimit, std::atomic<unsigned long> &comb_hash_size,
+              Aws::S3::S3Client *minio_client, std::mutex *writeLock, std::atomic<int> *readNum, float *avg, float memLimit, std::atomic<unsigned long> &comb_hash_size,
               std::atomic<unsigned long> *diff, bool increase_size, size_t *max_hash_size)
 {
     // input_head_base;
@@ -2792,12 +2750,13 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             values[k] = buf[k + key_number];
                         }
-                        while ((*writeLock))
+                        /* while ((*writeLock))
                         {
                         }
-                        readNum->fetch_add(1);
+                        writeLock-> */
+                        // readNum->fetch_add(1);
                         bool contained = hmap->contains(keys);
-                        readNum->fetch_sub(1);
+                        // readNum->fetch_sub(1);
                         if (contained)
                         {
 
@@ -2808,14 +2767,14 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                                 temp[k] += values[k];
                             }
                             bool asdf = false;
-                            while (!writeLock->compare_exchange_strong(asdf, true))
-                            {
-                            }
+                            writeLock->lock();
+                            // while (!writeLock->compare_exchange_strong(asdf, true)){}
                             while ((*readNum) > 0)
                             {
                             }
                             (*hmap)[keys] = temp;
-                            writeLock->exchange(false);
+                            // writeLock->exchange(false);
+                            writeLock->unlock();
 
                             *bit &= ~(0x01 << (head % 8));
                             if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
@@ -3146,10 +3105,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             read_lines->fetch_add(1);
             // std::cout << "i: " << i << ", newi: " << newi << std::endl;
             //  std::cout << "merging/adding" << std::endl;
-            readNum->fetch_add(1);
+            // readNum->fetch_add(1);
             bool contained = hmap->contains(keys);
-            readNum->fetch_sub(1);
-            //   Update count if customerkey is in hashmap and delete pair in spill
+            // readNum->fetch_sub(1);
+            //    Update count if customerkey is in hashmap and delete pair in spill
             if (contained)
             {
                 std::array<unsigned long, max_size> temp = (*hmap)[keys];
@@ -3159,16 +3118,16 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     temp[k] += values[k];
                 }
                 bool asdf = false;
-                while (!writeLock->compare_exchange_strong(asdf, true))
-                {
-                }
+                // while (!writeLock->compare_exchange_strong(asdf, true))                {                }
+                writeLock->lock();
                 while ((*readNum) > 0)
                 {
                 }
                 (*hmap)[keys] = temp;
-                writeLock->exchange(false);
-                // mergeHashEntries(&emHashmap[keys], &values);
-                //    delete pair in spill
+                writeLock->unlock();
+                // writeLock->exchange(false);
+                //  mergeHashEntries(&emHashmap[keys], &values);
+                //     delete pair in spill
                 if (deencode)
                 {
                     // std::cout << "ognewi first: " << (int) (spill_map_char[ognewi]);
@@ -3420,7 +3379,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     bool increase_size = true;
     std::vector<int> write_counter(partitions, 0);
     std::vector<std::vector<std::pair<size_t, size_t>>> write_sizes(partitions);
-    std::atomic<bool> writeLock;
+    std::mutex writeLock;
     std::atomic<int> readNum;
 
     bool finished = false;
@@ -3545,14 +3504,16 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             bool asdf = false;
             std::cout << "Trying to get lock" << std::endl;
-            while (!writing_ouput.compare_exchange_strong(asdf, true))
+            writing_ouput.lock();
+            /* while (!writing_ouput.compare_exchange_strong(asdf, true))
             {
                 std::cout << writing_ouput.load() << std::endl;
-            }
-            std::cout << "writing output, output_file_head: " << *output_file_head  << " writing_ouput: " <<writing_ouput.load() << std::endl;
+            } */
+            std::cout << "writing output, output_file_head: " << *output_file_head << std::endl;
             *output_file_head += writeHashmap(hmap, output_fd, *output_file_head, pagesize * 30, outputfilename);
             std::cout << "free lock, output_file_head: " << *output_file_head << std::endl;
-            writing_ouput.exchange(false);
+            writing_ouput.unlock();
+            // writing_ouput.exchange(false);
 
             hmap->clear();
             // std::cout << "locked: " << locked << std::endl;
