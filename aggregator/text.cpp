@@ -2502,6 +2502,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
                 }
                 else
                 {
+                    std::cout << "Increaseing extra_mem by: " << std::min((long)((long)(size) - (comb_hash_size.load() * (*avg) + base_size)), (long)((long)(-1) * extra_mem)) << std::endl;
                     extra_mem += std::min((long)((long)(size) - (comb_hash_size.load() * (*avg) + base_size)), (long)((long)(-1) * extra_mem));
                 }
 
