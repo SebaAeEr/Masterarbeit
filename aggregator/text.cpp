@@ -919,8 +919,6 @@ void setPartitionNumber(size_t comb_hash_size)
     if (set_partitions)
     {
         partitions = ceil(comb_hash_size / 3000000.0);
-        partitions = 2;
-        // partitions = 20;
         std::cout << "Set partition number to: " << partitions << std::endl;
     }
     else
@@ -3414,7 +3412,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
                 counter++;
             }
-            merge_file_num = std::max(2, mergefile_num / threadNumber);
+            merge_file_num = std::max(2, std::ceil(mergefile_num / threadNumber));
             std::cout << "merge_file_numn: " << mergefile_num << std::endl;
 
             std::vector<std::thread> threads;
