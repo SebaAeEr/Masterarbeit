@@ -1,5 +1,6 @@
 ssh erasmus@atkemper4.in.tum.de
 ssh erasmus@scyper13.in.tum.de
+ssh erasmus@scyper15.in.tum.de
 cd /nvmeSpace/erasmus/Masterarbeit/aggregator/build
 PATH=/home/erasmus/utils/:$PATH
 
