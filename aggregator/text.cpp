@@ -2279,7 +2279,8 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             }
 
             // compare estimation again to memLimit
-            if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
+            // if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
+            if (hmap->size() >= maxHmapSize * 0.95 && freed_space_temp <= pagesize * 10)
             {
                 auto start_spill_time = std::chrono::high_resolution_clock::now();
                 // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;
@@ -2798,7 +2799,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         if (spilled_bitmap)
                         {
                             diff->exchange(index);
-                            if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
+                            if (comb_hash_size * (*avg) + base_size >= memLimit * 0.9)
                             {
                                 // std::cout << "spilling: " << head - lower_index << std::endl;
                                 unsigned long freed_space_temp = (index - lower_index) - ((index - lower_index) % pagesize);
@@ -2813,7 +2814,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                                     // Update Head to point at the new unfreed mapping space.
                                     lower_index += freed_space_temp;
                                 }
-                                if (freed_space_temp < pagesize * 2)
+                                if (hmap->size() >= *max_hash_size * 0.95 && freed_space_temp <= pagesize * 20)
                                 {
                                     if (add && !locked)
                                     {
@@ -2832,7 +2833,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         }
                         else
                         {
-                            if (hmap->size() * (*avg) + base_size >= memLimit * 0.9)
+                            if (comb_hash_size * (*avg) + base_size >= memLimit * 0.9 && hmap->size() >= *max_hash_size * 0.95)
                             {
 
                                 if (add && !locked)
@@ -3192,7 +3193,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
 
                 // std::cout << "hashmap size: " << emHashmap.size() * avg << " freed space: " << freed_space_temp << std::endl;
             }
-            if (!locked && used_space <= pagesize * 40 && hmap->size() * (*avg) + base_size >= memLimit * 0.9)
+            // if (!locked && used_space <= pagesize * 40 && hmap->size() * (*avg) + base_size >= memLimit * 0.9)
+            if (hmap->size() >= *max_hash_size * 0.95&& !locked && used_space <= pagesize * 40)
             {
                 // std::cout << "head base: " << input_head_base << std::endl;
                 locked = true;
@@ -3485,17 +3487,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 // std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
             }
             bool asdf = false;
-            std::cout << "Trying to get lock" << std::endl;
             writing_ouput.lock();
-            /* while (!writing_ouput.compare_exchange_strong(asdf, true))
-            {
-                std::cout << writing_ouput.load() << std::endl;
-            } */
-            std::cout << "writing output, output_file_head: " << *output_file_head << std::endl;
             *output_file_head += writeHashmap(hmap, *output_file_head, pagesize * 30, outputfilename);
-            std::cout << "free lock, output_file_head: " << *output_file_head << std::endl;
             writing_ouput.unlock();
-            // writing_ouput.exchange(false);
 
             hmap->clear();
             // std::cout << "locked: " << locked << std::endl;
@@ -3974,7 +3968,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     while (mana_writeThread_num.load() != 0)
     {
     }
-    comb_hash_size.exchange(emHashmap.size());
+    comb_hash_size.exchange(0);
     // delete[] emHashmaps;
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - mergeH_start_time).count()) / 1000000;
     std::cout << "Merging of hastables finished with time: " << duration << "s." << std::endl;
