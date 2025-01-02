@@ -3484,15 +3484,18 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &start_heads[counter], &start_bits[counter], &int_n, &n, &n, &input_head_base,
                                               size_after_init, &read_lines, minio_client, &writeLock, &readNum, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size));
                 counter++;
-                temp_it = s3spillNames2->begin();
-                std::advance(temp_it, s3_start_head);
-                for (int i = 0; i < merge_file_num; i++)
+                if (s3_start_head < s3spillNames2->size())
                 {
-                    start_bit_head += get<2>(*temp_it).size();
-                    temp_it++;
-                }
+                    temp_it = s3spillNames2->begin();
+                    std::advance(temp_it, s3_start_head);
+                    for (int i = 0; i < merge_file_num; i++)
+                    {
+                        start_bit_head += get<2>(*temp_it).size();
+                        temp_it++;
+                    }
 
-                s3_start_head += merge_file_num;
+                    s3_start_head += merge_file_num;
+                }
             }
             if (s3_start_head - s3spillNames2->size() > 0 && counter > 0)
             {
@@ -3544,15 +3547,16 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             std::cout << "Trying to get lock" << std::endl;
             while (!writing_ouput.compare_exchange_strong(asdf, true))
             {
+                std::cout << writing_ouput.load() << std::endl;
             }
-            std::cout << "writing output, output_file_head: " << *output_file_head << std::endl;
+            std::cout << "writing output, output_file_head: " << *output_file_head  << " writing_ouput: " <<writing_ouput.load() << std::endl;
             *output_file_head += writeHashmap(hmap, output_fd, *output_file_head, pagesize * 30, outputfilename);
             std::cout << "free lock, output_file_head: " << *output_file_head << std::endl;
             writing_ouput.exchange(false);
 
             hmap->clear();
             // std::cout << "locked: " << locked << std::endl;
-            //  comb_hash_size = maxHashsize;
+            // comb_hash_size = maxHashsize;
         }
         else
         {
