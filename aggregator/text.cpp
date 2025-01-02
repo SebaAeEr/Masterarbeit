@@ -2496,12 +2496,12 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             if (comb_hash_size.load() > 0 && size > memLimit * 0.7)
             {
                 float temp_avg = (size - base_size) / (float)(comb_hash_size.load());
-                std::cout << "avg: " << *avg << " avg diff: " << std::abs(temp_avg - (*avg)) << std::endl;
-                if (std::abs(temp_avg - (*avg)) < 10 ||( *avg < 10 && std::abs(temp_avg - (*avg)) < 100))
+                // std::cout << "avg: " << *avg << " avg diff: " << std::abs(temp_avg - (*avg)) << std::endl;
+                if (std::abs(temp_avg - (*avg)) < 10 || (*avg < 10 && std::abs(temp_avg - (*avg)) < 100))
                 {
                     *avg = temp_avg;
                 }
-                else
+                /* else
                 {
 
                     long change = (long)((long)(size) - (comb_hash_size.load() * (*avg) + base_size));
@@ -2513,7 +2513,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
                     {
                         extra_mem += change;
                     }
-                }
+                } */
 
                 if (first)
                 {
@@ -2686,7 +2686,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 }
 
                 unsigned long lower_index = 0;
-                /* if (increase_size)
+                if (increase_size)
                 {
                     increase = size_after_init * 1024 * 100 + 1;
                     if (getPhyValue() < size_after_init)
@@ -2702,7 +2702,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     extra_mem += increase;
                     // std::cout << "extra_mem " << extra_mem << std::endl;
                     increase_size = false;
-                } */
+                }
                 while (spill.peek() != EOF)
                 {
                     char *bit;
@@ -3293,7 +3293,7 @@ void addXtoLocalSpillHead(std::vector<std::pair<int, size_t>> *spills, unsigned 
 
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
           float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename, std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client,
-          bool writeRes, std::string &uName, size_t memMainLimit, size_t *output_file_head, char *done, size_t *max_hash_size, char partition = -1, char beggarWorker = 0)
+          bool writeRes, std::string &uName, size_t memMainLimit, size_t *output_file_head, char *done, size_t *max_hash_size, char partition = -1, char beggarWorker = 0, bool increase = false)
 {
     // Open the outputfile to write results
     /* if (writeRes)
@@ -3395,14 +3395,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         }
         // std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() << std::endl;
     }
-    // extra_mem += bitmap_size_sum;
+    extra_mem += bitmap_size_sum;
     size_t size_after_init = getPhyValue();
     std::vector<int> write_counter(partitions, 0);
     std::vector<std::vector<std::pair<size_t, size_t>>> write_sizes(partitions);
     std::mutex writeLock;
 
     bool finished = false;
-    bool increase = true;
+    // bool increase = true;
 
     while (!finished)
     {
@@ -3636,7 +3636,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     log_file.sizes["linesRead"] += read_lines;
     log_file.sizes["linesWritten"] += written_lines;
     *done = 1;
-    // extra_mem -= bitmap_size_sum;
+    extra_mem -= bitmap_size_sum;
     return 1;
 }
 
@@ -4085,6 +4085,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         while (m_partition != -1)
         {
             std::cout << "merging partition: " << (int)(m_partition) << std::endl;
+            bool increase = false;
             printProgressBar((float)(counter) / partitions);
             if (spills.size() == 0)
             {
@@ -4110,6 +4111,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                                 merge_threads[newThread_ind].join();
                                 thread_number--;
                             }
+                            else
+                            {
+                                increase = true;
+                            }
                             thread_number++;
                             d = 0;
                             thread_bitmap[newThread_ind] = 1;
@@ -4123,7 +4128,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 files.clear();
                 getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
                 merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], m_spill, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
-                                                           &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], -1, 0);
+                                                           &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], -1, 0, increase);
             }
             else
             {
