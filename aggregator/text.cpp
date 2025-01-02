@@ -919,6 +919,7 @@ void setPartitionNumber(size_t comb_hash_size)
     if (set_partitions)
     {
         partitions = ceil(comb_hash_size / 3000000.0);
+        partitions = 2;
         std::cout << "Set partition number to: " << partitions << std::endl;
     }
     else
@@ -2451,6 +2452,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
     float duration = 0;
     int old_finish = finished;
     size_t old_comb_hash_size = 0;
+    unsigned long reservedMem = 0;
     // memLimit -= 2ull << 10;
     while (finished == 0 || finished == 1)
     {
@@ -2464,14 +2466,14 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
         {
             newsize = getPhyValue() * 1024;
         }
-        unsigned long reservedMem = diff->load();
+
         if ((std::abs((long)((long)(comb_hash_size.load()) - old_comb_hash_size)) * (*avg) + reservedMem) * 5 < std::abs((long)((long)(size)-newsize)) && extra_mem > -1 * (long)((long)(size)-newsize))
         {
             std::cout << "Adding to extra_mem + " << (long)((long)(size)-newsize) << " = ";
             extra_mem += (long)((long)(size)-newsize);
             std::cout << extra_mem << std::endl;
         }
-
+        reservedMem = diff->load();
         old_comb_hash_size = comb_hash_size.load();
 
         if (log_size)
@@ -3371,7 +3373,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         }
         // std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() << std::endl;
     }
-    extra_mem = bitmap_size_sum;
+    // extra_mem += bitmap_size_sum;
     size_t size_after_init = getPhyValue();
     std::vector<int> write_counter(partitions, 0);
     std::vector<std::vector<std::pair<size_t, size_t>>> write_sizes(partitions);
@@ -3399,7 +3401,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         s3spillFile_head++;
         size_t old_input_head_base = input_head_base;
         addXtoLocalSpillHead(spills, &input_head_base, 1);
-        std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
+        // std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
         if (multiThread_subMerge)
         {
             int mergefile_num = std::max(0, (int)(s3spillNames2->size() - s3spillFile_head));
@@ -3612,6 +3614,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     log_file.sizes["linesRead"] += read_lines;
     log_file.sizes["linesWritten"] += written_lines;
     *done = 1;
+    // extra_mem -= bitmap_size_sum;
     return 1;
 }
 
