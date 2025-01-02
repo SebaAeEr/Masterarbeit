@@ -2497,14 +2497,24 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             {
                 float temp_avg = (size - base_size) / (float)(comb_hash_size.load());
                 std::cout << "Avg diff: " << std::abs(temp_avg - (*avg)) << std::endl;
-                if (std::abs(temp_avg - (*avg)) < 10)
+                if (std::abs(temp_avg - (*avg)) < 100)
                 {
                     *avg = temp_avg;
                 }
                 else
                 {
-                    std::cout << "Increaseing extra_mem by: " << std::min((long)((long)(size) - (comb_hash_size.load() * (*avg) + base_size)), (long)((long)(-1) * extra_mem)) << std::endl;
-                    extra_mem += std::min((long)((long)(size) - (comb_hash_size.load() * (*avg) + base_size)), (long)((long)(-1) * extra_mem));
+
+                    long change = (long)((long)(size) - (comb_hash_size.load() * (*avg) + base_size));
+                    if (change + (long)(extra_mem) < 0)
+                    {
+                        extra_mem = 0;
+                        std::cout << "Increaseing extra_mem by: " << change << " setting extra_mem to 0" << std::endl;
+                    }
+                    else
+                    {
+                        extra_mem += change;
+                        std::cout << "Increaseing extra_mem by: " << change << std::endl;
+                    }
                 }
 
                 if (first)
