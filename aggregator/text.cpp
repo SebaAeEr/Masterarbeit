@@ -2450,6 +2450,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
     float oldduration = 0;
     float duration = 0;
     int old_finish = finished;
+    size_t old_comb_hash_size = 0;
     // memLimit -= 2ull << 10;
     while (finished == 0 || finished == 1)
     {
@@ -2464,6 +2465,14 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             newsize = getPhyValue() * 1024;
         }
         unsigned long reservedMem = diff->load();
+        if ((std::abs((long)((long)(comb_hash_size.load()) - old_comb_hash_size)) * (*avg) + reservedMem) * 2 < std::abs((long)((long)(size) - newsize)))
+        {
+            std::cout << "Adding to extra_mem + " << newsize - size << " = ";
+            extra_mem += newsize - size;
+            std::cout << extra_mem << std::endl;
+        }
+
+        old_comb_hash_size = comb_hash_size.load();
 
         if (log_size)
         {
@@ -2653,7 +2662,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 }
 
                 unsigned long lower_index = 0;
-                if (increase_size)
+                /* if (increase_size)
                 {
                     increase = size_after_init * 1024 * 100 + 1;
                     if (getPhyValue() < size_after_init)
@@ -2669,7 +2678,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     extra_mem += increase;
                     // std::cout << "extra_mem " << extra_mem << std::endl;
                     increase_size = false;
-                }
+                } */
                 while (spill.peek() != EOF)
                 {
                     char *bit;
@@ -2686,7 +2695,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     // std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(*bit) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << ((*bit) & (1 << (head % 8))) << std::endl;
                     if ((*bit) & (1 << (head % 8)))
                     {
-                        auto read_tuple_start = std::chrono::high_resolution_clock::now();
+                        // auto read_tuple_start = std::chrono::high_resolution_clock::now();
                         unsigned long buf[number_of_longs];
                         read_lines->fetch_add(1);
                         if (deencode)
@@ -2734,7 +2743,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             break;
                         }
-                        log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
+                        // log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
 
                         // static_cast<unsigned long *>(static_cast<void *>(buf));
                         // std::cout << buf[0] << ", " << buf[1] << std::endl;
@@ -3004,7 +3013,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             diff->exchange((newi - input_head) * sizeof(long));
         }
         bool empty = false;
-        auto read_tuple_start = std::chrono::high_resolution_clock::now();
+        // auto read_tuple_start = std::chrono::high_resolution_clock::now();
 
         if (deencode)
         {
@@ -3088,8 +3097,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 }
             }
         }
-        log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
-        // std::cout << keys[0] << ", " << values[0] << std::endl;
+        // log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
+        //  std::cout << keys[0] << ", " << values[0] << std::endl;
         if (!empty)
         {
             newi--;
