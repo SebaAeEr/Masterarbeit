@@ -2497,7 +2497,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             {
                 float temp_avg = (size - base_size) / (float)(comb_hash_size.load());
                 std::cout << "Avg diff: " << std::abs(temp_avg - (*avg)) << std::endl;
-                if (std::abs(temp_avg - (*avg)) < 100)
+                if (std::abs(temp_avg - (*avg)) < 20 || *avg == 0)
                 {
                     *avg = temp_avg;
                 }
