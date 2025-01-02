@@ -3373,7 +3373,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     }
     extra_mem = bitmap_size_sum;
     size_t size_after_init = getPhyValue();
-    bool increase_size = true;
     std::vector<int> write_counter(partitions, 0);
     std::vector<std::vector<std::pair<size_t, size_t>>> write_sizes(partitions);
     std::mutex writeLock;
@@ -3400,7 +3399,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         s3spillFile_head++;
         size_t old_input_head_base = input_head_base;
         addXtoLocalSpillHead(spills, &input_head_base, 1);
-        // std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
+        std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
         if (multiThread_subMerge)
         {
             int mergefile_num = std::max(0, (int)(s3spillNames2->size() - s3spillFile_head));
@@ -3422,7 +3421,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 counter++;
             }
             merge_file_num = std::max(2, (int)(std::ceil((float)(mergefile_num) / threadNumber)));
-            // std::cout << "merge_file_numn: " << mergefile_num << std::endl;
+            std::cout << "merge_file_numn: " << mergefile_num << "merge_file_num: " << merge_file_num << std::endl;
 
             std::vector<std::thread> threads;
             std::vector<int> start_heads(s3spillNames2->size());
@@ -3433,7 +3432,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             counter = 0;
             while (s3_start_head < s3spillNames2->size())
             {
-                // std::cout << "merging s3 start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
+                std::cout << "merging s3 start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
                 start_heads[counter] = s3_start_head;
                 start_bits[counter] = start_bit_head;
                 threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &start_heads[counter], &start_bits[counter], &int_n, &n, &n, &input_head_base,
@@ -3455,12 +3454,12 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             if (s3_start_head - s3spillNames2->size() > 0 && counter > 0)
             {
                 addXtoLocalSpillHead(spills, &input_head_base, s3_start_head - s3spillNames2->size());
-                // std::cout << "add local spill: " << s3_start_head - s3spillNames2->size() << " to: " << input_head_base << std::endl;
+                std::cout << "add local spill: " << s3_start_head - s3spillNames2->size() << " to: " << input_head_base << std::endl;
             }
             counter = 0;
             while (input_head_base < comb_spill_size)
             {
-                // std::cout << "merging local input_head_base: " << input_head_base << std::endl;
+                std::cout << "merging local input_head_base: " << input_head_base << std::endl;
                 start_heads_local[counter] = input_head_base;
                 threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &int_n, &n, &n, &start_heads_local[counter],
                                               size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size));
@@ -3468,7 +3467,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 addXtoLocalSpillHead(spills, &input_head_base, merge_file_num);
                 // std::cout << "add local spill: " << merge_file_num << " to: " << input_head_base << std::endl;
             }
-            // std::cout << "Waiting for threads" << std::endl;
+            std::cout << "Waiting for threads" << std::endl;
             for (auto &thread : threads)
             {
                 thread.join();
@@ -4029,7 +4028,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
     // Free up rest of mapping of input file and close the file
     close(fd);
-    avg = 1;
+    // avg = 1;
 
     // std::cout << "Scanning finished." << std::endl;
 
