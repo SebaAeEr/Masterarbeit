@@ -919,7 +919,7 @@ void setPartitionNumber(size_t comb_hash_size)
     if (set_partitions)
     {
         partitions = ceil(comb_hash_size / 3000000.0);
-        partitions = 2;
+        // partitions = 2;
         std::cout << "Set partition number to: " << partitions << std::endl;
     }
     else
@@ -2313,7 +2313,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     {
                         threadLog.sizes["localS3Spill"]++;
                         threadLog.sizes["s3SpillSize"] += temp_spill_size;
-                        std::cout << "local + s3: " << (int)(id) << std::endl;
+                        // std::cout << "local + s3: " << (int)(id) << std::endl;
                         mainMem_usage += temp_spill_size - temp_local_spill_size;
                         temp_local_spill_size = temp_spill_size;
                         auto start_wait_time = std::chrono::high_resolution_clock::now();
@@ -2343,7 +2343,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     {
                         threadLog.sizes["localSpill"]++;
                         threadLog.sizes["localSpillSize"] += temp_spill_size;
-                        std::cout << "local: " << (int)(id) << std::endl;
+                        // std::cout << "local: " << (int)(id) << std::endl;
                         spill_file_name = "";
                         spill_file_name += worker_id;
                         spill_file_name += "_";
@@ -2365,7 +2365,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 {
                     threadLog.sizes["s3Spill"]++;
                     threadLog.sizes["s3SpillSize"] += temp_spill_size;
-                    std::cout << "s3: " << (int)(id) << std::endl;
+                    // std::cout << "s3: " << (int)(id) << std::endl;
                     uName = "";
                     uName += worker_id;
                     uName += "_";
