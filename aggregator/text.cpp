@@ -2498,10 +2498,10 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
             {
                 float temp_avg = (size - base_size) / (float)(comb_hash_size.load());
                 // std::cout << "avg: " << *avg << " avg diff: " << std::abs(temp_avg - (*avg)) << std::endl;
-                if (std::abs(temp_avg - (*avg)) < 10 || (*avg < 10 && std::abs(temp_avg - (*avg)) < 100))
-                {
-                    *avg = temp_avg;
-                }
+                // if (std::abs(temp_avg - (*avg)) < 10 || (*avg < 10 && std::abs(temp_avg - (*avg)) < 100))
+                //{
+                *avg = temp_avg;
+                //}
                 /* else
                 {
 
