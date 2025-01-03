@@ -2811,7 +2811,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
                             hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
-                            std::cout << "max_hash_size: " << *max_hash_size << " hmap siuze: " << hmap->size() << " comb_hash_size: " << comb_hash_size.load();
+                            //std::cout << "max_hash_size: " << *max_hash_size << " hmap siuze: " << hmap->size() << " comb_hash_size: " << comb_hash_size.load();
                             if (hmap->size() > *max_hash_size)
                             {
                                 comb_hash_size.fetch_add(1);
