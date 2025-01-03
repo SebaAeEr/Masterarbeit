@@ -4453,12 +4453,12 @@ int main(int argc, char **argv)
     std::vector<size_t> memLimit_vec(1);
     std::vector<size_t> memLimitBack_vec(1);
     std::vector<int> threadNumber_vec(1);
-    std::vector<bool> deencode_vec(1);
-    std::vector<bool> set_partitions_vec(1);
-    std::vector<bool> mergePhase_vec(1);
-    std::vector<bool> multiThread_merge_vec(1);
-    std::vector<bool> multiThread_subMerge_vec(1);
-    std::vector<bool> straggler_removal_vec(1);
+    std::vector<bool> deencode_vec(1, deencode);
+    std::vector<bool> set_partitions_vec(1, set_partitions);
+    std::vector<bool> mergePhase_vec(1, mergePhase);
+    std::vector<bool> multiThread_merge_vec(1, multiThread_merge);
+    std::vector<bool> multiThread_subMerge_vec(1, multiThread_subMerge);
+    std::vector<bool> straggler_removal_vec(1, straggler_removal);
 
     if (argc == 10)
     {
@@ -4479,10 +4479,10 @@ int main(int argc, char **argv)
         log_size_string = argv[8];
         log_time_string = argv[9];
 
-        threadNumber = std::stoi(threadNumber_string);
+        threadNumber_vec[0] = std::stoi(threadNumber_string);
         tpc_query = std::stoi(tpc_query_string);
-        memLimit = (std::stof(memLimit_string) - 0.01) * (1ul << 30);
-        memLimitBack = std::stof(memLimitBack_string) * (1ul << 30);
+        memLimit_vec[0] = (std::stof(memLimit_string) - 0.01) * (1ul << 30);
+        memLimitBack_vec[0] = std::stof(memLimitBack_string) * (1ul << 30);
         log_size = log_size_string.compare("true") == 0;
         log_time = log_time_string.compare("true") == 0;
     }
@@ -4523,19 +4523,16 @@ int main(int argc, char **argv)
             case str2int("mainLimit"):
             {
                 memLimit_vec[iteration] = (std::stof(value) - 0.01) * (1ul << 30);
-                memLimit = (std::stof(value) - 0.01) * (1ul << 30);
                 break;
             }
             case str2int("backLimit"):
             {
                 memLimitBack_vec[iteration] = std::stof(value) * (1ul << 30);
-                memLimitBack = std::stof(value) * (1ul << 30);
                 break;
             }
             case str2int("threadNumber"):
             {
                 threadNumber_vec[iteration] = std::stoi(value);
-                threadNumber = std::stoi(value);
                 break;
             }
             case str2int("log_size"):
@@ -4556,37 +4553,31 @@ int main(int argc, char **argv)
             case str2int("deencode"):
             {
                 deencode_vec[iteration] = value.compare("true") == 0;
-                deencode = value.compare("true") == 0;
                 break;
             }
             case str2int("set_partitions"):
             {
                 set_partitions_vec[iteration] = value.compare("true") == 0;
-                set_partitions = value.compare("true") == 0;
                 break;
             }
             case str2int("straggler_removal"):
             {
                 straggler_removal_vec[iteration] = value.compare("true") == 0;
-                straggler_removal = value.compare("true") == 0;
                 break;
             }
             case str2int("mergePhase"):
             {
                 mergePhase_vec[iteration] = value.compare("true") == 0;
-                mergePhase = value.compare("true") == 0;
                 break;
             }
             case str2int("multiThread_subMerge"):
             {
                 multiThread_subMerge_vec[iteration] = value.compare("true") == 0;
-                multiThread_subMerge = value.compare("true") == 0;
                 break;
             }
             case str2int("multiThread_merge"):
             {
                 multiThread_merge_vec[iteration] = value.compare("true") == 0;
-                multiThread_merge = value.compare("true") == 0;
                 break;
             }
             case str2int("iteration"):
@@ -4668,18 +4659,15 @@ int main(int argc, char **argv)
     {
         partitions = -1;
         log_file = logFile();
-        if (i > 0)
-        {
-            memLimit = memLimit_vec[i];
-            memLimitBack = memLimitBack_vec[i];
-            threadNumber = threadNumber_vec[i];
-            deencode = deencode_vec[i];
-            set_partitions = set_partitions_vec[i];
-            mergePhase = mergePhase_vec[i];
-            multiThread_merge = multiThread_merge_vec[i];
-            multiThread_subMerge = multiThread_subMerge_vec[i];
-            straggler_removal = straggler_removal_vec[i];
-        }
+        memLimit = memLimit_vec[i];
+        memLimitBack = memLimitBack_vec[i];
+        threadNumber = threadNumber_vec[i];
+        deencode = deencode_vec[i];
+        set_partitions = set_partitions_vec[i];
+        mergePhase = mergePhase_vec[i];
+        multiThread_merge = multiThread_merge_vec[i];
+        multiThread_subMerge = multiThread_subMerge_vec[i];
+        straggler_removal = straggler_removal_vec[i];
         initManagFile(&minio_client);
         start_time = std::chrono::high_resolution_clock::now();
         time_t now = time(0);
