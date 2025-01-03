@@ -2814,11 +2814,13 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             if (hmap->size() > *max_hash_size)
                             {
                                 comb_hash_size.fetch_add(1);
-                                *max_hash_size++;
+                                *max_hash_size += 1;
                                 /* if (comb_hash_size.load() % 100 == 0)
                                 {
                                     *avg = (getPhyValue() - base_size) / comb_hash_size.load();
                                 } */
+                            } else {
+                                std::cout << "max_hash_size: " << *max_hash_size << " hmap siuze: " << hmap->size() << std::endl;
                             }
                             *bit &= ~(0x01 << (head % 8));
                             if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
@@ -3317,7 +3319,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     std::atomic<unsigned long> read_lines = 0;
     unsigned long written_lines = 0;
     // unsigned long maxHashsize = hmap->size();
-    //comb_hash_size.exchange(comb_hash_size.load() > hmap->size() ? comb_hash_size.load() : hmap->size());
+    // comb_hash_size.exchange(comb_hash_size.load() > hmap->size() ? comb_hash_size.load() : hmap->size());
     std::array<unsigned long, max_size> keys = {0, 0};
     std::array<unsigned long, max_size> values = {0, 0};
     size_t mapping_size = 0;
@@ -3414,7 +3416,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         // std::cout << "Start adding s3spillStart_head: " << s3spillStart_head << " bit_head: " << bit_head << std::endl;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size);
-        std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << max_hash_size << std::endl;
+        std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
         increase = false;
         size_t n = 0;
         int int_n = 0;
@@ -4135,7 +4137,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 multi_files[newThread_ind].clear();
                 getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
                 merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], m_spill, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
-                                                           &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], -1, 0, increase);   
+                                                           &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], -1, 0, increase);
             }
             else
             {
