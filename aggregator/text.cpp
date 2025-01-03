@@ -4459,15 +4459,17 @@ int main(int argc, char **argv)
     std::vector<bool> multiThread_merge_vec(1, multiThread_merge);
     std::vector<bool> multiThread_subMerge_vec(1, multiThread_subMerge);
     std::vector<bool> straggler_removal_vec(1, straggler_removal);
+    std::vector<std::string> memLimit_string_vec(1);
+    std::vector<std::string> memLimitBack_string_vec(1);
 
     if (argc == 10)
     {
-        std::string memLimit_string;
-        std::string memLimitBack_string;
         std::string threadNumber_string;
         std::string tpc_query_string;
         std::string log_size_string;
         std::string log_time_string;
+        std::string memLimit_string;
+        std::string memLimitBack_string;
 
         co_output = argv[1];
         tpc_sup = argv[2];
@@ -4485,6 +4487,8 @@ int main(int argc, char **argv)
         memLimitBack_vec[0] = std::stof(memLimitBack_string) * (1ul << 30);
         log_size = log_size_string.compare("true") == 0;
         log_time = log_time_string.compare("true") == 0;
+        memLimit_string_vec[0] = memLimit_string;
+        memLimitBack_string_vec[0] = memLimitBack_string;
     }
     else
     {
@@ -4523,11 +4527,13 @@ int main(int argc, char **argv)
             case str2int("mainLimit"):
             {
                 memLimit_vec[iteration] = (std::stof(value) - 0.01) * (1ul << 30);
+                memLimit_string_vec[iteration] = value;
                 break;
             }
             case str2int("backLimit"):
             {
                 memLimitBack_vec[iteration] = std::stof(value) * (1ul << 30);
+                memLimitBack_string_vec[iteration] = value;
                 break;
             }
             case str2int("threadNumber"):
@@ -4591,6 +4597,8 @@ int main(int argc, char **argv)
                 multiThread_merge_vec.push_back(multiThread_merge_vec[iteration]);
                 multiThread_subMerge_vec.push_back(multiThread_subMerge_vec[iteration]);
                 straggler_removal_vec.push_back(straggler_removal_vec[iteration]);
+                memLimitBack_string_vec.push_back(memLimitBack_string_vec[iteration]);
+                memLimit_string_vec.push_back(memLimit_string_vec[iteration]);
                 iteration++;
                 break;
             }
@@ -4678,15 +4686,7 @@ int main(int argc, char **argv)
         // for more information about date/time format
         // strftime(buf, sizeof(buf), "%m-%d_%H-%M", &tstruct);
         strftime(buf, sizeof(buf), "%H-%M", &tstruct);
-        date_now = std::to_string(tpc_query);
-        date_now += "_";
-        date_now += std::to_string(memLimit);
-        date_now += "_";
-        date_now += std::to_string(memLimitBack);
-        date_now += "_";
-        date_now += std::to_string(threadNumber);
-        date_now += "_";
-        date_now += buf;
+        date_now = std::to_string(tpc_query) + "_" + memLimit_string_vec[i] + "_" + memLimitBack_string_vec[i] + "_" + std::to_string(threadNumber) + "_" + buf;
         std::cout << date_now << std::endl;
         log_file.sizes.insert(std::make_pair("threadNumber", threadNumber));
         log_file.sizes["mainLimit"] = memLimit;
