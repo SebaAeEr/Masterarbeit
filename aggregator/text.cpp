@@ -4746,13 +4746,13 @@ int main(int argc, char **argv)
         }
 
         cleanup(&minio_client);
-        Aws::ShutdownAPI(options);
+        
         if (log_time)
         {
             writeLogFile(log_file);
         }
     }
-
+Aws::ShutdownAPI(options);
     return 1;
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
