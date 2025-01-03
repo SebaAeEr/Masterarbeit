@@ -2472,7 +2472,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
         if (log_size)
         {
             duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()) / 1000;
-            if (duration - oldduration > 1)
+            if (duration - oldduration > 10)
             {
                 oldduration = duration;
                 // std::string concat_string = std::to_string(newsize) + "," + std::to_string((unsigned long)((*avg) * comb_hash_size.load())) + "," + std::to_string(phyMemBase) + "," + std::to_string(reservedMem) + "," + std::to_string(*extra_mem) + "," + std::to_string(duration);
