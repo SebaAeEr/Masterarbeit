@@ -4522,6 +4522,7 @@ int main(int argc, char **argv)
             }
             case str2int("mainLimit"):
             {
+                std::cout << value << ", " << std::stof(value) << std::endl;
                 memLimit_vec[iteration] = (std::stof(value) - 0.01) * (1ul << 30);
                 break;
             }
@@ -4746,13 +4747,13 @@ int main(int argc, char **argv)
         }
 
         cleanup(&minio_client);
-        
+
         if (log_time)
         {
             writeLogFile(log_file);
         }
     }
-Aws::ShutdownAPI(options);
+    Aws::ShutdownAPI(options);
     return 1;
     // return aggregate("test.txt", "output_test.json");
     /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
