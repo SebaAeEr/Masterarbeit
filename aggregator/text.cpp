@@ -4445,16 +4445,30 @@ int main(int argc, char **argv)
      Aws::ShutdownAPI(options);
      return 1; */
     std::string tpc_sup;
-    std::string memLimit_string;
-    std::string memLimitBack_string;
-    std::string threadNumber_string;
-    std::string tpc_query_string;
-    std::string log_size_string;
-    std::string log_time_string;
     std::string co_output;
+    int tpc_query;
+    size_t memLimit;
+    size_t memLimitBack;
+    int iteration = 0;
+    std::vector<size_t> memLimit_vec(1);
+    std::vector<size_t> memLimitBack_vec(1);
+    std::vector<int> threadNumber_vec(1);
+    std::vector<bool> deencode_vec(1);
+    std::vector<bool> set_partitions_vec(1);
+    std::vector<bool> mergePhase_vec(1);
+    std::vector<bool> multiThread_merge_vec(1);
+    std::vector<bool> multiThread_subMerge_vec(1);
+    std::vector<bool> straggler_removal_vec(1);
 
     if (argc == 10)
     {
+        std::string memLimit_string;
+        std::string memLimitBack_string;
+        std::string threadNumber_string;
+        std::string tpc_query_string;
+        std::string log_size_string;
+        std::string log_time_string;
+
         co_output = argv[1];
         tpc_sup = argv[2];
         memLimit_string = argv[3];
@@ -4464,6 +4478,13 @@ int main(int argc, char **argv)
         worker_id = *argv[7];
         log_size_string = argv[8];
         log_time_string = argv[9];
+
+        threadNumber = std::stoi(threadNumber_string);
+        tpc_query = std::stoi(tpc_query_string);
+        memLimit = (std::stof(memLimit_string) - 0.01) * (1ul << 30);
+        memLimitBack = std::stof(memLimitBack_string) * (1ul << 30);
+        log_size = log_size_string.compare("true") == 0;
+        log_time = log_time_string.compare("true") == 0;
     }
     else
     {
@@ -4486,7 +4507,7 @@ int main(int argc, char **argv)
             {
             case str2int("tpc_query"):
             {
-                tpc_query_string = value;
+                tpc_query = std::stoi(value);
                 break;
             }
             case str2int("input_file"):
@@ -4501,27 +4522,30 @@ int main(int argc, char **argv)
             }
             case str2int("mainLimit"):
             {
-                memLimit_string = value;
+                memLimit_vec[iteration] = (std::stof(value) - 0.01) * (1ul << 30);
+                memLimit = (std::stof(value) - 0.01) * (1ul << 30);
                 break;
             }
             case str2int("backLimit"):
             {
-                memLimitBack_string = value;
+                memLimitBack_vec[iteration] = std::stof(value) * (1ul << 30);
+                memLimitBack = std::stof(value) * (1ul << 30);
                 break;
             }
             case str2int("threadNumber"):
             {
-                threadNumber_string = value;
+                threadNumber_vec[iteration] = std::stoi(value);
+                threadNumber = std::stoi(value);
                 break;
             }
             case str2int("log_size"):
             {
-                log_size_string = value;
+                log_size = value.compare("true") == 0;
                 break;
             }
             case str2int("log_time"):
             {
-                log_time_string = value;
+                log_time = value.compare("true") == 0;
                 break;
             }
             case str2int("worker_id"):
@@ -4531,47 +4555,58 @@ int main(int argc, char **argv)
             }
             case str2int("deencode"):
             {
+                deencode_vec[iteration] = value.compare("true") == 0;
                 deencode = value.compare("true") == 0;
                 break;
             }
             case str2int("set_partitions"):
             {
+                set_partitions_vec[iteration] = value.compare("true") == 0;
                 set_partitions = value.compare("true") == 0;
                 break;
             }
             case str2int("straggler_removal"):
             {
+                straggler_removal_vec[iteration] = value.compare("true") == 0;
                 straggler_removal = value.compare("true") == 0;
                 break;
             }
             case str2int("mergePhase"):
             {
+                mergePhase_vec[iteration] = value.compare("true") == 0;
                 mergePhase = value.compare("true") == 0;
                 break;
             }
             case str2int("multiThread_subMerge"):
             {
+                multiThread_subMerge_vec[iteration] = value.compare("true") == 0;
                 multiThread_subMerge = value.compare("true") == 0;
                 break;
             }
             case str2int("multiThread_merge"):
             {
+                multiThread_merge_vec[iteration] = value.compare("true") == 0;
                 multiThread_merge = value.compare("true") == 0;
+                break;
+            }
+            case str2int("iteration"):
+            {
+                memLimit_vec.push_back(memLimit_vec[iteration]);
+                memLimitBack_vec.push_back(memLimitBack_vec[iteration]);
+                threadNumber_vec.push_back(threadNumber_vec[iteration]);
+                deencode_vec.push_back(deencode_vec[iteration]);
+                set_partitions_vec.push_back(set_partitions_vec[iteration]);
+                mergePhase_vec.push_back(mergePhase_vec[iteration]);
+                multiThread_merge_vec.push_back(multiThread_merge_vec[iteration]);
+                multiThread_subMerge_vec.push_back(multiThread_subMerge_vec[iteration]);
+                straggler_removal_vec.push_back(straggler_removal_vec[iteration]);
+                iteration++;
                 break;
             }
             }
         }
     }
 
-    log_size = log_size_string.compare("true") == 0;
-    log_time = log_time_string.compare("true") == 0;
-
-    threadNumber = std::stoi(threadNumber_string);
-    int tpc_query = std::stoi(tpc_query_string);
-    size_t memLimit = (std::stof(memLimit_string) - 0.01) * (1ul << 30);
-
-    // memLimit -= 1ull << 20;
-    size_t memLimitBack = std::stof(memLimitBack_string) * (1ul << 30);
     pagesize = sysconf(_SC_PAGE_SIZE);
 
     switch (tpc_query)
@@ -4629,82 +4664,105 @@ int main(int argc, char **argv)
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
 
-    bool it = argc == 3;
-    int it_number = it ? 1 : 5;
-    initManagFile(&minio_client);
-    start_time = std::chrono::high_resolution_clock::now();
-    time_t now = time(0);
-    struct tm tstruct;
-    char buf[80];
-    tstruct = *localtime(&now);
-    // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
-    // for more information about date/time format
-    // strftime(buf, sizeof(buf), "%m-%d_%H-%M", &tstruct);
-    strftime(buf, sizeof(buf), "%H-%M", &tstruct);
-    date_now = tpc_query_string + "_" + memLimit_string + "_" + memLimitBack_string + "_" + threadNumber_string + "_" + buf;
-    log_file.sizes.insert(std::make_pair("threadNumber", threadNumber));
-    log_file.sizes["mainLimit"] = memLimit;
-    log_file.sizes["backLimit"] = memLimitBack;
-    log_file.sizes["tpc_query"] = tpc_query;
-    log_file.sizes["threadNumber"] = threadNumber;
-    log_file.sizes["deencode"] = deencode;
-    log_file.sizes["set_partitions"] = set_partitions;
-    log_file.sizes["mergePhase"] = mergePhase;
-    log_file.sizes["straggler_removal"] = straggler_removal;
-    log_file.sizes["multiThread_subMerge"] = multiThread_subMerge;
-    bool failed = false;
-    std::string suffix = "json";
-    isJson = tpc_sup.substr(tpc_sup.length() - suffix.length()) == suffix;
-    if (co_output != "-")
+    for (int i = 0; i < iteration + 1; i++)
     {
+        partitions = -1;
+        log_file = logFile();
+        if (i > 0)
+        {
+            memLimit = memLimit_vec[i];
+            memLimitBack = memLimitBack_vec[i];
+            threadNumber = threadNumber_vec[i];
+            deencode = deencode_vec[i];
+            set_partitions = set_partitions_vec[i];
+            mergePhase = mergePhase_vec[i];
+            multiThread_merge = multiThread_merge_vec[i];
+            multiThread_subMerge = multiThread_subMerge_vec[i];
+            straggler_removal = straggler_removal_vec[i];
+        }
+        initManagFile(&minio_client);
+        start_time = std::chrono::high_resolution_clock::now();
+        time_t now = time(0);
+        struct tm tstruct;
+        char buf[80];
+        tstruct = *localtime(&now);
+        // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
+        // for more information about date/time format
+        // strftime(buf, sizeof(buf), "%m-%d_%H-%M", &tstruct);
+        strftime(buf, sizeof(buf), "%H-%M", &tstruct);
+        date_now = std::to_string(tpc_query) + "_" + std::to_string(memLimit) + "_" + std::to_string(memLimitBack) + "_" + std::to_string(threadNumber) + "_" + buf;
+        log_file.sizes.insert(std::make_pair("threadNumber", threadNumber));
+        log_file.sizes["mainLimit"] = memLimit;
+        log_file.sizes["backLimit"] = memLimitBack;
+        log_file.sizes["tpc_query"] = tpc_query;
+        log_file.sizes["threadNumber"] = threadNumber;
+        log_file.sizes["deencode"] = deencode;
+        log_file.sizes["set_partitions"] = set_partitions;
+        log_file.sizes["mergePhase"] = mergePhase;
+        log_file.sizes["straggler_removal"] = straggler_removal;
+        log_file.sizes["multiThread_subMerge"] = multiThread_subMerge;
+        bool failed = false;
+        std::string suffix = "json";
+        if (tpc_sup != "-")
+        {
+            isJson = tpc_sup.substr(tpc_sup.length() - suffix.length()) == suffix;
+        }
+        else if (co_output != "-")
+        {
+            isJson = co_output.substr(co_output.length() - suffix.length()) == suffix;
+        }
 
+        if (co_output != "-")
+        {
+
+            try
+            {
+                aggregate(co_output, agg_output, memLimit, true, minio_client, memLimitBack);
+            }
+            catch (std::exception &err)
+            {
+                std::cout << "Error while aggregating: " << err.what() << std::endl;
+                log_file.err_msg = err.what();
+                failed = true;
+            }
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
+            std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
+            log_file.sizes["queryDuration"] = duration;
+            log_file.failed = failed;
+            log_size = false;
+        }
+        if (tpc_sup != "-" && !failed)
+        {
+            std::cout << "Testing" << std::endl;
+            try
+            {
+                test(agg_output, tpc_sup);
+            }
+            catch (std::exception &err)
+            {
+                std::cout << "Error while testing: " << err.what() << std::endl;
+            }
+        }
+        std::atomic_ulong comb_hash_size = 0;
+        std::atomic_ulong diff = 0;
+        float avg = 1;
+        emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
         try
         {
-            aggregate(co_output, agg_output, memLimit, true, minio_client, memLimitBack);
+            helpMergePhase(memLimit, memLimitBack, minio_client, true, &hmap, comb_hash_size, diff, &avg);
         }
         catch (std::exception &err)
         {
-            std::cout << "Error while aggregating: " << err.what() << std::endl;
-            log_file.err_msg = err.what();
-            failed = true;
+            std::cout << "Error during mergePhase: " << err.what() << std::endl;
         }
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
-        std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
-        log_file.sizes["queryDuration"] = duration;
-        log_file.failed = failed;
-        log_size = false;
-    }
-    if (tpc_sup != "-" && !failed)
-    {
-        std::cout << "Testing" << std::endl;
-        try
-        {
-            test(agg_output, tpc_sup);
-        }
-        catch (std::exception &err)
-        {
-            std::cout << "Error while testing: " << err.what() << std::endl;
-        }
-    }
-    std::atomic_ulong comb_hash_size = 0;
-    std::atomic_ulong diff = 0;
-    float avg = 1;
-    emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
-    try
-    {
-        helpMergePhase(memLimit, memLimitBack, minio_client, true, &hmap, comb_hash_size, diff, &avg);
-    }
-    catch (std::exception &err)
-    {
-        std::cout << "Error during mergePhase: " << err.what() << std::endl;
-    }
 
-    cleanup(&minio_client);
-    Aws::ShutdownAPI(options);
-    if (log_time)
-    {
-        writeLogFile(log_file);
+        cleanup(&minio_client);
+        Aws::ShutdownAPI(options);
+        if (log_time)
+        {
+            writeLogFile(log_file);
+        }
     }
 
     return 1;
