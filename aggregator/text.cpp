@@ -2811,6 +2811,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
                             hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
+                            std::cout << "max_hash_size: " << *max_hash_size << " hmap siuze: " << hmap->size() << " comb_hash_size: " << comb_hash_size.load();
                             if (hmap->size() > *max_hash_size)
                             {
                                 comb_hash_size.fetch_add(1);
@@ -2819,8 +2820,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                                 {
                                     *avg = (getPhyValue() - base_size) / comb_hash_size.load();
                                 } */
-                            } else {
-                                std::cout << "max_hash_size: " << *max_hash_size << " hmap siuze: " << hmap->size() << std::endl;
                             }
                             *bit &= ~(0x01 << (head % 8));
                             if (std::find(std::begin(test_values), std::end(test_values), keys[0]) != std::end(test_values))
@@ -4153,7 +4152,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 std::cout << "output file head: " << output_file_head << std::endl; */
                 merge(&emHashmap, m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, &mergeThreads_done[0], &max_HashSizes[0], -1, 0);
             }
-            std::cout << " max_HashSizes[0]" << max_HashSizes[0] << std::endl;
+            std::cout << " max_HashSizes[0]: " << max_HashSizes[0] << std::endl;
             m_partition = getMergePartition(&minio_client);
             counter++;
         }
