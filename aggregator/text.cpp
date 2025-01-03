@@ -2422,6 +2422,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         std::cout << "Thread " << int(id) << " finished scanning. With time: " << duration << "s. Scanned Lines: " << numLinesLocal << ". microseconds/line: " << duration * 1000000 / numLinesLocal << ". Spilled with size: " << spill_size << std::endl;
         threadLog.sizes["duration"] = duration;
         threadLog.sizes["endTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+        threadLog.sizes["inputLines"] = numLinesLocal;
         log_file.threads.push_back(threadLog);
     }
     catch (std::exception &err)
@@ -3949,6 +3950,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     log_file.sizes["scanDuration"] = duration;
     log_file.sizes["colS3Spill"] = comb_spill_size - temp_loc_spills;
     log_file.sizes["colBackSpill"] = temp_loc_spills;
+    log_file.sizes["inputLines"] = numLines;
 
     auto mergeH_start_time = std::chrono::high_resolution_clock::now();
     std::vector<std::thread> spill_threads;
@@ -4661,7 +4663,7 @@ int main(int argc, char **argv)
         }
         catch (std::exception &err)
         {
-            std::cout << "conversion error on: " << err.what() << std::endl;
+            std::cout << "Error while aggregating: " << err.what() << std::endl;
             log_file.err_msg = err.what();
             failed = true;
         }
@@ -4674,13 +4676,14 @@ int main(int argc, char **argv)
     }
     if (tpc_sup != "-" && !failed)
     {
+        std::cout << "Testing" << std::endl;
         try
         {
             test(agg_output, tpc_sup);
         }
         catch (std::exception &err)
         {
-            std::cout << "conversion error on: " << err.what() << std::endl;
+            std::cout << "Error while testing: " << err.what() << std::endl;
         }
     }
     std::atomic_ulong comb_hash_size = 0;
@@ -4693,7 +4696,7 @@ int main(int argc, char **argv)
     }
     catch (std::exception &err)
     {
-        std::cout << "conversion error on: " << err.what() << std::endl;
+        std::cout << "Error during mergePhase: " << err.what() << std::endl;
     }
 
     cleanup(&minio_client);
