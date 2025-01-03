@@ -4595,17 +4595,17 @@ int main(int argc, char **argv)
             }
             case str2int("iteration"):
             {
-                memLimit_vec.push_back(memLimit_vec[iteration]);
-                memLimitBack_vec.push_back(memLimitBack_vec[iteration]);
-                threadNumber_vec.push_back(threadNumber_vec[iteration]);
-                deencode_vec.push_back(deencode_vec[iteration]);
-                set_partitions_vec.push_back(set_partitions_vec[iteration]);
-                mergePhase_vec.push_back(mergePhase_vec[iteration]);
-                multiThread_merge_vec.push_back(multiThread_merge_vec[iteration]);
-                multiThread_subMerge_vec.push_back(multiThread_subMerge_vec[iteration]);
-                straggler_removal_vec.push_back(straggler_removal_vec[iteration]);
-                memLimitBack_string_vec.push_back(memLimitBack_string_vec[iteration]);
-                memLimit_string_vec.push_back(memLimit_string_vec[iteration]);
+                memLimit_vec.push_back(memLimit_vec[0]);
+                memLimitBack_vec.push_back(memLimitBack_vec[0]);
+                threadNumber_vec.push_back(threadNumber_vec[0]);
+                deencode_vec.push_back(deencode_vec[0]);
+                set_partitions_vec.push_back(set_partitions_vec[0]);
+                mergePhase_vec.push_back(mergePhase_vec[0]);
+                multiThread_merge_vec.push_back(multiThread_merge_vec[0]);
+                multiThread_subMerge_vec.push_back(multiThread_subMerge_vec[0]);
+                straggler_removal_vec.push_back(straggler_removal_vec[0]);
+                memLimitBack_string_vec.push_back(memLimitBack_string_vec[0]);
+                memLimit_string_vec.push_back(memLimit_string_vec[0]);
                 iteration++;
                 break;
             }
