@@ -2827,10 +2827,11 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             }
                             // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
                         }
+                        int conc_threads = multiThread_merge ? threadNumber : 1;
                         if (spilled_bitmap)
                         {
                             diff->exchange(index);
-                            if (comb_hash_size * (*avg) + base_size >= memLimit * 0.9)
+                            if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9)
                             {
                                 // std::cout << "spilling: " << head - lower_index << std::endl;
                                 unsigned long freed_space_temp = (index - lower_index) - ((index - lower_index) % pagesize);
@@ -2845,7 +2846,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                                     // Update Head to point at the new unfreed mapping space.
                                     lower_index += freed_space_temp;
                                 }
-                                if (hmap->size() >= *max_hash_size * 0.95 && freed_space_temp <= pagesize * 20)
+                                if (hmap->size() >= *max_hash_size * 0.99 && freed_space_temp <= pagesize * 20)
                                 {
                                     if (add && !locked)
                                     {
@@ -2864,9 +2865,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         }
                         else
                         {
-                            if (comb_hash_size * (*avg) + base_size >= memLimit * 0.9 && hmap->size() >= *max_hash_size * 0.95)
+                            if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99)
                             {
-
                                 if (add && !locked)
                                 {
                                     // std::cout << "Calc size: " << hmap->size() * (*avg) + base_size << " base_size: " << base_size << " hmap length " << hmap->size() << " memlimit: " << memLimit << std::endl;
@@ -4107,7 +4107,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                             newThread_ind = thread_ind_counter;
                             if (thread_bitmap[newThread_ind] == 1)
                             {
-                                std::cout << "Joining thread: " << newThread_ind << std::endl;
+                                // std::cout << "Joining thread: " << newThread_ind << std::endl;
                                 merge_threads[newThread_ind].join();
                                 thread_number--;
                             }
@@ -4123,7 +4123,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         thread_ind_counter++;
                     }
                 }
-                std::cout << "newThread_ind: " << newThread_ind << std::endl;
+                // std::cout << "newThread_ind: " << newThread_ind << std::endl;
 
                 files.clear();
                 getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);

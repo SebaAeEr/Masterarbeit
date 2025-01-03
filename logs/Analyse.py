@@ -816,8 +816,8 @@ def c_size_by_time():
     try:
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
-        f = open(os.path.join(directory, "times_13_0.1_0_4_18-32.csv"))
-        jf = open(os.path.join(directory, "logfile_13_0.1_0_4_14-08.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_20-28.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_20-28.json"))
     except:
         print("File not found.")
         return
@@ -826,13 +826,13 @@ def c_size_by_time():
     # Step 2: Extract the columns you want to plot
     # Assuming the columns are named 'Column1' and 'Column2' (change these to match your CSV)
     scale = 2**30
-    x = df["time"] / 1000
-    mes_y = df["mes_size"] / scale
-    hmap_y = df["hmap_size"] / scale
-    base_y = df["base_size"] / scale
-    map_y = df["map_size"] / scale
-    bit_y = df["bit_size"] / scale
-    avg_y = df["avg"]
+    x = df["time"][::2] / 1000
+    mes_y = df["mes_size"][::2] / scale
+    hmap_y = df["hmap_size"][::2] / scale
+    base_y = df["base_size"][::2] / scale
+    map_y = df["map_size"][::2] / scale
+    bit_y = df["bit_size"][::2] / scale
+    avg_y = df["avg"][::2]
     calc_y = hmap_y + base_y + map_y + bit_y
 
     # Step 3: Create the plot

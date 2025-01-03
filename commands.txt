@@ -33,8 +33,8 @@ mysql --local-infile -uroot -ptennis123 tpch1g
 
 docker stats --format "table {{.Name}}\t{{.MemUsage}}"
 
-scp erasmus@atkemper4.in.tum.de:/hddSpace/erasmus/Masterarbeit/aggregator/build/times_11-29_11-38.csv /home/sebthelegend/Masterarbeit/logs/c++_logs/
-scp erasmus@atkemper4.in.tum.de:/hddSpace/erasmus/Masterarbeit/aggregator/build/logfile_12-17_16-07.json /home/sebthelegend/Masterarbeit/logs/c++_logs/
+scp erasmus@atkemper4.in.tum.de:/hddSpace/erasmus/Masterarbeit/aggregator/build/times_13_0.1_0_4_19-12.csv /home/sebthelegend/Masterarbeit/logs/c++_logs/
+scp erasmus@atkemper4.in.tum.de:/hddSpace/erasmus/Masterarbeit/aggregator/build/logfile_13_0.1_0_4_19-12.json /home/sebthelegend/Masterarbeit/logs/c++_logs/
 
 LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/region.tbl'     INTO TABLE region     FIELDS TERMINATED BY '|'; J
 LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/nation.tbl'     INTO TABLE nation     FIELDS TERMINATED BY '|'; J
