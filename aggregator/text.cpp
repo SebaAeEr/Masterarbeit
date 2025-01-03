@@ -2500,7 +2500,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
                 // std::cout << "avg: " << *avg << " avg diff: " << std::abs(temp_avg - (*avg)) << std::endl;
                 // if (std::abs(temp_avg - (*avg)) < 10 || (*avg < 10 && std::abs(temp_avg - (*avg)) < 100))
                 //{
-                *avg = temp_avg;
+                *avg = std::max((float)(100), temp_avg);
                 //}
                 /* else
                 {
@@ -2811,7 +2811,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             // std::cout << "Setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << " xth: " << head % 8 << std::endl;
                             hmap->insert(std::pair<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>>(keys, values));
-                            //std::cout << "max_hash_size: " << *max_hash_size << " hmap siuze: " << hmap->size() << " comb_hash_size: " << comb_hash_size.load();
+                            // std::cout << "max_hash_size: " << *max_hash_size << " hmap siuze: " << hmap->size() << " comb_hash_size: " << comb_hash_size.load();
                             if (hmap->size() > *max_hash_size)
                             {
                                 comb_hash_size.fetch_add(1);
