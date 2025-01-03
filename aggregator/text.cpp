@@ -4522,7 +4522,6 @@ int main(int argc, char **argv)
             }
             case str2int("mainLimit"):
             {
-                std::cout << value << ", " << std::stof(value) << std::endl;
                 memLimit_vec[iteration] = (std::stof(value) - 0.01) * (1ul << 30);
                 break;
             }
@@ -4679,7 +4678,16 @@ int main(int argc, char **argv)
         // for more information about date/time format
         // strftime(buf, sizeof(buf), "%m-%d_%H-%M", &tstruct);
         strftime(buf, sizeof(buf), "%H-%M", &tstruct);
-        date_now = std::to_string(tpc_query) + "_" + std::to_string(memLimit) + "_" + std::to_string(memLimitBack) + "_" + std::to_string(threadNumber) + "_" + buf;
+        date_now = std::to_string(tpc_query);
+        date_now += "_";
+        date_now += std::to_string(memLimit);
+        date_now += "_";
+        date_now += std::to_string(memLimitBack);
+        date_now += "_";
+        date_now += std::to_string(threadNumber);
+        date_now += "_";
+        date_now += buf;
+        std::cout << date_now << std::endl;
         log_file.sizes.insert(std::make_pair("threadNumber", threadNumber));
         log_file.sizes["mainLimit"] = memLimit;
         log_file.sizes["backLimit"] = memLimitBack;
