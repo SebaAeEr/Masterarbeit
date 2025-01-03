@@ -2720,7 +2720,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     // std::cout << "accessing index: " << std::floor(head / 8) << ": " << std::bitset<8>(*bit) << " AND " << std::bitset<8>(1 << (head % 8)) << "= " << ((*bit) & (1 << (head % 8))) << std::endl;
                     if ((*bit) & (1 << (head % 8)))
                     {
-                        auto read_tuple_start = std::chrono::high_resolution_clock::now();
+                        // auto read_tuple_start = std::chrono::high_resolution_clock::now();
                         unsigned long buf[number_of_longs];
                         read_lines->fetch_add(1);
                         if (deencode)
@@ -2766,9 +2766,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         }
                         if (!spill)
                         {
+
                             break;
                         }
-                        log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
+                        // log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
 
                         // static_cast<unsigned long *>(static_cast<void *>(buf));
                         // std::cout << buf[0] << ", " << buf[1] << std::endl;
@@ -2797,9 +2798,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             }
                             bool asdf = false;
                             writeLock->lock();
-                            // while (!writeLock->compare_exchange_strong(asdf, true)){}
                             (*hmap)[keys] = temp;
-                            // writeLock->exchange(false);
                             writeLock->unlock();
 
                             *bit &= ~(0x01 << (head % 8));
@@ -2859,6 +2858,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                                     }
                                     if (firsts3File)
                                     {
+
                                         break;
                                     }
                                 }
@@ -2879,6 +2879,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                                 }
                                 if (firsts3File)
                                 {
+
                                     break;
                                 }
                             }
@@ -2896,6 +2897,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             }
                             if (!spill)
                             {
+
                                 break;
                             }
                         }
@@ -2904,12 +2906,14 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             spill.ignore(sizeof(long) * number_of_longs);
                             if (!spill)
                             {
+
                                 break;
                             }
                         }
                     }
                     head++;
                 }
+
                 // std::cout << "head: " << head * sizeof(long) * number_of_longs << ", spillsize: " << sub_file << std::endl;
                 if (spilled_bitmap)
                 {
@@ -3313,7 +3317,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     std::atomic<unsigned long> read_lines = 0;
     unsigned long written_lines = 0;
     // unsigned long maxHashsize = hmap->size();
-    comb_hash_size.exchange(comb_hash_size.load() > hmap->size() ? comb_hash_size.load() : hmap->size());
+    //comb_hash_size.exchange(comb_hash_size.load() > hmap->size() ? comb_hash_size.load() : hmap->size());
     std::array<unsigned long, max_size> keys = {0, 0};
     std::array<unsigned long, max_size> values = {0, 0};
     size_t mapping_size = 0;
@@ -3410,6 +3414,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         // std::cout << "Start adding s3spillStart_head: " << s3spillStart_head << " bit_head: " << bit_head << std::endl;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size);
+        std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << max_hash_size << std::endl;
         increase = false;
         size_t n = 0;
         int int_n = 0;
@@ -4130,7 +4135,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 multi_files[newThread_ind].clear();
                 getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
                 merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], m_spill, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
-                                                           &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], -1, 0, increase);
+                                                           &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], -1, 0, increase);   
             }
             else
             {
@@ -4146,6 +4151,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 std::cout << "output file head: " << output_file_head << std::endl; */
                 merge(&emHashmap, m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, &mergeThreads_done[0], &max_HashSizes[0], -1, 0);
             }
+            std::cout << " max_HashSizes[0]" << max_HashSizes[0] << std::endl;
             m_partition = getMergePartition(&minio_client);
             counter++;
         }

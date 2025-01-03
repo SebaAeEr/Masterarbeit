@@ -816,8 +816,8 @@ def c_size_by_time():
     try:
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
-        f = open(os.path.join(directory, "times_4_6_0_4_14-54.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_4_14-54.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_19-36.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_17-46.json"))
     except:
         print("File not found.")
         return
@@ -905,6 +905,9 @@ def c_size_by_time():
     average = sum(get_file_dur) / len(get_file_dur)
     print("write_mana_dur avg: " + str(average))
 
+    plt.figure(9)
+    plt.plot(x, hmap_y * scale / avg_y, label="hmap_size")
+
     write_file_sum = 0
     for thread in jf_data["Threads"]:
         write_file_sum += thread["write_file_dur"]
@@ -934,14 +937,6 @@ def c_size_by_time():
     ]
 
     makeBarFig(times, np.array(["X"]), "Wall time in min")
-    dates = [
-        write_file_sum,
-        scan_dur,
-        merge_hash_dur,
-        get_file_sum,
-        merge_dur,
-        read_tuple_sum,
-    ]
     print(str(times))
     # bottom = 0
     # for datum in dates:
