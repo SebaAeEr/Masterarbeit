@@ -4670,6 +4670,7 @@ int main(int argc, char **argv)
     }
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
+    std::cout << "Iterations: " <<  iteration << std::endl;
 
     for (int i = 0; i < iteration + 1; i++)
     {
@@ -4736,10 +4737,10 @@ int main(int argc, char **argv)
             log_file.sizes["queryDuration"] = duration;
             log_file.failed = failed;
         }
+        bool temp_log_size = log_size;
+        log_size = false;
         if (tpc_sup != "-" && !failed)
         {
-            bool temp_log_size = log_size;
-            log_size = false;
             std::cout << "Testing" << std::endl;
             try
             {
@@ -4749,7 +4750,7 @@ int main(int argc, char **argv)
             {
                 std::cout << "Error while testing: " << err.what() << std::endl;
             }
-                }
+        }
         std::atomic_ulong comb_hash_size = 0;
         std::atomic_ulong diff = 0;
         float avg = 1;
