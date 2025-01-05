@@ -2652,7 +2652,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 char *bitmap_mapping;
                 std::vector<char> *bitmap_vector;
                 // std::cout << "first: " << s3spillBitmaps[bit_i].first << std::endl;
-                bool spilled_bitmap = (*s3spillBitmaps)[bit_i].first != -1;
+                bool spilled_bitmap = false; //(*s3spillBitmaps)[bit_i].first != -1;
                 if (!spilled_bitmap)
                 {
                     bitmap_vector = &(*s3spillBitmaps)[bit_i].second;
