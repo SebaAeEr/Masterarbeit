@@ -4738,7 +4738,7 @@ int main(int argc, char **argv)
             log_file.failed = failed;
         }
         bool temp_log_size = log_size;
-        log_size = false;
+        log_size = tpc_sup == "-" && co_output == "-" ? log_size : false;
         if (tpc_sup != "-" && !failed)
         {
             std::cout << "Testing" << std::endl;

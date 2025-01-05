@@ -813,11 +813,17 @@ def analyse_1_6_13():
 
 
 def c_size_by_time():
+    names = [
+        "logfile_4_6_0_4_23-39.json",
+        "logfile_4_6_0_4_00-06.json",
+        "logfile_4_6_0_4_00-45.json",
+        "logfile_4_6_0_4_01-29.json",
+    ]
     try:
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
-        f = open(os.path.join(directory, "times_13_0.1_0_4_23-18.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_4_17-46.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_23-39.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_23-39.json"))
     except:
         print("File not found.")
         return
@@ -826,13 +832,13 @@ def c_size_by_time():
     # Step 2: Extract the columns you want to plot
     # Assuming the columns are named 'Column1' and 'Column2' (change these to match your CSV)
     scale = 2**30
-    x = df["time"][::2] / 1000
-    mes_y = df["mes_size"][::2] / scale
-    hmap_y = df["hmap_size"][::2] / scale
-    base_y = df["base_size"][::2] / scale
-    map_y = df["map_size"][::2] / scale
-    bit_y = df["bit_size"][::2] / scale
-    avg_y = df["avg"][::2]
+    x = df["time"] / 1000
+    mes_y = df["mes_size"] / scale
+    hmap_y = df["hmap_size"] / scale
+    base_y = df["base_size"] / scale
+    map_y = df["map_size"] / scale
+    bit_y = df["bit_size"] / scale
+    avg_y = df["avg"]
     calc_y = hmap_y + base_y + map_y + bit_y
 
     # Step 3: Create the plot
@@ -860,81 +866,90 @@ def c_size_by_time():
     plt.figure(2)
     plt.plot(x, avg_y, label="Average")
 
-    get_mana_dur = jf_data["get_mana_dur"]
-    plt.figure(3)
-    plt.hist(get_mana_dur, bins=30, label="get_mana_dur")
-    plt.title("get_mana_dur")
-    average = sum(get_mana_dur) / len(get_mana_dur)
-    print("get_mana_dur avg: " + str(average))
+    times = []
 
-    write_mana_dur = jf_data["write_mana_dur"]
-    plt.figure(4)
-    plt.hist(write_mana_dur, bins=30, label="write_mana_dur")
-    plt.title("write_mana_dur")
-    average = sum(write_mana_dur) / len(write_mana_dur)
-    print("write_mana_dur avg: " + str(average))
+    for name in names:
+        jf = open(os.path.join(directory, name))
+        jf_data = json.load(jf)
+        print(name + ":")
+        # plt.figure(3)
+        # plt.hist(get_mana_dur, bins=30, label="get_mana_dur")
+        # plt.title("get_mana_dur")
+        get_mana_dur = jf_data["get_mana_dur"]
+        average = sum(get_mana_dur) / len(get_mana_dur)
+        print("get_mana_dur avg: " + str(average))
 
-    get_lock_dur = jf_data["get_lock_dur"]
-    plt.figure(5)
-    plt.hist(get_lock_dur, bins=30, label="get_lock_dur")
-    plt.title("get_lock_dur")
-    average = sum(get_lock_dur) / len(get_lock_dur)
-    print("get_lock_dur avg: " + str(average))
+        write_mana_dur = jf_data["write_mana_dur"]
+        # plt.figure(4)
+        # plt.hist(write_mana_dur, bins=30, label="write_mana_dur")
+        # plt.title("write_mana_dur")
+        average = sum(write_mana_dur) / len(write_mana_dur)
+        print("write_mana_dur avg: " + str(average))
 
-    write_file_dur = jf_data["writeCall_s3_file_dur"]
-    write_file_size = jf_data["writeCall_s3_file_size"]
-    write_file_dur.sort()
-    write_file_size.sort()
-    plt.figure(6)
-    plt.plot(write_file_dur, write_file_size, label="write file duration")
-    plt.title("write file dur per size")
+        get_lock_dur = jf_data["get_lock_dur"]
+        # plt.figure(5)
+        # plt.hist(get_lock_dur, bins=30, label="get_lock_dur")
+        # plt.title("get_lock_dur")
+        average = sum(get_lock_dur) / len(get_lock_dur)
+        print("get_lock_dur avg: " + str(average))
 
-    plt.figure(7)
-    plt.hist(write_file_dur, bins=30, label="write_file_dur")
-    plt.title("write file dur")
-    average_1 = sum(write_file_dur) / len(write_file_dur)
-    print("write_file_dur avg: " + str(average_1))
-    average_2 = sum(write_file_size) / len(write_file_size)
-    print("write_file_size avg: " + str(average_2))
-    print("write_file_size / write_file_dur  avg: " + str(average_2 / average_1))
+        write_file_dur = jf_data["writeCall_s3_file_dur"]
+        write_file_size = jf_data["writeCall_s3_file_size"]
+        write_file_dur.sort()
+        write_file_size.sort()
+        # plt.figure(6)
+        # plt.plot(write_file_dur, write_file_size, label="write file duration")
+        # plt.title("write file dur per size")
 
-    plt.figure(8)
-    get_file_dur = jf_data["getCall_s3_file_dur"]
-    plt.hist(get_file_dur, bins=30, label="get_file_dur")
-    plt.title("get_file_dur")
-    average = sum(get_file_dur) / len(get_file_dur)
-    print("write_mana_dur avg: " + str(average))
+        # plt.figure(7)
+        # plt.hist(write_file_dur, bins=30, label="write_file_dur")
+        # plt.title("write file dur")
+        average_1 = sum(write_file_dur) / len(write_file_dur)
+        print("write_file_dur avg: " + str(average_1))
+        average_2 = sum(write_file_size) / len(write_file_size)
+        print("write_file_size avg: " + str(average_2))
+        print("write_file_size / write_file_dur  avg: " + str(average_2 / average_1))
 
-    plt.figure(9)
-    plt.plot(x, hmap_y * scale / avg_y, label="hmap_size")
+        # plt.figure(8)
+        get_file_dur = jf_data["getCall_s3_file_dur"]
+        # plt.hist(get_file_dur, bins=30, label="get_file_dur")
+        # plt.title("get_file_dur")
+        average = sum(get_file_dur) / len(get_file_dur)
+        print("write_mana_dur avg: " + str(average))
 
-    write_file_sum = 0
-    for thread in jf_data["Threads"]:
-        write_file_sum += thread["write_file_dur"]
+        # plt.figure(9)
+        # plt.plot(x, hmap_y * scale / avg_y, label="hmap_size")
 
-    write_file_sum /= jf_data["threadNumber"] * 1000000
+        write_file_sum = 0
+        for thread in jf_data["Threads"]:
+            write_file_sum += thread["write_file_dur"]
 
-    get_file_sum = sum(jf_data["getCall_s3_file_dur"]) / (
-        jf_data["threadNumber"] * 1000000
-    )
-    read_tuple_sum = jf_data["get_tuple_dur"] / 1000000
-    write_output_sum = jf_data["write_output_dur"] / 1000000
-    merge_dur = jf_data["mergeDuration"] - (get_file_sum + write_output_sum)
-    scan_dur = jf_data["scanDuration"] - write_file_sum
-    merge_hash_dur = jf_data["mergeHashDuration"]
+        write_file_sum /= jf_data["threadNumber"] * 1000000
 
-    times = [
-        {
-            "write_file_sum": np.array([write_file_sum]),
-            "scan_dur": np.array([scan_dur]),
-            "merge_hash_dur": np.array([merge_hash_dur]),
-            "get_file_sum": np.array([get_file_sum]),
-            "write_output_sum": np.array([write_output_sum]),
-            "merge_dur": np.array([merge_dur]),
-            "read_tuple_sum": np.array([read_tuple_sum]),
-            #   "Exchange": np.array(wall_time_exc[k][0]),
-        }
-    ]
+        get_file_sum = sum(jf_data["getCall_s3_file_dur"]) / (
+            jf_data["threadNumber"] * 1000000
+        )
+        print("get_file_sum: " + str(get_file_sum))
+        # read_tuple_sum = jf_data["get_tuple_dur"] / 1000000
+        write_output_sum = jf_data["write_output_dur"] / 1000000
+        merge_dur = (
+            jf_data["mergeDuration"] - write_output_sum
+        )  # (get_file_sum + write_output_sum)
+        scan_dur = jf_data["scanDuration"] - write_file_sum
+        merge_hash_dur = jf_data["mergeHashDuration"]
+
+        times += [
+            {
+                "write_file_sum": np.array([write_file_sum]),
+                "scan_dur": np.array([scan_dur]),
+                #"merge_hash_dur": np.array([merge_hash_dur]),
+                # "get_file_sum": np.array([get_file_sum]),
+                "write_output_sum": np.array([write_output_sum]),
+                "merge_dur": np.array([merge_dur]),
+                # "read_tuple_sum": np.array([read_tuple_sum]),
+                #   "Exchange": np.array(wall_time_exc[k][0]),
+            }
+        ]
 
     makeBarFig(times, np.array(["X"]), "Wall time in min")
     print(str(times))
