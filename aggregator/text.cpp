@@ -4058,7 +4058,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // std::cout << "Scanning finished." << std::endl;
 
     // Open the outputfile to write results
-    open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+    int temp = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+    close(temp);
     unsigned long written_lines = 0;
     unsigned long read_lines = 0;
     comb_hash_size = emHashmap.size();
@@ -4734,10 +4735,11 @@ int main(int argc, char **argv)
             std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
             log_file.sizes["queryDuration"] = duration;
             log_file.failed = failed;
-            log_size = false;
         }
         if (tpc_sup != "-" && !failed)
         {
+            bool temp_log_size = log_size;
+            log_size = false;
             std::cout << "Testing" << std::endl;
             try
             {
@@ -4747,7 +4749,7 @@ int main(int argc, char **argv)
             {
                 std::cout << "Error while testing: " << err.what() << std::endl;
             }
-        }
+                }
         std::atomic_ulong comb_hash_size = 0;
         std::atomic_ulong diff = 0;
         float avg = 1;
@@ -4767,6 +4769,7 @@ int main(int argc, char **argv)
         {
             writeLogFile(log_file);
         }
+        log_size = temp_log_size;
     }
     Aws::ShutdownAPI(options);
     return 1;
