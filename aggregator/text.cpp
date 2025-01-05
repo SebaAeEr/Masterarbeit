@@ -3516,14 +3516,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         if (writeRes)
         {
             written_lines += hmap->size();
-            if (deencode)
+            /* if (deencode)
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " locked: " << locked << std::endl;
             }
             else
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
-            }
+            } */
             bool asdf = false;
             writing_ouput.lock();
             *output_file_head += writeHashmap(hmap, *output_file_head, pagesize * 30, outputfilename);
