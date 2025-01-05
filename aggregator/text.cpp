@@ -3350,57 +3350,57 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             bitmap_size_sum += std::ceil((float)(tuple_num.second) / 8);
         }
     }
-    if (bitmap_size_sum > memLimit * 0.7)
+    /*  if (bitmap_size_sum > memLimit * 0.7)
+     {
+         // std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
+         for (auto &name : *s3spillNames2)
+         {
+             int counter = 0;
+             for (auto &s : get<2>(name))
+             {
+                 size_t size = std::ceil((float)(s.second) / 8);
+                 // std::cout << "writing bitmap" << (*s3spillNames)[counter] << "_bitmap" << " with size: " << size << std::endl;
+                 //  Spilling bitmaps
+                 int fd = open((get<0>(name) + std::to_string(counter) + "_bitmap").c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+                 lseek(fd, size - 1, SEEK_SET);
+                 if (write(fd, "", 1) == -1)
+                 {
+                     close(fd);
+                     perror("Error writing last byte of the file");
+                     exit(EXIT_FAILURE);
+                 }
+                 char *spill = (char *)(mmap(nullptr, size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0));
+                 madvise(spill, size, MADV_SEQUENTIAL | MADV_WILLNEED);
+                 if (spill == MAP_FAILED)
+                 {
+                     close(fd);
+                     perror("Error mmapping the file in creating a bitmap");
+                     exit(EXIT_FAILURE);
+                 }
+                 for (unsigned long i = 0; i < size; i++)
+                 {
+                     spill[i] = -1;
+                 }
+                 munmap(spill, size);
+                 s3spillBitmaps.push_back({fd, {}});
+                 counter++;
+             }
+         }
+         bitmap_size_sum = 0;
+     }
+     else
+     { */
+    // not spilling bitmaps
+    for (auto &name : *s3spillNames2)
     {
-        // std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
-        for (auto &name : *s3spillNames2)
+        for (auto &s : get<2>(name))
         {
-            int counter = 0;
-            for (auto &s : get<2>(name))
-            {
-                size_t size = std::ceil((float)(s.second) / 8);
-                // std::cout << "writing bitmap" << (*s3spillNames)[counter] << "_bitmap" << " with size: " << size << std::endl;
-                //  Spilling bitmaps
-                int fd = open((get<0>(name) + std::to_string(counter) + "_bitmap").c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
-                lseek(fd, size - 1, SEEK_SET);
-                if (write(fd, "", 1) == -1)
-                {
-                    close(fd);
-                    perror("Error writing last byte of the file");
-                    exit(EXIT_FAILURE);
-                }
-                char *spill = (char *)(mmap(nullptr, size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0));
-                madvise(spill, size, MADV_SEQUENTIAL | MADV_WILLNEED);
-                if (spill == MAP_FAILED)
-                {
-                    close(fd);
-                    perror("Error mmapping the file in creating a bitmap");
-                    exit(EXIT_FAILURE);
-                }
-                for (unsigned long i = 0; i < size; i++)
-                {
-                    spill[i] = -1;
-                }
-                munmap(spill, size);
-                s3spillBitmaps.push_back({fd, {}});
-                counter++;
-            }
+            std::vector<char> bitmap = std::vector<char>(std::ceil((float)(s.second) / 8), -1);
+            s3spillBitmaps.push_back({-1, bitmap});
         }
-        bitmap_size_sum = 0;
     }
-    else
-    {
-        // not spilling bitmaps
-        for (auto &name : *s3spillNames2)
-        {
-            for (auto &s : get<2>(name))
-            {
-                std::vector<char> bitmap = std::vector<char>(std::ceil((float)(s.second) / 8), -1);
-                s3spillBitmaps.push_back({-1, bitmap});
-            }
-        }
-        // std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() << std::endl;
-    }
+    // std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() << std::endl;
+    //}
     extra_mem += bitmap_size_sum;
     size_t size_after_init = getPhyValue();
     std::vector<int> write_counter(partitions, 0);
