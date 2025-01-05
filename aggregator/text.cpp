@@ -2149,7 +2149,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     if (mappedFile == MAP_FAILED)
     {
         close(file);
-        perror("Error mmapping the file");
+        perror("Error mmapping the file in fill hashmap");
         exit(EXIT_FAILURE);
     }
     madvise(mappedFile, size + offset, MADV_SEQUENTIAL | MADV_WILLNEED);
@@ -2662,7 +2662,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     bitmap_mapping = static_cast<char *>(mmap(nullptr, std::ceil((float)(sub_file) / 8), PROT_WRITE | PROT_READ, MAP_SHARED, (*s3spillBitmaps)[bit_i].first, 0));
                     if (bitmap_mapping == MAP_FAILED)
                     {
-                        perror("Error mmapping the file");
+                        perror("Error mmapping the file in opening bitmap");
                         exit(EXIT_FAILURE);
                     }
                     madvise(bitmap_mapping, std::ceil((float)(sub_file) / 8), MADV_SEQUENTIAL | MADV_WILLNEED);
@@ -2996,7 +2996,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         if (spill_map_char == MAP_FAILED)
                         {
                             close(it.first);
-                            perror("Error mmapping the file");
+                            perror("Error mmapping the file  in submerge 1");
                             exit(EXIT_FAILURE);
                         }
                         madvise(spill_map_char, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
@@ -3014,7 +3014,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         if (spill_map == MAP_FAILED)
                         {
                             close(it.first);
-                            perror("Error mmapping the file");
+                            perror("Error mmapping the file in submerge 2");
                             exit(EXIT_FAILURE);
                         }
                         madvise(spill_map, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
@@ -3374,7 +3374,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 if (spill == MAP_FAILED)
                 {
                     close(fd);
-                    perror("Error mmapping the file");
+                    perror("Error mmapping the file in creating a bitmap");
                     exit(EXIT_FAILURE);
                 }
                 for (unsigned long i = 0; i < size; i++)
@@ -3415,7 +3415,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         // std::cout << "Start adding s3spillStart_head: " << s3spillStart_head << " bit_head: " << bit_head << std::endl;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size);
-        std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
+        // std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
         increase = false;
         size_t n = 0;
         int int_n = 0;
@@ -4670,7 +4670,7 @@ int main(int argc, char **argv)
     }
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
-    std::cout << "Iterations: " <<  iteration << std::endl;
+    std::cout << "Iterations: " << iteration << std::endl;
 
     for (int i = 0; i < iteration + 1; i++)
     {
