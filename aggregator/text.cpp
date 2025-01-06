@@ -3408,7 +3408,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     std::mutex writeLock;
 
     bool finished = false;
-    bool writing_output = false;
+    bool started_writing = false;
     // bool increase = true;
 
     while (!finished)
@@ -3536,9 +3536,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         }
         else
         {
-            if (!finished || writing_ouput)
+            if (!finished || started_writing)
             {
-                writing_ouput = true;
+                started_writing = true;
                 size_t spill_size = hmap->size() * sizeof(long) * (key_number + value_number);
                 size_t comb_spill_size = 0;
                 std::string local_spill_name = "local_mergeSpill_";
