@@ -3794,7 +3794,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     {
         sizePrinter.join();
     }
-    log_file.sizes["selectivity"] = log_file.sizes["linesWritten"] / log_file.sizes["readLines"];
+    log_file.sizes["selectivity"] = log_file.sizes["linesWritten"] / log_file.sizes["linesRead"];
 }
 
 char getMergePartition(Aws::S3::S3Client *minio_client)
