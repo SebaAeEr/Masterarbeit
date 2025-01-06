@@ -4077,9 +4077,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // Free up rest of mapping of input file and close the file
     close(fd);
 
-    // std::cout << "Scanning finished." << std::endl;
-
-    // Open the outputfile to write results
+        // Open the outputfile to write results
     int temp = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     close(temp);
     unsigned long written_lines = 0;
@@ -4097,6 +4095,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             break;
         }
     }
+    std::cout << s3spilled << std::endl;
 
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
@@ -4151,7 +4150,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         thread_ind_counter++;
                     }
                 }
-                // std::cout << "newThread_ind: " << newThread_ind << std::endl;
+                std::cout << "newThread_ind: " << newThread_ind << std::endl;
 
                 multi_files[newThread_ind].clear();
                 m_partition = getMergePartition(&minio_client);
