@@ -985,7 +985,9 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
 
 void getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id, std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *files)
 {
+    printMana(minio_client);
     manaFile mana = getMana(minio_client);
+    
     for (auto &worker : mana.workers)
     {
         if (worker.id == worker_id)
@@ -4095,7 +4097,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             break;
         }
     }
-    std::cout << s3spilled << std::endl;
 
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
