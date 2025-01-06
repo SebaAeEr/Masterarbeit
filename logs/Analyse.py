@@ -814,12 +814,11 @@ def analyse_1_6_13():
 
 def c_size_by_time():
     names = [
-        # "logfile_4_6_0_1_11-22.json",
-        # "logfile_4_6_0_4_10-21.json",
-        # "logfile_4_6_0_4_23-39.json",
-        # "logfile_4_6_0_4_00-06.json",
-        # "logfile_4_6_0_4_00-45.json",
-        # "logfile_4_6_0_4_01-29.json",
+        "logfile_4_6_0_4_10-21.json",
+        "logfile_4_6_0_4_23-39.json",
+        "logfile_4_6_0_4_00-06.json",
+        "logfile_4_6_0_4_00-45.json",
+        "logfile_4_6_0_4_01-29.json",
     ]
     try:
         directory = "c++_logs"
