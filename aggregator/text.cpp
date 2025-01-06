@@ -3926,7 +3926,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // auto scan_start_time = std::chrono::high_resolution_clock::now();
     char id = 0;
 
-    for (int i = 0; i < threadNumber - 1; i++)
+    /* for (int i = 0; i < threadNumber - 1; i++)
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, id, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber,
@@ -4005,7 +4005,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             avg = ((getPhyValue() * 1024 - base_size) / (float)(comb_hash_size));
         }
         else
-        { */
+        { * /
         std::string uName = "spill_" + std::to_string(i);
         std::vector<std::pair<int, size_t>> local_files = std::vector<std::pair<int, size_t>>(partitions, {-1, 0});
         spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], local_files, uName, &minio_client, worker_id, 0, i));
@@ -4029,7 +4029,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - mergeH_start_time).count()) / 1000000;
     std::cout << "Merging of hastables finished with time: " << duration << "s." << std::endl;
     log_file.sizes["mergeHashTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
-    log_file.sizes["mergeHashDuration"] = duration;
+    log_file.sizes["mergeHashDuration"] = duration; */
 
     finished++;
 
