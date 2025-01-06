@@ -3926,7 +3926,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // auto scan_start_time = std::chrono::high_resolution_clock::now();
     char id = 0;
 
-    /* for (int i = 0; i < threadNumber - 1; i++)
+    for (int i = 0; i < threadNumber - 1; i++)
     {
         emHashmaps[i] = {};
         threads.push_back(std::thread(fillHashmap, id, &emHashmaps[i], fd, t1_size * i, t1_size, true, memLimit / threadNumber,
@@ -4005,7 +4005,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             avg = ((getPhyValue() * 1024 - base_size) / (float)(comb_hash_size));
         }
         else
-        { * /
+        { */
         std::string uName = "spill_" + std::to_string(i);
         std::vector<std::pair<int, size_t>> local_files = std::vector<std::pair<int, size_t>>(partitions, {-1, 0});
         spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], local_files, uName, &minio_client, worker_id, 0, i));
@@ -4029,13 +4029,13 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - mergeH_start_time).count()) / 1000000;
     std::cout << "Merging of hastables finished with time: " << duration << "s." << std::endl;
     log_file.sizes["mergeHashTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
-    log_file.sizes["mergeHashDuration"] = duration; */
+    log_file.sizes["mergeHashDuration"] = duration;
 
-    std::vector<std::thread> spill_threads;
+    /* std::vector<std::thread> spill_threads;
     std::string empty = "";
     std::vector<std::string> uNames;
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
-    std::vector<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>> merge_emHashmaps(threadNumber);
+    std::vector<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>> merge_emHashmaps(threadNumber); */
 
     finished++;
 
@@ -4216,7 +4216,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         // write hashmap to output file
         writeHashmap(&emHashmap, 0, pagesize * 10, outputfilename);
     }
-    auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
+    duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
     log_file.sizes["mergeDuration"] = duration;
     log_file.sizes["mergeTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
