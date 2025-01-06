@@ -4031,6 +4031,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     log_file.sizes["mergeHashTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
     log_file.sizes["mergeHashDuration"] = duration; */
 
+    std::vector<std::thread> spill_threads;
+    std::string empty = "";
+    std::vector<std::string> uNames;
+    emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
+    std::vector<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>> merge_emHashmaps(threadNumber);
+
     finished++;
 
     if (mergePhase)
@@ -4061,7 +4067,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 }
             }
         }
-        duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - colmerge_start_time).count()) / 1000000;
+        auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - colmerge_start_time).count()) / 1000000;
         std::cout << "Collective Merge ended with time: " << duration << "s." << std::endl;
         log_file.sizes["mergeColTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
         log_file.sizes["mergeColDuration"] = duration;
@@ -4210,7 +4216,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         // write hashmap to output file
         writeHashmap(&emHashmap, 0, pagesize * 10, outputfilename);
     }
-    duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
+    auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
     log_file.sizes["mergeDuration"] = duration;
     log_file.sizes["mergeTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
