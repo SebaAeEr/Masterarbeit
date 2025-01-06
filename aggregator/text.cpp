@@ -747,17 +747,9 @@ Aws::S3::S3Client init()
     return minio_client;
 }
 
-void printMana(Aws::S3::S3Client *minio_client, manaFile given_mana, bool usegetMana = true)
+void printMana(Aws::S3::S3Client *minio_client)
 {
-    manaFile mana;
-    if (usegetMana)
-    {
-        mana = getMana(minio_client);
-    }
-    else
-    {
-        mana = given_mana;
-    }
+    manaFile mana = getMana(minio_client);
     std::string status = mana.worker_lock == 0 ? "free" : std::to_string(mana.worker_lock);
     std::cout << "worker lock: " << status << ", thread lock: " << std::bitset<8>(mana.thread_lock) << std::endl;
     for (auto &worker : mana.workers)
@@ -985,7 +977,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
 
 void getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id, std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *files)
 {
-    printMana(minio_client, manaFile());
+    printMana(minio_client);
     manaFile mana = getMana(minio_client);
 
     for (auto &worker : mana.workers)
@@ -4468,8 +4460,7 @@ int main(int argc, char **argv)
         if (f.compare("status") == 0)
         {
             Aws::S3::S3Client minio_client_2 = init();
-            manaFile asdf;
-            printMana(&minio_client_2, asdf);
+            printMana(&minio_client_2);
             Aws::ShutdownAPI(options);
             return 1;
         }
