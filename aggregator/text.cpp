@@ -2495,7 +2495,10 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
                 // std::cout << "avg: " << *avg << " avg diff: " << std::abs(temp_avg - (*avg)) << std::endl;
                 // if (std::abs(temp_avg - (*avg)) < 10 || (*avg < 10 && std::abs(temp_avg - (*avg)) < 100))
                 //{
-                *avg = std::max((float)(100), temp_avg);
+                if (temp_avg < 100)
+                {
+                    *avg = std::max((float)(100), temp_avg);
+                }
                 //}
                 /* else
                 {
