@@ -4087,7 +4087,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         std::vector<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(threadNumber);
         std::vector<size_t> max_HashSizes(threadNumber, 0);
         std::vector<char> thread_bitmap(threadNumber, 0);
-        char m_partition = getMergePartition(&minio_client);
+        char m_partition = 0;
         int counter = 0;
 
         std::vector<std::thread> merge_threads(threadNumber);
@@ -4148,22 +4148,26 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             }
             else
             {
-                std::cout << "merging partition: " << (int)(m_partition) << std::endl;
-                printProgressBar((float)(counter) / partitions);
-                files.clear();
-                getAllMergeFileNames(&minio_client, m_partition, &files);
-
-                /* for (auto &name : files)
+                m_partition = getMergePartition(&minio_client);
+                if (m_partition != -1)
                 {
-                    std::cout << std::get<0>(name) << ", ";
+                    std::cout << "merging partition: " << (int)(m_partition) << std::endl;
+                    printProgressBar((float)(counter) / partitions);
+                    files.clear();
+                    getAllMergeFileNames(&minio_client, m_partition, &files);
+
+                    /* for (auto &name : files)
+                    {
+                        std::cout << std::get<0>(name) << ", ";
+                    }
+                    std::cout << std::endl;
+                    std::string empty = "";
+                    std::cout << "output file head: " << output_file_head << std::endl; */
+                    merge(&emHashmap, m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, &mergeThreads_done[0], &max_HashSizes[0], -1, 0);
                 }
-                std::cout << std::endl;
-                std::string empty = "";
-                std::cout << "output file head: " << output_file_head << std::endl; */
-                merge(&emHashmap, m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, &mergeThreads_done[0], &max_HashSizes[0], -1, 0);
             }
             // std::cout << " max_HashSizes[0]: " << max_HashSizes[0] << std::endl;
-            m_partition = getMergePartition(&minio_client);
+
             counter++;
         }
         mana = getLockedMana(&minio_client, 0);
