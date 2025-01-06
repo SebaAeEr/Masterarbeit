@@ -2932,10 +2932,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             it_counter++;
         }
     }
-    if (add)
+    /* if (add)
     {
         *s3spillFile_head = s3spillNames2->size();
-    }
+    } */
     // std::cout << "Merging local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
 
     // std::cout << "New round" << std::endl;
@@ -3260,10 +3260,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         }
     }
     // extra_mem -= increase;
-    if (add)
+    /* if (add)
     {
         *input_head_base = comb_spill_size;
-    }
+    } */
     return !locked;
 }
 
@@ -3412,101 +3412,105 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     while (!finished)
     {
         auto s3spillFile_head_old = s3spillFile_head;
-        ;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &bit_head_end, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size);
         std::cout << "Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
         // std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
         bit_head_end++;
         increase = false;
-        size_t n = 0;
-        int int_n = 0;
-        auto temp_it = s3spillNames2->begin();
-        s3spillFile_head++;
-        size_t old_input_head_base = input_head_base;
-        addXtoLocalSpillHead(spills, &input_head_base, 1);
-        // std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
-        if (multiThread_subMerge)
+        if (!finished)
         {
-            int mergefile_num_temp = std::max(0, (int)(s3spillNames2->size() - s3spillFile_head));
-            size_t sum = 0;
-            int counter = 0;
-            for (auto &s : (*spills))
-            {
-                sum += s.second;
-                if (deencode && input_head_base < sum)
-                {
-                    mergefile_num_temp += spills->size() - counter;
-                    break;
-                }
-                else if (!deencode && input_head_base < sum / sizeof(long))
-                {
-                    mergefile_num_temp += spills->size() - counter;
-                    break;
-                }
-                counter++;
-            }
-            merge_file_num = std::max(2, (int)(std::ceil((float)(mergefile_num_temp) / threadNumber)));
-            // std::cout << "mergefile_num_temp: " << mergefile_num_temp << " merge_file_num: " << merge_file_num << " comb_spill_size: " << comb_spill_size << std::endl;
+            size_t n = 0;
+            int int_n = 0;
+            auto temp_it = s3spillNames2->begin();
+            s3spillFile_head++;
+            size_t old_input_head_base = input_head_base;
+            addXtoLocalSpillHead(spills, &input_head_base, 1);
 
-            std::vector<std::thread> threads;
-            std::vector<int> start_heads(s3spillNames2->size());
-            std::vector<int> start_bits(s3spillNames2->size());
-            std::vector<unsigned long> start_heads_local(spills->size());
-            int s3_start_head = s3spillFile_head;
-            int start_bit_head = bit_head_end;
-            counter = 0;
-            while (s3_start_head < s3spillNames2->size())
+            // std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
+            if (multiThread_subMerge)
             {
-
-                start_heads[counter] = s3_start_head;
-                start_bits[counter] = start_bit_head;
-                // std::cout << "merging s3 start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
-                threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &start_heads[counter], &start_bits[counter], &bit_head_end, &int_n, &n, &n, &input_head_base,
-                                              size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size));
-                counter++;
-                if (s3_start_head < s3spillNames2->size())
+                int mergefile_num_temp = std::max(0, (int)(s3spillNames2->size() - s3spillFile_head));
+                size_t sum = 0;
+                int counter = 0;
+                for (auto &s : (*spills))
                 {
-                    temp_it = s3spillNames2->begin();
-                    std::advance(temp_it, s3_start_head);
-                    for (int i = 0; i < merge_file_num; i++)
+                    sum += s.second;
+                    if (deencode && input_head_base < sum)
                     {
-                        start_bit_head += get<2>(*temp_it).size();
-                        temp_it++;
+                        mergefile_num_temp += spills->size() - counter;
+                        break;
                     }
+                    else if (!deencode && input_head_base < sum / sizeof(long))
+                    {
+                        mergefile_num_temp += spills->size() - counter;
+                        break;
+                    }
+                    counter++;
+                }
+                merge_file_num = std::max(2, (int)(std::ceil((float)(mergefile_num_temp) / threadNumber)));
+                // std::cout << "mergefile_num_temp: " << mergefile_num_temp << " merge_file_num: " << merge_file_num << " comb_spill_size: " << comb_spill_size << std::endl;
 
-                    s3_start_head += merge_file_num;
+                std::vector<std::thread> threads;
+                std::vector<int> start_heads(s3spillNames2->size());
+                std::vector<int> start_bits(s3spillNames2->size());
+                std::vector<unsigned long> start_heads_local(spills->size());
+                int s3_start_head = s3spillFile_head;
+                int start_bit_head = bit_head_end;
+                counter = 0;
+                while (s3_start_head < s3spillNames2->size())
+                {
+
+                    start_heads[counter] = s3_start_head;
+                    start_bits[counter] = start_bit_head;
+                    // std::cout << "merging s3 start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
+                    threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &start_heads[counter], &start_bits[counter], &bit_head_end, &int_n, &n, &n, &input_head_base,
+                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size));
+                    counter++;
+                    if (s3_start_head < s3spillNames2->size())
+                    {
+                        temp_it = s3spillNames2->begin();
+                        std::advance(temp_it, s3_start_head);
+                        for (int i = 0; i < merge_file_num; i++)
+                        {
+                            start_bit_head += get<2>(*temp_it).size();
+                            temp_it++;
+                        }
+
+                        s3_start_head += merge_file_num;
+                    }
+                }
+                if (s3_start_head - s3spillNames2->size() > 0 && counter > 0)
+                {
+                    addXtoLocalSpillHead(spills, &input_head_base, s3_start_head - s3spillNames2->size());
+                    // std::cout << "add local spill: " << s3_start_head - s3spillNames2->size() << " to: " << input_head_base << std::endl;
+                }
+                counter = 0;
+                while (input_head_base < comb_spill_size)
+                {
+                    start_heads_local[counter] = input_head_base;
+                    // std::cout << "merging local input_head_base: " << input_head_base << std::endl;
+                    threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &bit_head_end, &int_n, &n, &n, &start_heads_local[counter],
+                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size));
+                    counter++;
+                    addXtoLocalSpillHead(spills, &input_head_base, merge_file_num);
+                    // std::cout << "add local spill: " << merge_file_num << " to: " << input_head_base << std::endl;
+                }
+                // std::cout << "Waiting for threads" << std::endl;
+                for (auto &thread : threads)
+                {
+                    thread.join();
                 }
             }
-            if (s3_start_head - s3spillNames2->size() > 0 && counter > 0)
+            else
             {
-                addXtoLocalSpillHead(spills, &input_head_base, s3_start_head - s3spillNames2->size());
-                // std::cout << "add local spill: " << s3_start_head - s3spillNames2->size() << " to: " << input_head_base << std::endl;
+                subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3spillFile_head, &bit_head_end, &bit_head_end, &int_n, &n, &n, &input_head_base,
+                         size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, false, max_hash_size);
             }
-            counter = 0;
-            while (input_head_base < comb_spill_size)
-            {
-                start_heads_local[counter] = input_head_base;
-                // std::cout << "merging local input_head_base: " << input_head_base << std::endl;
-                threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &bit_head_end, &int_n, &n, &n, &start_heads_local[counter],
-                                              size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size));
-                counter++;
-                addXtoLocalSpillHead(spills, &input_head_base, merge_file_num);
-                // std::cout << "add local spill: " << merge_file_num << " to: " << input_head_base << std::endl;
-            }
-            // std::cout << "Waiting for threads" << std::endl;
-            for (auto &thread : threads)
-            {
-                thread.join();
-            }
+
+            s3spillFile_head--;
+            input_head_base = old_input_head_base;
         }
-        else
-        {
-            subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3spillFile_head, &bit_head_end, &bit_head_end, &int_n, &n, &n, &input_head_base,
-                     size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, false, max_hash_size);
-        }
-        s3spillFile_head--;
-        input_head_base = old_input_head_base;
 
         if (writeRes)
         {
