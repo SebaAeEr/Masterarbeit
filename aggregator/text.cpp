@@ -780,10 +780,6 @@ void printMana(Aws::S3::S3Client *minio_client, manaFile given_mana, bool useget
 
 void initManagFile(Aws::S3::S3Client *minio_client)
 {
-    manaFile mana = getMana(minio_client);
-    writeMana(minio_client, mana, true);
-    return;
-
     manaFile mana;
     if (worker_id != '1')
     {
@@ -4725,7 +4721,10 @@ int main(int argc, char **argv)
         multiThread_merge = multiThread_merge_vec[i];
         multiThread_subMerge = multiThread_subMerge_vec[i];
         straggler_removal = straggler_removal_vec[i];
-        initManagFile(&minio_client);
+        // initManagFile(&minio_client);
+        manaFile mana = getMana(&minio_client);
+        writeMana(&minio_client, mana, true);
+        printMana(&minio_client);
         start_time = std::chrono::high_resolution_clock::now();
         time_t now = time(0);
         struct tm tstruct;
