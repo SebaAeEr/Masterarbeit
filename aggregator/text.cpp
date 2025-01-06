@@ -3770,7 +3770,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             std::cout << merge_file.name << ", ";
             if (merge_file.name[0] != worker_id)
             {
-                log_file.sizes["mergedFiles"] ++;
+                log_file.sizes["mergedFiles"]++;
             }
         }
         std::cout << std::endl;
@@ -4106,7 +4106,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
         std::vector<std::thread> merge_threads(threadNumber);
         std::vector<char> mergeThreads_done(threadNumber, 1);
-        int thread_number = 0;
         printProgressBar(0);
         while (m_partition != -1)
         {
@@ -4133,15 +4132,14 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                             {
                                 // std::cout << "Joining thread: " << newThread_ind << std::endl;
                                 merge_threads[newThread_ind].join();
-                                thread_number--;
+                                thread_bitmap[newThread_ind] = 0;
                             }
                             else
                             {
                                 increase = true;
                             }
-                            thread_number++;
                             d = 0;
-                            thread_bitmap[newThread_ind] = 1;
+
                             break;
                         }
                         thread_ind_counter++;
@@ -4153,6 +4151,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 m_partition = getMergePartition(&minio_client);
                 if (m_partition != -1)
                 {
+                    thread_bitmap[newThread_ind] = 1;
                     std::cout << "merging partition: " << (int)(m_partition) << std::endl;
                     printProgressBar((float)(counter) / partitions);
                     getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
@@ -4194,10 +4193,13 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             }
         }
         writeMana(&minio_client, mana, true);
-        for (int i = 0; i < thread_number; i++)
+        for (int i = 0; i < threadNumber; i++)
         {
-            std::cout << "waiting for thread: " << i << std::endl;
-            merge_threads[i].join();
+            if (thread_bitmap[i] == 1)
+            {
+                std::cout << "waiting for thread: " << i << std::endl;
+                merge_threads[i].join();
+            }
         }
     }
     else
