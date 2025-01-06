@@ -3411,9 +3411,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
     while (!finished)
     {
-        // std::cout << "Start adding" << std::endl;
+        std::cout << "Start adding from: " << s3spillFile_head << " to ";
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &bit_head_end, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size);
+        std::cout << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
         // std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
         bit_head_end++;
         increase = false;
@@ -3716,6 +3717,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 std::cout << "spilling to " << uName << " hmap size: " << hmap->size() << std::endl;
                 spillToMinio(hmap, local_files, uName, &minio_client, beggarWorker, 0, 1);
                 // Try to change beggar worker or load in new files
+                log_file.sizes["linesWritten"] += hmap->size();
                 hmap->clear();
                 std::unordered_map<std::string, char> file_stati;
                 for (auto &f_name : file_names)
@@ -3794,7 +3796,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     {
         sizePrinter.join();
     }
-    log_file.sizes["selectivity"] = log_file.sizes["linesWritten"] / log_file.sizes["linesRead"];
+    log_file.sizes["selectivity"] = (log_file.sizes["linesWritten"] * 1000) / log_file.sizes["linesRead"];
 }
 
 char getMergePartition(Aws::S3::S3Client *minio_client)
@@ -3962,7 +3964,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         w_lines += thread.sizes["outputLines"];
     }
-    log_file.sizes["selectivityPostScan"] = w_lines * 1000 / numLines;
+    log_file.sizes["selectivityPostScan"] = (w_lines * 1000) / numLines;
 
     auto mergeH_start_time = std::chrono::high_resolution_clock::now();
     std::vector<std::thread> spill_threads;
@@ -4204,7 +4206,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
     log_file.sizes["mergeDuration"] = duration;
     log_file.sizes["mergeTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
-    log_file.sizes["selectivity"] = log_file.sizes["linesWritten"] * 1000 / numLines;
+    log_file.sizes["selectivity"] = (log_file.sizes["linesWritten"] * 1000) / log_file.sizes["inputLines"];
 
     if (measure_mem)
     {
