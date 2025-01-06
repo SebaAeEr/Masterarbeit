@@ -977,7 +977,6 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
 
 void getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id, std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *files)
 {
-    printMana(minio_client);
     manaFile mana = getMana(minio_client);
 
     for (auto &worker : mana.workers)
@@ -4713,9 +4712,7 @@ int main(int argc, char **argv)
         multiThread_subMerge = multiThread_subMerge_vec[i];
         straggler_removal = straggler_removal_vec[i];
         // initManagFile(&minio_client);
-        manaFile mana = getMana(&minio_client);
-        writeMana(&minio_client, mana, true);
-        printMana(&minio_client);
+        partitions = 14;
         start_time = std::chrono::high_resolution_clock::now();
         time_t now = time(0);
         struct tm tstruct;
