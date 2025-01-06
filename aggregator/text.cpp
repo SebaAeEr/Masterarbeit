@@ -2623,7 +2623,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 auto read_file_start = std::chrono::high_resolution_clock::now();
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = hmap->empty();
-                // std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
+                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
@@ -3606,7 +3606,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         temp_file.subfiles = write_sizes[partition];
                         std::vector<std::pair<file, char>> files = std::vector<std::pair<file, char>>(1, {temp_file, partition});
                         // std::cout << "Adding merge file: " << n_temp << " partition: " << partition << " write size: " << write_size << std::endl;
-                        addFileToManag(minio_client, files, beggarWorker, 0);
+                        addFileToManag(minio_client, files, beggarWorker, 255);
                         // std::cout << "Finished adding file" << std::endl;
                     }
                 }
@@ -3785,6 +3785,8 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             {
                 file_stati.insert({f_name, 255});
             }
+            std::string temp = uName + "_" + std::to_string(partition_id);
+            file_stati.insert({uName, 0});
             setFileStatus(&minio_client, &file_stati, beggarWorker, partition_id, 0);
             file_names.clear();
             beggarWorker = 0;
