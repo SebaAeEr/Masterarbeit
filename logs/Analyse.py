@@ -814,16 +814,18 @@ def analyse_1_6_13():
 
 def c_size_by_time():
     names = [
-        "logfile_4_6_0_4_23-39.json",
-        "logfile_4_6_0_4_00-06.json",
-        "logfile_4_6_0_4_00-45.json",
-        "logfile_4_6_0_4_01-29.json",
+        # "logfile_4_6_0_1_11-22.json",
+        # "logfile_4_6_0_4_10-21.json",
+        # "logfile_4_6_0_4_23-39.json",
+        # "logfile_4_6_0_4_00-06.json",
+        # "logfile_4_6_0_4_00-45.json",
+        # "logfile_4_6_0_4_01-29.json",
     ]
     try:
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
-        f = open(os.path.join(directory, "times_4_6_0_4_23-39.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_4_23-39.json"))
+        f = open(os.path.join(directory, "times_4_6_0_1_11-22.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_1_11-22.json"))
     except:
         print("File not found.")
         return
@@ -852,11 +854,14 @@ def c_size_by_time():
         x, calc_y, label="calc overall size"
     )  # Line plot (you can change to scatter plot or others)
 
-    keys = ["scanTime", "mergeHashTime", "mergeTime"]
-    for key in keys:
-        x_value = jf_data[key] / 1000000
-        plt.axvline(x=x_value, color="red", linestyle="--")
-        plt.text(x_value, -0.005, key, color="red", ha="center")
+    try:
+        keys = ["scanTime", "mergeHashTime", "mergeTime"]
+        for key in keys:
+            x_value = jf_data[key] / 1000000
+            plt.axvline(x=x_value, color="red", linestyle="--")
+            plt.text(x_value, -0.005, key, color="red", ha="center")
+    except:
+        print("no scan/merge/mergeHash-time")
 
     plt.xlabel("time in s")  # Label for x-axis
     plt.ylabel("size in GiB")  # Label for y-axis
@@ -942,7 +947,7 @@ def c_size_by_time():
             {
                 "write_file_sum": np.array([write_file_sum]),
                 "scan_dur": np.array([scan_dur]),
-                #"merge_hash_dur": np.array([merge_hash_dur]),
+                # "merge_hash_dur": np.array([merge_hash_dur]),
                 # "get_file_sum": np.array([get_file_sum]),
                 "write_output_sum": np.array([write_output_sum]),
                 "merge_dur": np.array([merge_dur]),
@@ -951,8 +956,9 @@ def c_size_by_time():
             }
         ]
 
-    makeBarFig(times, np.array(["X"]), "Wall time in min")
-    print(str(times))
+    if len(names) > 0:
+        makeBarFig(times, np.array(["X"]), "Wall time in min")
+        print(str(times))
     # bottom = 0
     # for datum in dates:
     #     rects = plt.bar(
