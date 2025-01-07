@@ -3717,6 +3717,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, 0, file_num);
         if (get<1>(files) == 0)
         {
+            
             if (hmap->size() > 0)
             {
                 uName = worker_id;
@@ -3736,16 +3737,28 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 file_names.clear();
                 beggarWorker = 0;
                 partition_id = 0;
-                getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, 0, 2);
-                if (get<1>(files) == 0)
+            }
+            bool finish = false;
+            while (!finish)
+            {
+                getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, 0, file_num);
+
+                if (get<1>(files) != 0)
                 {
-                    std::cout << "finish" << std::endl;
                     break;
                 }
+                manaFile m = getMana(&minio_client);
+                for (auto &w : m.workers)
+                {
+                    if (w.id == '1' && w.locked)
+                    {
+                        std::cout << "finish" << std::endl;
+                        finish = true;
+                    }
+                }
             }
-            else
+            if(finish) 
             {
-                std::cout << "finish" << std::endl;
                 break;
             }
         }
@@ -3806,9 +3819,11 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     {
         sizePrinter.join();
     }
-    log_file.sizes["selectivity"] = (log_file.sizes["linesWritten"] * 1000) / log_file.sizes["linesRead"];
+    if (log_file.sizes["linesRead"] > 0)
+    {
+        log_file.sizes["selectivity"] = (log_file.sizes["linesWritten"] * 1000) / log_file.sizes["linesRead"];
+    }
 }
-
 char getMergePartition(Aws::S3::S3Client *minio_client)
 {
     manaFile mana = getLockedMana(minio_client, 0);
