@@ -2495,10 +2495,7 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
                 // std::cout << "avg: " << *avg << " avg diff: " << std::abs(temp_avg - (*avg)) << std::endl;
                 // if (std::abs(temp_avg - (*avg)) < 10 || (*avg < 10 && std::abs(temp_avg - (*avg)) < 100))
                 //{
-                if (temp_avg < 100)
-                {
-                    *avg = std::max((float)(100), temp_avg);
-                }
+                *avg = std::min((float)(100), temp_avg);
                 //}
                 /* else
                 {
@@ -3780,6 +3777,8 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                     {
                         std::cout << "finish" << std::endl;
                         finish = true;
+                        found_files = false;
+                        break;
                     }
                 }
                 if (found_files)
@@ -3791,6 +3790,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                         break;
                     }
                 }
+                usleep(500);
             }
             if (finish)
             {
