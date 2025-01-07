@@ -1037,7 +1037,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
                         }
                     }
                     // if (partition_max < partition_size_temp && file_number > 3)
-                    if (b_file > biggest_file && file_number > 3)
+                    if (b_file > biggest_file && file_number > 1)
                     {
                         partition_max = partition_size_temp;
                         partition_id = partition.id;
@@ -3761,19 +3761,34 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             bool finish = false;
             while (!finish)
             {
-                getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, 0, file_num);
-
-                if (get<1>(files) != 0)
-                {
-                    break;
-                }
                 manaFile m = getMana(&minio_client);
+                bool found_files = false;
                 for (auto &w : m.workers)
                 {
+                    if (!found_files && !w.locked)
+                    {
+                        for (auto &p : w.partitions)
+                        {
+                            if (p.files.size() > 2)
+                            {
+                                found_files = true;
+                                break;
+                            }
+                        }
+                    }
                     if (w.id == '1' && w.locked)
                     {
                         std::cout << "finish" << std::endl;
                         finish = true;
+                    }
+                }
+                if (found_files)
+                {
+                    getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, 0, file_num);
+
+                    if (get<1>(files) != 0)
+                    {
+                        break;
                     }
                 }
             }
