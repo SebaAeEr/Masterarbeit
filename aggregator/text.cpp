@@ -2561,7 +2561,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
               std::vector<std::pair<int, std::vector<char>>> *s3spillBitmaps, std::vector<std::pair<int, size_t>> *spills, bool add, int *s3spillFile_head,
               int *bit_head, int *bit_head_end, int *subfile_head, size_t *s3spillStart_head, size_t *s3spillStart_head_chars, size_t *input_head_base, size_t size_after_init, std::atomic<size_t> *read_lines,
               Aws::S3::S3Client *minio_client, std::mutex *writeLock, float *avg, float memLimit, std::atomic<unsigned long> &comb_hash_size,
-              std::atomic<unsigned long> *diff, bool increase_size, size_t *max_hash_size)
+              std::atomic<unsigned long> *diff, bool increase_size, size_t *max_hash_size, int t_id)
 {
     // input_head_base;
     unsigned long num_entries = 0;
@@ -2626,7 +2626,16 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 auto read_file_start = std::chrono::high_resolution_clock::now();
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = hmap->empty();
-                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << " bit_head_end: " << *bit_head_end << std::endl;
+                std::cout << "Thread " << t_id;
+                if (add)
+                {
+                    std::cout << " adding ";
+                }
+                else
+                {
+                    std::cout << " merging ";
+                }
+                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << " bit_head_end: " << *bit_head_end << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
@@ -3416,7 +3425,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     {
         auto s3spillFile_head_old = s3spillFile_head;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &bit_head_end, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
-                            size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size);
+                            size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size, 0);
         std::cout << "Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << " bit_head_end: " << bit_head_end << std::endl;
         // std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
         bit_head_end++;
@@ -3461,6 +3470,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 int s3_start_head = s3spillFile_head;
                 int start_bit_head = bit_head_end;
                 counter = 0;
+                int t_c = 0;
                 while (s3_start_head < s3spillNames2->size())
                 {
 
@@ -3468,8 +3478,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     start_bits[counter] = start_bit_head;
                     // std::cout << "merging s3 start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
                     threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &start_heads[counter], &start_bits[counter], &bit_head_end, &int_n, &n, &n, &input_head_base,
-                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size));
+                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size, t_c));
                     counter++;
+                    t_c++;
                     if (s3_start_head < s3spillNames2->size())
                     {
                         temp_it = s3spillNames2->begin();
@@ -3494,8 +3505,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     start_heads_local[counter] = input_head_base;
                     // std::cout << "merging local input_head_base: " << input_head_base << std::endl;
                     threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &bit_head_end, &int_n, &n, &n, &start_heads_local[counter],
-                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size));
+                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size, t_c));
                     counter++;
+                    t_c++;
                     addXtoLocalSpillHead(spills, &input_head_base, merge_file_num);
                     // std::cout << "add local spill: " << merge_file_num << " to: " << input_head_base << std::endl;
                 }
@@ -3508,7 +3520,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             else
             {
                 subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3spillFile_head, &bit_head_end, &bit_head_end, &int_n, &n, &n, &input_head_base,
-                         size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, false, max_hash_size);
+                         size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, false, max_hash_size, 0);
             }
 
             s3spillFile_head--;
@@ -3717,7 +3729,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
         getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, 0, file_num);
         if (get<1>(files) == 0)
         {
-            
+
             if (hmap->size() > 0)
             {
                 uName = worker_id;
@@ -3757,7 +3769,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                     }
                 }
             }
-            if(finish) 
+            if (finish)
             {
                 break;
             }
