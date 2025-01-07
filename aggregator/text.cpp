@@ -2622,11 +2622,11 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             }
             for (int sub_file_k = sub_file_counter; sub_file_k < get<2>(*set_it).size(); sub_file_k++)
             {
-                *bit_head_end += 1;
+                *bit_head_end = *bit_head_end + 1;
                 auto read_file_start = std::chrono::high_resolution_clock::now();
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = hmap->empty();
-                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
+                std::cout << "Reading " << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << " bit_head_end: " << *bit_head_end << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
