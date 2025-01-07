@@ -4183,9 +4183,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
                 multi_files[newThread_ind].clear();
                 m_partition = getMergePartition(&minio_client);
-                multi_spills[newThread_ind] = spills.size() == 1 ? spills[0] : spills[m_partition];
+
                 if (m_partition != -1)
                 {
+                    multi_spills[newThread_ind] = spills.size() == 1 ? spills[0] : spills[m_partition];
                     thread_bitmap[newThread_ind] = 1;
                     std::cout << "merging partition: " << (int)(m_partition) << std::endl;
                     printProgressBar((float)(counter) / partitions);
