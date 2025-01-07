@@ -3494,8 +3494,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         std::advance(temp_it, s3_start_head);
                         for (int i = 0; i < merge_file_num; i++)
                         {
-                            if (i + s3_start_head <)
-                                start_bit_head += get<2>(*temp_it).size();
+                            start_bit_head += get<2>(*temp_it).size();
                             temp_it++;
                         }
                     }
