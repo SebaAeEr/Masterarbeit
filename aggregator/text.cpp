@@ -4134,22 +4134,22 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         std::vector<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(threadNumber);
         std::vector<size_t> max_HashSizes(threadNumber, 0);
         std::vector<char> thread_bitmap(threadNumber, 0);
+        std::vector<std::vector<std::pair<int, size_t>>> multi_spills(threadNumber);
         char m_partition = 0;
         int counter = 0;
 
         std::vector<std::thread> merge_threads(threadNumber);
         std::vector<char> mergeThreads_done(threadNumber, 1);
+        if (spills.size() == 0)
+        {
+            spills.push_back(std::vector<std::pair<int, size_t>>(0));
+        }
         printProgressBar(0);
         while (m_partition != -1)
         {
             bool increase = false;
-            if (spills.size() == 0)
-            {
-                spills.push_back(std::vector<std::pair<int, size_t>>(0));
-            }
-            auto *m_spill = spills.size() == 1 ? &spills[0] : &spills[m_partition];
 
-            if (multiThread_merge)
+                        if (multiThread_merge)
             {
                 int newThread_ind = -1;
 
@@ -4182,13 +4182,14 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
                 multi_files[newThread_ind].clear();
                 m_partition = getMergePartition(&minio_client);
+                multi_spills[newThread_ind] = spills.size() == 1 ? spills[0] : spills[m_partition];
                 if (m_partition != -1)
                 {
                     thread_bitmap[newThread_ind] = 1;
                     std::cout << "merging partition: " << (int)(m_partition) << std::endl;
                     printProgressBar((float)(counter) / partitions);
                     getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
-                    merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], m_spill, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
+                    merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], &multi_spills[newThread_ind], std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
                                                                &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], -1, 0, increase);
                 }
             }
@@ -4201,6 +4202,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     printProgressBar((float)(counter) / partitions);
                     files.clear();
                     getAllMergeFileNames(&minio_client, m_partition, &files);
+                    auto *m_spill = spills.size() == 1 ? &spills[0] : &spills[m_partition];
 
                     /* for (auto &name : files)
                     {
