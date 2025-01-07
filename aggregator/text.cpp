@@ -3488,18 +3488,18 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                                                   size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size, t_c));
                     counter++;
                     t_c++;
-                    if (s3_start_head < s3spillNames2->size())
+                    if (s3_start_head + merge_file_num < s3spillNames2->size())
                     {
                         temp_it = s3spillNames2->begin();
                         std::advance(temp_it, s3_start_head);
                         for (int i = 0; i < merge_file_num; i++)
                         {
-                            start_bit_head += get<2>(*temp_it).size();
+                            if (i + s3_start_head <)
+                                start_bit_head += get<2>(*temp_it).size();
                             temp_it++;
                         }
-
-                        s3_start_head += merge_file_num;
                     }
+                    s3_start_head += merge_file_num;
                     std::cout << " to start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
                 }
                 if (s3_start_head - s3spillNames2->size() > 0 && counter > 0)
@@ -4802,6 +4802,18 @@ int main(int argc, char **argv)
             std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
             log_file.sizes["queryDuration"] = duration;
             log_file.failed = failed;
+            std::atomic_ulong comb_hash_size = 0;
+            std::atomic_ulong diff = 0;
+            float avg = 1;
+            emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
+            try
+            {
+                helpMergePhase(memLimit, memLimitBack, minio_client, true, &hmap, comb_hash_size, diff, &avg);
+            }
+            catch (std::exception &err)
+            {
+                std::cout << "Error during mergePhase: " << err.what() << std::endl;
+            }
         }
         bool temp_log_size = log_size;
         log_size = tpc_sup == "-" && co_output == "-" ? log_size : false;
@@ -4816,18 +4828,6 @@ int main(int argc, char **argv)
             {
                 std::cout << "Error while testing: " << err.what() << std::endl;
             }
-        }
-        std::atomic_ulong comb_hash_size = 0;
-        std::atomic_ulong diff = 0;
-        float avg = 1;
-        emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
-        try
-        {
-            helpMergePhase(memLimit, memLimitBack, minio_client, true, &hmap, comb_hash_size, diff, &avg);
-        }
-        catch (std::exception &err)
-        {
-            std::cout << "Error during mergePhase: " << err.what() << std::endl;
         }
 
         cleanup(&minio_client);
