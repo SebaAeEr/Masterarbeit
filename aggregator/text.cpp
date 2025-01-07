@@ -2869,8 +2869,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                                     }
                                     if (firsts3File)
                                     {
-                                        *bit_file_end +=
-                                            break;
+                                        break;
                                     }
                                 }
                             }
