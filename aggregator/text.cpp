@@ -3428,7 +3428,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size, 0);
         std::cout << "Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << " bit_head_end: " << bit_head_end << std::endl;
         // std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
-        bit_head_end++;
+        // bit_head_end++;
         increase = false;
         if (!finished)
         {
