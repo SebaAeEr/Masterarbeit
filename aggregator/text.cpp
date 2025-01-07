@@ -3537,14 +3537,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         if (writeRes)
         {
             written_lines += hmap->size();
-            /* if (deencode)
+            if (deencode)
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " locked: " << locked << std::endl;
             }
             else
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
-            } */
+            }
             bool asdf = false;
             writing_ouput.lock();
             *output_file_head += writeHashmap(hmap, *output_file_head, pagesize * 30, outputfilename);
@@ -3640,6 +3640,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
         }
     }
+    std::cout << "spills size: " << spills->size();
     for (auto &it : *spills)
         close(it.first);
     for (int i = 0; i < spills->size(); i++)
@@ -3662,7 +3663,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     }
 
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
-    // std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
+    std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
     log_file.sizes["linesRead"] += read_lines;
     log_file.sizes["linesWritten"] += written_lines;
     *done = 1;
@@ -4163,7 +4164,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                             newThread_ind = thread_ind_counter;
                             if (thread_bitmap[newThread_ind] == 1)
                             {
-                                // std::cout << "Joining thread: " << newThread_ind << std::endl;
+                                std::cout << "Joining thread: " << newThread_ind << std::endl;
                                 merge_threads[newThread_ind].join();
                                 thread_bitmap[newThread_ind] = 0;
                             }
