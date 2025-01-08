@@ -667,6 +667,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
                 }
                 // local_mana_lock.exchange(false);
                 local_mana_lock.unlock();
+                std::cout << "unlocking" << std::endl;
             }
             log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
             return 1;
@@ -725,6 +726,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
             {
                 // mana = getMana(minio_client);
                 //  std::cout << " new thread lock: " << std::to_string((int)(mana.thread_lock)) << std::endl;
+                std::cout << "locking" << std::endl;
                 log_file.get_lock_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lock_start_time).count());
                 return mana;
             }
@@ -3762,8 +3764,9 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             bool finish = false;
             while (!finish)
             {
-                std::cout << "checking Mana" << std::endl;
+                std::cout << "getting Mana" << std::endl;
                 manaFile m = getMana(&minio_client);
+                std::cout << "got Mana" << std::endl;
                 bool found_files = false;
                 for (auto &w : m.workers)
                 {
@@ -3771,7 +3774,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                     {
                         for (auto &p : w.partitions)
                         {
-                            if (p.files.size() > 1)
+                            if (p.files.size() > 1 && !p.lock)
                             {
                                 found_files = true;
                                 break;
@@ -3786,12 +3789,14 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                         break;
                     }
                 }
+                std::cout << "found file: " << found_files << std::endl;
                 if (found_files)
                 {
                     getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, 0, file_num);
 
                     if (get<1>(files) != 0)
                     {
+                        std::cout << "breaking" << std::endl;
                         break;
                     }
                 }
