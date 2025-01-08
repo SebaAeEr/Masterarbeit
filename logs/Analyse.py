@@ -829,7 +829,7 @@ def c_size_by_time():
         print("File not found.")
         return
     df = pd.read_csv(f)
-    jf_data = json.load(jf)
+    # jf_data = json.load(jf)
     # Step 2: Extract the columns you want to plot
     # Assuming the columns are named 'Column1' and 'Column2' (change these to match your CSV)
     scale = 2**30
@@ -853,14 +853,14 @@ def c_size_by_time():
         x, calc_y, label="calc overall size"
     )  # Line plot (you can change to scatter plot or others)
 
-    try:
-        keys = ["scanTime", "mergeHashTime", "mergeTime"]
-        for key in keys:
-            x_value = jf_data[key] / 1000000
-            plt.axvline(x=x_value, color="red", linestyle="--")
-            plt.text(x_value, -0.005, key, color="red", ha="center")
-    except:
-        print("no scan/merge/mergeHash-time")
+    # try:
+    #     keys = ["scanTime", "mergeHashTime", "mergeTime"]
+    #     for key in keys:
+    #         x_value = jf_data[key] / 1000000
+    #         plt.axvline(x=x_value, color="red", linestyle="--")
+    #         plt.text(x_value, -0.005, key, color="red", ha="center")
+    # except:
+    #     print("no scan/merge/mergeHash-time")
 
     plt.xlabel("time in s")  # Label for x-axis
     plt.ylabel("size in GiB")  # Label for y-axis
@@ -871,6 +871,9 @@ def c_size_by_time():
     plt.plot(x, avg_y, label="Average")
 
     times = []
+    plt.show()
+
+    return
 
     for name in names:
         jf = open(os.path.join(directory, name))

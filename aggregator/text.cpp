@@ -2495,7 +2495,11 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
                 // std::cout << "avg: " << *avg << " avg diff: " << std::abs(temp_avg - (*avg)) << std::endl;
                 // if (std::abs(temp_avg - (*avg)) < 10 || (*avg < 10 && std::abs(temp_avg - (*avg)) < 100))
                 //{
-                *avg = std::min((float)(100), temp_avg);
+                if (temp_avg < 100)
+                {
+                    //  *avg = std::max((float)(100), temp_avg);
+                    *avg = temp_avg;
+                }
                 //}
                 /* else
                 {
@@ -3758,6 +3762,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             bool finish = false;
             while (!finish)
             {
+                std::cout << "checking Mana" << std::endl;
                 manaFile m = getMana(&minio_client);
                 bool found_files = false;
                 for (auto &w : m.workers)
@@ -3766,7 +3771,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                     {
                         for (auto &p : w.partitions)
                         {
-                            if (p.files.size() > 2)
+                            if (p.files.size() > 1)
                             {
                                 found_files = true;
                                 break;
@@ -3790,7 +3795,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                         break;
                     }
                 }
-                usleep(500);
+                usleep(1000000);
             }
             if (finish)
             {
