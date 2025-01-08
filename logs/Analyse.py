@@ -814,7 +814,7 @@ def analyse_1_6_13():
 
 def c_size_by_time():
     names = [
-        "logfile_4_6_0_4_10-21.json",
+        "logfile_4_6_0_4_16-25.json",
         "logfile_4_6_0_4_23-39.json",
         "logfile_4_6_0_4_00-06.json",
         "logfile_4_6_0_4_00-45.json",
@@ -824,7 +824,7 @@ def c_size_by_time():
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
         f = open(os.path.join(directory, "times_4_6_0_4_16-25.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_1_11-22.json"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_16-25.json"))
     except:
         print("File not found.")
         return
@@ -891,9 +891,9 @@ def c_size_by_time():
         print("write_mana_dur avg: " + str(average))
 
         get_lock_dur = jf_data["get_lock_dur"]
-        # plt.figure(5)
-        # plt.hist(get_lock_dur, bins=30, label="get_lock_dur")
-        # plt.title("get_lock_dur")
+        plt.figure(3)
+        plt.hist(get_lock_dur, bins=30, label="get_lock_dur")
+        plt.title("get_lock_dur")
         average = sum(get_lock_dur) / len(get_lock_dur)
         print("get_lock_dur avg: " + str(average))
 

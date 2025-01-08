@@ -137,7 +137,7 @@ float average_write_speed = 1.5;
 bool isJson = false;
 std::mutex writing_ouput;
 std::mutex file_queue_mutex;
-std::atomic<bool> file_queue_status;
+std::atomic<bool> file_queue_status(true);
 std::vector<std::pair<file, char>> file_queue;
 int minFileNumMergeHelper = 2;
 
