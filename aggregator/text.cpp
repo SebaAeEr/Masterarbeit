@@ -647,6 +647,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
         // in_request.SetWriteOffsetBytes(1000);
+        std::cout << "writing mana" << std::endl;
         auto in_outcome = minio_client->PutObject(in_request);
         if (!in_outcome.IsSuccess())
         {
@@ -654,7 +655,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
         }
         else
         {
-
+            std::cout << "mana written" << std::endl;
             if (freeLock)
             {
                 Aws::S3::Model::DeleteObjectRequest delete_request;
@@ -704,6 +705,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
     auto lock_start_time = std::chrono::high_resolution_clock::now();
     // std::lock_guard<std::mutex> lock(local_mana_lock);
     local_mana_lock.lock();
+    std::cout << "Trying to get lock thread: " << thread_id << std::endl;
     while (true)
     {
         bool asdf = false;
