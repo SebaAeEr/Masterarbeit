@@ -139,6 +139,7 @@ std::mutex writing_ouput;
 std::mutex file_queue_mutex;
 std::atomic<bool> file_queue_status;
 std::vector<std::pair<file, char>> file_queue;
+int minFileNumMergeHelper = 2;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -991,6 +992,10 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
         // printMana(minio_client, asdf);
         mana_writeThread_num.fetch_sub(1);
     }
+    else
+    {
+        mana_writeThread_num.fetch_sub(1);
+    }
     return;
 }
 
@@ -1057,7 +1062,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
                         }
                     }
                     // if (partition_max < partition_size_temp && file_number > 3)
-                    if (b_file > biggest_file && file_number > 1)
+                    if (b_file > biggest_file && file_number >= minFileNumMergeHelper)
                     {
                         partition_max = partition_size_temp;
                         partition_id = partition.id;
@@ -3796,7 +3801,15 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                     {
                         for (auto &p : w.partitions)
                         {
-                            if (p.files.size() > 1 && !p.lock)
+                            int file_num_temp = 0;
+                            for (auto &f : p.files)
+                            {
+                                if (f.status == 0)
+                                {
+                                    file_num_temp++;
+                                }
+                            }
+                            if (file_num_temp >= minFileNumMergeHelper && !p.lock)
                             {
                                 found_files = true;
                                 break;
