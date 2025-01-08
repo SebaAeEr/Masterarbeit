@@ -733,7 +733,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
                 return mana;
             }
         }
-        // usleep(10);
+        usleep(500000);
     }
 }
 
