@@ -960,12 +960,12 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                     {
                         if (partition.id == file.second)
                         {
+                            parition_found = true;
                             if (!partition.lock)
                             {
                                 partition.files.push_back(file.first);
-                                parition_found = true;
-                                break;
                             }
+                            break;
                         }
                     }
                     if (!parition_found)
@@ -1155,7 +1155,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
         std::cout << temp.name << ", ";
     }
     std::cout << std::endl; */
-    std::cout << "writing status" << std::endl;
+    // std::cout << "writing status" << std::endl;
     get<1>(*res) = beggarWorker;
     get<2>(*res) = partition_id;
     get<0>(*res) = res_files;
@@ -1183,7 +1183,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
             }
         }
     }
-    std::cout << "unlocking Mana" << std::endl;
+    // std::cout << "unlocking Mana" << std::endl;
     writeMana(minio_client, mana, true);
     return;
 }
