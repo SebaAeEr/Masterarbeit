@@ -3762,6 +3762,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             bool finish = false;
             while (!finish)
             {
+                std::cout << "checking Mana" << std::endl;
                 manaFile m = getMana(&minio_client);
                 bool found_files = false;
                 for (auto &w : m.workers)
@@ -3792,8 +3793,8 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                         break;
                     }
                 }
-                usleep(500);
-            }
+                usleep(1000000);
+                        }
             if (finish)
             {
                 break;
