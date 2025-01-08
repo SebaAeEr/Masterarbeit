@@ -136,6 +136,9 @@ int merge_file_num = 5;
 float average_write_speed = 1.5;
 bool isJson = false;
 std::mutex writing_ouput;
+std::mutex file_queue_mutex;
+std::atomic<bool> file_queue_status;
+std::vector<std::pair<file, char>> file_queue;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -647,7 +650,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
         // in_request.SetWriteOffsetBytes(1000);
-        std::cout << "writing mana" << std::endl;
+        // std::cout << "writing mana" << std::endl;
         auto in_outcome = minio_client->PutObject(in_request);
         if (!in_outcome.IsSuccess())
         {
@@ -655,7 +658,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
         }
         else
         {
-            std::cout << "mana written" << std::endl;
+            // std::cout << "mana written" << std::endl;
             if (freeLock)
             {
                 Aws::S3::Model::DeleteObjectRequest delete_request;
@@ -705,7 +708,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
     auto lock_start_time = std::chrono::high_resolution_clock::now();
     // std::lock_guard<std::mutex> lock(local_mana_lock);
     local_mana_lock.lock();
-    std::cout << "Trying to get lock thread: " << thread_id << std::endl;
+    // std::cout << "Trying to get lock thread: " << thread_id << std::endl;
     while (true)
     {
         if (writeLock(minio_client))
@@ -924,55 +927,70 @@ void setPartitionNumber(size_t comb_hash_size)
 
 void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
 {
-    manaFile mana = getLockedMana(minio_client, thread_id);
-    for (auto &file : files)
-    {
-        bool parition_found = false;
-        for (auto &worker : mana.workers)
-        {
-            if (worker.id == write_to_id)
-            {
-                if (worker.locked)
-                {
-                    writeMana(minio_client, mana, true);
-                    mana_writeThread_num.fetch_sub(1);
-                    return;
-                }
-                for (auto &partition : worker.partitions)
-                {
-                    if (partition.id == file.second)
-                    {
-                        if (partition.lock)
-                        {
-                            writeMana(minio_client, mana, true);
-                            mana_writeThread_num.fetch_sub(1);
-                            return;
-                        }
-                        partition.files.push_back(file.first);
-                        parition_found = true;
-                        break;
-                    }
-                }
-                if (!parition_found)
-                {
-                    partition partition;
-                    partition.id = file.second;
-                    partition.lock = false;
-                    partition.files.push_back(file.first);
-                    worker.partitions.push_back(partition);
-                    worker.length += 2 + sizeof(int);
-                }
 
-                worker.length += file.first.name.size() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * file.first.subfiles.size() * 2;
-                break;
+    file_queue_mutex.lock();
+    for (auto &f : files)
+    {
+        file_queue.push_back(f);
+    }
+    file_queue_mutex.unlock();
+    bool open = true;
+    if (file_queue_status.compare_exchange_strong(open, false))
+    {
+        manaFile mana = getLockedMana(minio_client, thread_id);
+        file_queue_mutex.lock();
+        for (auto &file : file_queue)
+        {
+            bool parition_found = false;
+            for (auto &worker : mana.workers)
+            {
+                if (worker.id == write_to_id)
+                {
+                    if (worker.locked)
+                    {
+                        writeMana(minio_client, mana, true);
+                        mana_writeThread_num.fetch_sub(1);
+                        file_queue.clear();
+                        file_queue_status.exchange(true);
+                        file_queue_mutex.unlock();
+                        return;
+                    }
+                    for (auto &partition : worker.partitions)
+                    {
+                        if (partition.id == file.second)
+                        {
+                            if (!partition.lock)
+                            {
+                                partition.files.push_back(file.first);
+                                parition_found = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!parition_found)
+                    {
+                        partition partition;
+                        partition.id = file.second;
+                        partition.lock = false;
+                        partition.files.push_back(file.first);
+                        worker.partitions.push_back(partition);
+                        worker.length += 2 + sizeof(int);
+                    }
+
+                    worker.length += file.first.name.size() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * file.first.subfiles.size() * 2;
+                    break;
+                }
             }
         }
+        file_queue.clear();
+        file_queue_status.exchange(true);
+        file_queue_mutex.unlock();
+        writeMana(minio_client, mana, true);
+        // std::cout << "Printing mana:" << std::endl;
+        // manaFile asdf;
+        // printMana(minio_client, asdf);
+        mana_writeThread_num.fetch_sub(1);
     }
-    writeMana(minio_client, mana, true);
-    // std::cout << "Printing mana:" << std::endl;
-    // manaFile asdf;
-    // printMana(minio_client, asdf);
-    mana_writeThread_num.fetch_sub(1);
     return;
 }
 
@@ -1003,7 +1021,7 @@ void getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id, st
 
 void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char partition_id, std::vector<std::string> *blacklist, std::tuple<std::vector<file>, char, char> *res, char thread_id, char min_file_num)
 {
-    std::cout << "getting file name" << std::endl;
+    // std::cout << "getting file name" << std::endl;
     char given_beggarWorker = beggarWorker;
     file m_file;
     manaFile mana = getLockedMana(minio_client, thread_id);
@@ -1011,7 +1029,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
     //  If no beggarWorker is yet selected choose the worker with the largest spill
     if (beggarWorker == 0)
     {
-        std::cout << "finding partition" << std::endl;
+        // std::cout << "finding partition" << std::endl;
         size_t partition_max = 0;
         size_t biggest_file = 0;
         for (auto &worker : mana.workers)
@@ -1057,7 +1075,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
         return;
     }
 
-    std::cout << "finding files" << std::endl;
+    // std::cout << "finding files" << std::endl;
     char file_num = threadNumber * 2;
     std::vector<file> res_files(0);
     for (auto &worker : mana.workers)
@@ -1106,7 +1124,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
                         }
                         if (max > 0)
                         {
-                            std::cout << "found file name: " << biggest_file.name << std::endl;
+                            // std::cout << "found file name: " << biggest_file.name << std::endl;
                             res_files.push_back(biggest_file);
                         }
                         else
@@ -3768,9 +3786,9 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
             bool finish = false;
             while (!finish)
             {
-                std::cout << "getting Mana" << std::endl;
+                // std::cout << "getting Mana" << std::endl;
                 manaFile m = getMana(&minio_client);
-                std::cout << "got Mana" << std::endl;
+                // std::cout << "got Mana" << std::endl;
                 bool found_files = false;
                 for (auto &w : m.workers)
                 {
@@ -3793,7 +3811,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                         break;
                     }
                 }
-                std::cout << "found file: " << found_files << std::endl;
+                // std::cout << "found file: " << found_files << std::endl;
                 if (found_files)
                 {
                     getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, 0, file_num);
@@ -3872,6 +3890,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     {
         log_file.sizes["selectivity"] = (log_file.sizes["linesWritten"] * 1000) / log_file.sizes["linesRead"];
     }
+    std::cout << "End of helping Phase" << std::endl;
 }
 char getMergePartition(Aws::S3::S3Client *minio_client)
 {
@@ -4872,14 +4891,16 @@ int main(int argc, char **argv)
             }
         }
 
+        std::cout << "cleanup" << std::endl;
         cleanup(&minio_client);
-
+        std::cout << "writing log file" << std::endl;
         if (log_time)
         {
             writeLogFile(log_file);
         }
         log_size = temp_log_size;
     }
+    std::cout << "shutting down" << std::endl;
     Aws::ShutdownAPI(options);
     return 1;
     // return aggregate("test.txt", "output_test.json");
