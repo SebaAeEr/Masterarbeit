@@ -3769,7 +3769,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                     {
                         for (auto &p : w.partitions)
                         {
-                            if (p.files.size() > 2)
+                            if (p.files.size() > 1)
                             {
                                 found_files = true;
                                 break;
