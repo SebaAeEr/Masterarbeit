@@ -1004,7 +1004,7 @@ void getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id, st
 
 void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char partition_id, std::vector<std::string> *blacklist, std::tuple<std::vector<file>, char, char> *res, char thread_id, char min_file_num)
 {
-    // std::cout << "getting file name" << std::endl;
+    std::cout << "getting file name" << std::endl;
     char given_beggarWorker = beggarWorker;
     file m_file;
     manaFile mana = getLockedMana(minio_client, thread_id);
@@ -1012,6 +1012,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
     //  If no beggarWorker is yet selected choose the worker with the largest spill
     if (beggarWorker == 0)
     {
+        std::cout << "finding partition" << std::endl;
         size_t partition_max = 0;
         size_t biggest_file = 0;
         for (auto &worker : mana.workers)
@@ -1057,6 +1058,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
         return;
     }
 
+    std::cout << "finding files" << std::endl;
     char file_num = threadNumber * 2;
     std::vector<file> res_files(0);
     for (auto &worker : mana.workers)
@@ -1105,6 +1107,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
                         }
                         if (max > 0)
                         {
+                            std::cout << "found file name: " << biggest_file.name << std::endl;
                             res_files.push_back(biggest_file);
                         }
                         else
@@ -1130,6 +1133,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
         std::cout << temp.name << ", ";
     }
     std::cout << std::endl; */
+    std::cout << "writing status" << std::endl;
     get<1>(*res) = beggarWorker;
     get<2>(*res) = partition_id;
     get<0>(*res) = res_files;
@@ -1157,6 +1161,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
             }
         }
     }
+    std::cout << "unlocking Mana" << std::endl;
     writeMana(minio_client, mana, true);
     return;
 }
