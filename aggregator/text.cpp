@@ -143,6 +143,7 @@ std::atomic<bool> file_queue_status(true);
 std::vector<std::pair<file, char>> file_queue;
 int minFileNumMergeHelper = 2;
 int getManaThreads_num = 0;
+bool showProgressBar;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -822,20 +823,23 @@ void initManagFile(Aws::S3::S3Client *minio_client)
 
 void printProgressBar(float progress)
 {
-    int barWidth = 70;
-    std::cout << "[";
-    int pos = barWidth * progress;
-    for (int i = 0; i < barWidth; ++i)
+    if (showProgressBar)
     {
-        if (i < pos)
-            std::cout << "=";
-        else if (i == pos)
-            std::cout << ">";
-        else
-            std::cout << " ";
+        int barWidth = 70;
+        std::cout << "[";
+        int pos = barWidth * progress;
+        for (int i = 0; i < barWidth; ++i)
+        {
+            if (i < pos)
+                std::cout << "=";
+            else if (i == pos)
+                std::cout << ">";
+            else
+                std::cout << " ";
+        }
+        std::cout << "] " << int(progress * 100.0) << " %\r";
+        std::cout.flush();
     }
-    std::cout << "] " << int(progress * 100.0) << " %\r";
-    std::cout.flush();
 }
 
 void cleanup(Aws::S3::S3Client *minio_client)
@@ -4892,6 +4896,7 @@ int main(int argc, char **argv)
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
     std::cout << "Iterations: " << iteration << std::endl;
+    showProgressBar = iteration > 0;
 
     for (int i = 0; i < iteration + 1; i++)
     {
