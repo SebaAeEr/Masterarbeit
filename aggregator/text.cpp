@@ -142,6 +142,7 @@ std::mutex file_queue_mutex;
 std::atomic<bool> file_queue_status(true);
 std::vector<std::pair<file, char>> file_queue;
 int minFileNumMergeHelper = 2;
+int getManaThreads_num = 0;
 
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -335,6 +336,27 @@ void writeLogFile(logFile log_t)
         if (t_counter < log_t.getCall_s3_file_durs.size())
             output << ",";
     }
+
+    output << "],\n\"mergeHelp_merge_tuple_num_first\":[";
+    t_counter = 0;
+    for (auto &it : log_t.mergeHelp_merge_tuple_num)
+    {
+        t_counter++;
+        output << it.first;
+        if (t_counter < log_t.mergeHelp_merge_tuple_num.size())
+            output << ",";
+    }
+
+    output << "],\n\"mergeHelp_merge_tuple_num_rest\":[";
+    t_counter = 0;
+    for (auto &it : log_t.mergeHelp_merge_tuple_num)
+    {
+        t_counter++;
+        output << it.second;
+        if (t_counter < log_t.mergeHelp_merge_tuple_num.size())
+            output << ",";
+    }
+
     output << "],\n\"test\":{\n\"success\":";
     output << log_t.test.success;
     output << ",\"different_keys_num\":";
@@ -477,6 +499,7 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
 
     // std::cout << "use count: " << done.use_count() << std::endl;
     done.reset();
+    getManaThreads_num--;
     return;
 }
 
@@ -494,6 +517,7 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         std::vector<std::thread> threads;
         while (!done->load())
         {
+            getManaThreads_num++;
             auto thread_get_start_time = std::chrono::high_resolution_clock::now();
             threads.push_back(std::thread(getManaCall, minio_client, done, &mana, &donedone));
             size_t duration = 0;
@@ -930,6 +954,7 @@ void setPartitionNumber(size_t comb_hash_size)
 
 void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
 {
+    std::vector<std::pair<file, char>> *files_temp;
     if (use_file_queue)
     {
         file_queue_mutex.lock();
@@ -938,21 +963,22 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
             file_queue.push_back(f);
         }
         file_queue_mutex.unlock();
+        files_temp = &file_queue;
     }
     else
     {
-        for (auto &f : files)
-        {
-            file_queue.push_back(f);
-        }
+        files_temp = &files;
     }
     bool open = true;
     if (!use_file_queue || file_queue_status.compare_exchange_strong(open, false))
     {
         manaFile mana = getLockedMana(minio_client, thread_id);
-        file_queue_mutex.lock();
+        if (use_file_queue)
+        {
+            file_queue_mutex.lock();
+        }
         bool partition_locked;
-        for (auto &file : file_queue)
+        for (auto &file : *files_temp)
         {
             bool parition_found = false;
             for (auto &worker : mana.workers)
@@ -963,9 +989,12 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                     {
                         writeMana(minio_client, mana, true);
                         mana_writeThread_num.fetch_sub(1);
-                        file_queue.clear();
-                        file_queue_status.exchange(true);
-                        file_queue_mutex.unlock();
+                        if (use_file_queue)
+                        {
+                            file_queue.clear();
+                            file_queue_status.exchange(true);
+                            file_queue_mutex.unlock();
+                        }
                         return;
                     }
                     for (auto &partition : worker.partitions)
@@ -1003,9 +1032,12 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                 }
             }
         }
-        file_queue.clear();
-        file_queue_status.exchange(true);
-        file_queue_mutex.unlock();
+        if (use_file_queue)
+        {
+            file_queue.clear();
+            file_queue_status.exchange(true);
+            file_queue_mutex.unlock();
+        }
         writeMana(minio_client, mana, true);
         // std::cout << "Printing mana:" << std::endl;
         // manaFile asdf;
@@ -4959,16 +4991,16 @@ int main(int argc, char **argv)
             }
         }
 
-        std::cout << "cleanup" << std::endl;
         cleanup(&minio_client);
-        std::cout << "writing log file" << std::endl;
         if (log_time)
         {
             writeLogFile(log_file);
         }
         log_size = temp_log_size;
     }
-    std::cout << "shutting down" << std::endl;
+    while (getManaThreads_num > 0)
+    {
+    }
     Aws::ShutdownAPI(options);
     return 1;
     // return aggregate("test.txt", "output_test.json");
