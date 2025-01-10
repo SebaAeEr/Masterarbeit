@@ -1410,7 +1410,7 @@ int getPartition(std::array<unsigned long, max_size> key)
     return h % partitions;
 }
 
-unsigned long parseCVS(char *mapping, unsigned long start, std::string keys[], std::unordered_map<std::string, std::string> *lineObjects, size_t limit)
+unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], std::unordered_map<std::string, std::string> *lineObjects, size_t limit)
 {
     unsigned long i = start;
     while (true)
@@ -1437,6 +1437,7 @@ unsigned long parseCVS(char *mapping, unsigned long start, std::string keys[], s
                     i++;
                     char_temp = mapping[i];
                 }
+                std::cout << (*lineObjects)[key] << std::endl;
                 if (char_temp != '\n')
                 {
                     readingMode++;
@@ -1446,7 +1447,7 @@ unsigned long parseCVS(char *mapping, unsigned long start, std::string keys[], s
                     if (std::find(std::begin(test_values), std::end(test_values), std::stol((*lineObjects)[keys[0]])) != std::end(test_values))
                     {
                         unsigned long temp = start;
-                        std::cout << "Json line: ";
+                        std::cout << "CSV line: ";
                         while (temp < i)
                         {
                             std::cout << mapping[temp];
@@ -1529,7 +1530,7 @@ unsigned long readTuple(char *mapping, unsigned long start, std::string keys[], 
     }
     else
     {
-        return parseCVS(mapping, start, keys, lineObjects, limit);
+        return parseCSV(mapping, start, keys, lineObjects, limit);
     }
 }
 
