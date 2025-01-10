@@ -1296,7 +1296,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
                 output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
             }
         }
-        output_size += hmap->size() * (key_number + value_number);
+        output_size += hmap->size() * (key_number + value_number) * 2;
     }
     // std::cout << "Output file size: " << output_size << std::endl;
 
@@ -1335,11 +1335,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
         if (isJson)
         {
             mapped_count += writeString(&mappedoutputFile[mapped_count], "{");
-        }
-        // std::string temp_line = "{";
-        for (int k = 0; k < key_number; k++)
-        {
-            if (isJson)
+            for (int k = 0; k < key_number; k++)
             {
                 mapped_count += writeString(&mappedoutputFile[mapped_count], "\"");
                 mapped_count += writeString(&mappedoutputFile[mapped_count], key_names[k]);
@@ -1351,34 +1347,39 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
                     mapped_count += writeString(&mappedoutputFile[mapped_count], ",");
                 }
             }
+            mapped_count += writeString(&mappedoutputFile[mapped_count], ",\"_col1\":");
+            if (op != average)
+            {
+                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0]));
+            }
             else
             {
-                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.first[k]));
-                mapped_count += writeString(&mappedoutputFile[mapped_count], ",");
+                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0] / (float)(it.second[1])));
             }
-        }
-        if (isJson)
-        {
-            mapped_count += writeString(&mappedoutputFile[mapped_count], ",\"_col1\":");
-        }
-        if (op != average)
-        {
-            // temp_line += ",\"_col1\":" + std::to_string(it.second[0]) + "}";
-            mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0]));
+            mapped_count += writeString(&mappedoutputFile[mapped_count], "},");
+            mapped_count += writeString(&mappedoutputFile[mapped_count], "\n");
         }
         else
         {
-            mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0] / (float)(it.second[1])));
-            // temp_line += ",\"_col1\":" + std::to_string(it.second[0] / (float)(it.second[1])) + "}";
+            for (int k = 0; k < key_number; k++)
+            {
+                mapped_count += writeString(&mappedoutputFile[mapped_count], "\"");
+                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.first[k]));
+                mapped_count += writeString(&mappedoutputFile[mapped_count], "\"");
+                mapped_count += writeString(&mappedoutputFile[mapped_count], ",");
+            }
+            mapped_count += writeString(&mappedoutputFile[mapped_count], "\"");
+            if (op != average)
+            {
+                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0]));
+            }
+            else
+            {
+                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0] / (float)(it.second[1])));
+            }
+            mapped_count += writeString(&mappedoutputFile[mapped_count], "\"");
+            mapped_count += writeString(&mappedoutputFile[mapped_count], "\n");
         }
-        if (isJson)
-        {
-            mapped_count += writeString(&mappedoutputFile[mapped_count], "},");
-        }
-        mapped_count += writeString(&mappedoutputFile[mapped_count], "\n");
-        // std::cout << temp_line << std::endl;
-        // for (auto &itt : temp_line)
-        //{
         unsigned long used_space = (mapped_count - head);
         if (used_space >= free_mem && used_space > pagesize)
         {
@@ -1387,7 +1388,6 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
             head += freed_space;
             freed_mem += freed_space;
         }
-        //}
     }
 
     // free mapping and return the size of output of hmap.
