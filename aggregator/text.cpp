@@ -1413,7 +1413,6 @@ int getPartition(std::array<unsigned long, max_size> key)
 unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], std::unordered_map<std::string, std::string> *lineObjects, size_t limit)
 {
     unsigned long i = start;
-    std::cout << "parsing" << std::endl;
     while (true)
     {
         if (i > limit)
@@ -1428,6 +1427,7 @@ unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], s
             {
                 std::string key = keys[readingMode];
                 char char_temp = mapping[i];
+                std::cout << char_temp;
                 (*lineObjects)[key] = "";
                 while (char_temp != ',' && char_temp != '\n')
                 {
@@ -1438,7 +1438,7 @@ unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], s
                     i++;
                     char_temp = mapping[i];
                 }
-                std::cout << (*lineObjects)[key] << std::endl;
+                std::cout <<" -> " <<  (*lineObjects)[key] << std::endl;
                 if (char_temp != '\n')
                 {
                     readingMode++;
