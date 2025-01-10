@@ -1302,6 +1302,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
 
     int file = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
 
+    std::cout << "extending" << std::endl;
     // Extend file file.
     lseek(file, start + output_size - 1, SEEK_SET);
     if (write(file, "", 1) == -1)
@@ -1315,7 +1316,9 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     size_t start_page = start - start_diff;
 
     // Map file with given size.
+    std::cout << "mapping" << std::endl;
     char *mappedoutputFile = static_cast<char *>(mmap(nullptr, output_size + start_diff, PROT_WRITE | PROT_READ, MAP_SHARED, file, start_page));
+    std::cout << "madvise " << std::endl;
     madvise(mappedoutputFile, output_size + start_diff, MADV_SEQUENTIAL | MADV_WILLNEED);
     if (mappedoutputFile == MAP_FAILED)
     {
@@ -1330,8 +1333,10 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     // Write into file through mapping. Starting at the given start point.
     unsigned long mapped_count = start_diff;
     unsigned long head = 0;
+    std::cout << "writing" << std::endl;
     for (auto &it : *hmap)
     {
+        std::cout << mapped_count;
         if (isJson)
         {
             mapped_count += writeString(&mappedoutputFile[mapped_count], "{");
@@ -1389,7 +1394,8 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
             freed_mem += freed_space;
         }
     }
-
+    std::cout << std::endl;
+    std::cout << "munmap" << std::endl;
     // free mapping and return the size of output of hmap.
     if (munmap(&mappedoutputFile[head], (output_size + start_diff) - head) == -1)
     {
