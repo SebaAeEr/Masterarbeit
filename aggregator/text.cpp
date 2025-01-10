@@ -1413,6 +1413,7 @@ int getPartition(std::array<unsigned long, max_size> key)
 unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], std::unordered_map<std::string, std::string> *lineObjects, size_t limit)
 {
     unsigned long i = start;
+    std::cout << "parsing" << std::endl;
     while (true)
     {
         if (i > limit)
@@ -4691,8 +4692,6 @@ int main(int argc, char **argv)
     std::vector<std::string> memLimit_string_vec(1);
     std::vector<std::string> memLimitBack_string_vec(1);
 
-    std::cout << "argc: " << argc << std::endl;
-
     if (argc == 10)
     {
         std::string threadNumber_string;
@@ -4723,7 +4722,6 @@ int main(int argc, char **argv)
     }
     else
     {
-        std::cout << "test" << std::endl;
         std::string conf_name = "conf";
         if (argc == 2)
         {
@@ -4739,7 +4737,6 @@ int main(int argc, char **argv)
             getline(ss, name, del);
             std::string value;
             getline(ss, value, del);
-            std::cout << name << ":" << value << std::endl;
             switch (str2int(name.c_str()))
             {
             case str2int("tpc_query"):
