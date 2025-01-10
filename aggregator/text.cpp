@@ -1575,8 +1575,9 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
         madvise(spills[i], spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
         if (spills[i] == MAP_FAILED)
         {
+            std::cout << "size: " << spill_mem_size << " is fd valid? " << fcntl((*spill_file)[i].first, F_GETFD) << std::endl;
             close((*spill_file)[i].first);
-            perror("Error mmapping the file");
+            perror("Error mmapping the file while writing encdoded");
             exit(EXIT_FAILURE);
         }
     }
@@ -1686,7 +1687,8 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         if (spills[i] == MAP_FAILED)
         {
             close((*spill_file)[i].first);
-            perror("Error mmapping the file");
+            std::cout << "size: " << spill_mem_size << " is fd valid? " << fcntl((*spill_file)[i].first, F_GETFD) << std::endl;
+            perror("Error mmapping the file while spilling to file");
             exit(EXIT_FAILURE);
         }
     }
@@ -1950,7 +1952,8 @@ void spillS3FileEncoded(std::pair<int, size_t> spill_file, Aws::S3::S3Client *mi
     if (spill_map == MAP_FAILED)
     {
         close(spill_file.first);
-        perror("Error mmapping the file");
+        std::cout << "size: " << spill_mem_size << " is fd valid? " << fcntl(spill_file.first, F_GETFD) << std::endl;
+        perror("Error mmapping the file while spilling from file to s3 encoded");
         exit(EXIT_FAILURE);
     }
     madvise(spill_map, spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
@@ -2024,7 +2027,8 @@ void spillS3File(std::pair<int, size_t> spill_file, Aws::S3::S3Client *minio_cli
     if (spill_map == MAP_FAILED)
     {
         close(spill_file.first);
-        perror("Error mmapping the file");
+        std::cout << "size: " << spill_mem_size << " is fd valid? " << fcntl(spill_file.first, F_GETFD) << std::endl;
+        perror("Error mmapping the file while spilling from file to s3 not encoded");
         exit(EXIT_FAILURE);
     }
     madvise(spill_map, spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
@@ -4896,7 +4900,7 @@ int main(int argc, char **argv)
     std::string agg_output = "output_" + tpc_sup;
     Aws::S3::S3Client minio_client = init();
     std::cout << "Iterations: " << iteration << std::endl;
-    showProgressBar = iteration > 0;
+    showProgressBar = iteration == 0;
 
     for (int i = 0; i < iteration + 1; i++)
     {
