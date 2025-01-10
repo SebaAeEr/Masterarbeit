@@ -4736,6 +4736,7 @@ int main(int argc, char **argv)
             getline(ss, name, del);
             std::string value;
             getline(ss, value, del);
+            std::cout << name << ":" << value << std::endl;
             switch (str2int(name.c_str()))
             {
             case str2int("tpc_query"):
