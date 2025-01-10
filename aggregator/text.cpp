@@ -1427,10 +1427,11 @@ unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], s
             {
                 std::string key = keys[readingMode];
                 char char_temp = mapping[i];
-                std::cout << char_temp;
+                
                 (*lineObjects)[key] = "";
                 while (char_temp != ',' && char_temp != '\n')
                 {
+                    std::cout << char_temp;
                     if (char_temp == '.' || isdigit(char_temp))
                     {
                         (*lineObjects)[key] += char_temp;
