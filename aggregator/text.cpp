@@ -1428,7 +1428,6 @@ unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], s
             {
                 std::string key = keys[readingMode];
                 char char_temp = mapping[i];
-                std::cout << char_temp;
                 (*lineObjects)[key] = "";
                 while (char_temp != '"' && char_temp != '\n')
                 {
@@ -1438,9 +1437,7 @@ unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], s
                     }
                     i++;
                     char_temp = mapping[i];
-                    std::cout << char_temp;
                 }
-                std::cout << " -> " << (*lineObjects)[key] << std::endl;
                 char_temp = mapping[i + 1];
                 if (char_temp != '\n')
                 {
