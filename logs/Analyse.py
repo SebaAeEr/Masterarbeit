@@ -814,6 +814,7 @@ def analyse_1_6_13():
 
 def c_size_by_time():
     names = [
+        "logfile_4_6_0_4_14-11.json",
         "logfile_4_6_0_4_16-25.json",
         "logfile_4_6_0_4_23-39.json",
         "logfile_4_6_0_4_00-06.json",
@@ -869,8 +870,22 @@ def c_size_by_time():
 
     plt.figure(2)
     plt.plot(x, avg_y, label="Average")
+    counter = 0
 
-    times = []
+    times = [
+        {
+            "write_file_sum": np.empty(len(names)),
+            "scan_dur": np.empty(len(names)),
+            # "merge_hash_dur": np.empty(),
+            # "get_file_sum": np.empty(),
+            "write_output_sum": np.empty(len(names)),
+            "merge_dur": np.empty(len(names)),
+            # "read_tuple_sum": np.empty(),
+            # "Exchange": np.empty(),
+        }
+    ]
+
+    
 
     for name in names:
         jf = open(os.path.join(directory, name))
@@ -942,21 +957,29 @@ def c_size_by_time():
         scan_dur = jf_data["scanDuration"] - write_file_sum
         merge_hash_dur = jf_data["mergeHashDuration"]
 
-        times += [
-            {
-                "write_file_sum": np.array([write_file_sum]),
-                "scan_dur": np.array([scan_dur]),
-                # "merge_hash_dur": np.array([merge_hash_dur]),
-                # "get_file_sum": np.array([get_file_sum]),
-                "write_output_sum": np.array([write_output_sum]),
-                "merge_dur": np.array([merge_dur]),
-                # "read_tuple_sum": np.array([read_tuple_sum]),
-                #   "Exchange": np.array(wall_time_exc[k][0]),
-            }
-        ]
+        times[0]["write_file_sum"][counter] = write_file_sum
+        times[0]["scan_dur"][counter] =scan_dur
+        times[0]["write_output_sum"][counter] =write_output_sum
+        times[0]["merge_dur"][counter] =merge_dur
+        counter+=1
+        # times +=   [ {
+        # "write_file_sum": np.array([write_file_sum]),
+        # "scan_dur": np.array([scan_dur]),
+        # "merge_hash_dur": np.array([merge_hash_dur]),
+        # "get_file_sum": np.array([get_file_sum]),
+        # "write_output_sum": np.array([write_output_sum]),
+        # "merge_dur": np.array([merge_dur]),
+        # "read_tuple_sum": np.array([read_tuple_sum]),
+        #   "Exchange": np.array(wall_time_exc[k][0]),
+        #     }
+        # ]
 
     if len(names) > 0:
-        makeBarFig(times, np.array(["X"]), "Wall time in min")
+        makeBarFig(
+            times,
+            np.array(["straggler rem", "3W", "1W","multi merge","multi subMerge", "deencode"]),
+            "Wall time in min",
+        )
         print(str(times))
     # bottom = 0
     # for datum in dates:

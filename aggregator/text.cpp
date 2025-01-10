@@ -3044,8 +3044,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         if ((!deencode && i >= sum / sizeof(long)) || (deencode && i >= sum))
         {
-            // std::cout << "New mapping sum: " << sum << std::endl;
             sum = 0;
+            int c = 0;
             for (auto &it : *spills)
             {
                 sum += it.second;
@@ -3053,7 +3053,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 {
                     if (spill_map != nullptr && mapping_size - input_head * sizeof(long) > 0)
                     {
-
                         // save empty flag and release the mapping
                         if (munmap(&spill_map[input_head], mapping_size - input_head * sizeof(long)) == -1)
                         {
@@ -3099,7 +3098,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         madvise(spill_map_char, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
                         input_head = 0;
                         offset = ((sum - it.second) + map_start);
-                        // std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << std::endl;
+                        std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << " spillnum: "<< c<< std::endl;
                     }
                     else
                     {
@@ -3122,6 +3121,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     // std::cout << "sum: " << sum / sizeof(long) << " offset: " << offset << " head: " << input_head_base << " map_start: " << map_start / sizeof(long) << " i: " << i << std::endl;
                     break;
                 }
+                c++;
             }
         }
         newi = i - offset;
@@ -3511,10 +3511,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     while (!finished)
     {
         auto s3spillFile_head_old = s3spillFile_head;
+        auto input_head_base_old = input_head_base;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size, 0);
 
-        //  std::cout << "Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
+        std::cout << "Start adding from: " << input_head_base_old << " to " << input_head_base << " subfile_head: " << subfile_head << std::endl;
         //  std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
         //  bit_head_end++;
         increase = false;
@@ -3536,7 +3537,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             size_t old_input_head_base = input_head_base;
             addXtoLocalSpillHead(spills, &input_head_base, 1);
 
-            // std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
+            std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
             if (multiThread_subMerge)
             {
                 int mergefile_num_temp = std::max(0, (int)(s3spillNames2->size() - s3spillFile_head));
@@ -3600,12 +3601,13 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 while (input_head_base < comb_spill_size)
                 {
                     start_heads_local[counter] = input_head_base;
-                    // std::cout << "merging local input_head_base: " << input_head_base << std::endl;
+                    std::cout << "merging local input_head_base: " << input_head_base;
                     threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &int_n, &n, &n, &start_heads_local[counter],
                                                   size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size, t_c));
                     counter++;
                     t_c++;
                     addXtoLocalSpillHead(spills, &input_head_base, merge_file_num);
+                    std::cout << " to: " << input_head_base << std::endl;
                     // std::cout << "add local spill: " << merge_file_num << " to: " << input_head_base << std::endl;
                 }
                 // std::cout << "Waiting for threads" << std::endl;
