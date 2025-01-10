@@ -1296,7 +1296,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
                 output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
             }
         }
-        output_size += hmap->size() * (key_number + 1) * 2;
+        output_size += hmap->size() * (key_number  + 1) * 3;
     }
     std::cout << "Output file size: " << output_size << std::endl;
 
@@ -1337,6 +1337,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     for (auto &it : *hmap)
     {
         std::cout << mapped_count;
+        std::cout.flush();
         if (isJson)
         {
             mapped_count += writeString(&mappedoutputFile[mapped_count], "{");
