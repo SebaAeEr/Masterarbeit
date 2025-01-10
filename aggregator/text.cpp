@@ -1296,9 +1296,9 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
                 output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
             }
         }
-        output_size += hmap->size() * (key_number + value_number) * 2;
+        output_size += hmap->size() * (key_number + 1) * 2;
     }
-    // std::cout << "Output file size: " << output_size << std::endl;
+    std::cout << "Output file size: " << output_size << std::endl;
 
     int file = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
 
@@ -1396,7 +1396,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
         perror("Could not free memory in writeHashmap 2!");
     }
     freed_mem += (output_size + start_diff) - head;
-    // std::cout << "freed mem: " << freed_mem << " size: " << output_size + start_diff << std::endl;
+    std::cout << "freed mem: " << freed_mem << " size: " << output_size + start_diff << std::endl;
     // std::cout << "Output file size: " << output_size << std::endl;
     log_file.sizes["write_output_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count();
 
@@ -2666,6 +2666,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     size_t comb_spill_size = 0;
     size_t increase = 0;
     int file_counter = 0;
+    int conc_threads = multiThread_merge ? threadNumber : 1;
 
     for (auto &it : *spills)
     {
@@ -2929,7 +2930,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             }
                             // std::cout << "After setting " << std::bitset<8>(bitmap[std::floor(head / 8)]) << std::endl;
                         }
-                        int conc_threads = multiThread_merge ? threadNumber : 1;
+
                         if (spilled_bitmap)
                         {
                             diff->exchange(index);
@@ -3331,9 +3332,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 // std::cout << "hashmap size: " << emHashmap.size() * avg << " freed space: " << freed_space_temp << std::endl;
             }
             // if (!locked && used_space <= pagesize * 40 && hmap->size() * (*avg) + base_size >= memLimit * 0.9)
-            if (hmap->size() >= *max_hash_size * 0.95 && !locked && used_space <= pagesize * 40)
+            // if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99 && !locked)
+            if (hmap->size() >= *max_hash_size * 0.95 && !locked && used_space <= pagesize * 40 && (*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9)
             {
-                // std::cout << "head base: " << input_head_base << std::endl;
+                std::cout << "head base: " << input_head_base << std::endl;
                 locked = true;
                 *input_head_base = i + 1;
             }
@@ -3632,14 +3634,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         if (writeRes)
         {
             written_lines += hmap->size();
-            /* if (deencode)
+            if (deencode)
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " locked: " << locked << std::endl;
             }
             else
             {
                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
-            } */
+            }
             bool asdf = false;
             writing_ouput.lock();
             *output_file_head += writeHashmap(hmap, *output_file_head, pagesize * 30, outputfilename);
