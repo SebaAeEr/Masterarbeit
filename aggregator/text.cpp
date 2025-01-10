@@ -3099,7 +3099,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         madvise(spill_map_char, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
                         input_head = 0;
                         offset = ((sum - it.second) + map_start);
-                        std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << " spillnum: "<< c<< std::endl;
+                        std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << " spillnum: " << c << std::endl;
                     }
                     else
                     {
@@ -4691,6 +4691,8 @@ int main(int argc, char **argv)
     std::vector<std::string> memLimit_string_vec(1);
     std::vector<std::string> memLimitBack_string_vec(1);
 
+    std::cout << "argc: " << argc << std::endl;
+
     if (argc == 10)
     {
         std::string threadNumber_string;
@@ -4721,6 +4723,7 @@ int main(int argc, char **argv)
     }
     else
     {
+        std::cout << "test" << std::endl;
         std::string conf_name = "conf";
         if (argc == 2)
         {
