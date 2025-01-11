@@ -1660,9 +1660,11 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
 
 void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<int, size_t>> *spill_file, char id, size_t free_mem, std::string &fileName)
 {
+    std::cout << "spilling to file" << std::endl;
     if (deencode)
     {
         spillToFileEncoded(hmap, spill_file, id, free_mem, fileName);
+        std::cout << "spilled to file" << std::endl;
         return;
     }
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
@@ -1760,6 +1762,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             exit(EXIT_FAILURE);
         }
     }
+    std::cout << "spilled to file" << std::endl;
 
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
@@ -2125,6 +2128,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     {
         for (int i = 0; i < partitions; i++)
         {
+            std::cout << "spilling to s3 from file" << std::endl;
             counter = 0;
             if (deencode)
             {
@@ -2134,6 +2138,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
             {
                 spillS3File(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
             }
+            std::cout << "spilled to s3 from file" << std::endl;
         }
     }
     std::vector<std::pair<file, char>> files;
@@ -2405,7 +2410,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     {
                         threadLog.sizes["localS3Spill"]++;
                         threadLog.sizes["s3SpillSize"] += temp_spill_size;
-                        // std::cout << "local + s3: " << (int)(id) << std::endl;
+                        std::cout << "local + s3: " << (int)(id) << std::endl;
                         mainMem_usage += temp_spill_size - temp_local_spill_size;
                         temp_local_spill_size = temp_spill_size;
                         auto start_wait_time = std::chrono::high_resolution_clock::now();
@@ -2435,7 +2440,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     {
                         threadLog.sizes["localSpill"]++;
                         threadLog.sizes["localSpillSize"] += temp_spill_size;
-                        // std::cout << "local: " << (int)(id) << std::endl;
+                         std::cout << "local: " << (int)(id) << std::endl;
                         spill_file_name = "";
                         spill_file_name += worker_id;
                         spill_file_name += "_";
@@ -2457,7 +2462,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 {
                     threadLog.sizes["s3Spill"]++;
                     threadLog.sizes["s3SpillSize"] += temp_spill_size;
-                    // std::cout << "s3: " << (int)(id) << std::endl;
+                     std::cout << "s3: " << (int)(id) << std::endl;
                     uName = "";
                     uName += worker_id;
                     uName += "_";
