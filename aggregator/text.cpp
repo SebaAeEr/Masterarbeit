@@ -1253,30 +1253,36 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     {
         // Calc the output size for hmap.
 
-        for (auto &it : *hmap)
+        /* for (auto &it : *hmap)
         {
             for (int i = 0; i < key_number; i++)
             {
                 output_size += std::to_string(it.first[i]).length();
             }
-
-            if (op != average)
+            if (op != exists)
             {
-                output_size += std::to_string(it.second[0]).length();
+                if (op != average)
+                {
+                    output_size += std::to_string(it.second[0]).length();
+                }
+                else
+                {
+                    output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
+                }
             }
-            else
-            {
-                output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
-            }
-        }
+        } */
+        output_size += hmap->size() * (key_number + 1) * 20;
         for (int i = 0; i < key_number; i++)
         {
             output_size += ("\"" + key_names[i] + "\":").length() * hmap->size();
         }
 
         // unsigned long output_size_test = strlen(("\"custkey\":,\"_col1\":}").c_str())
-
         output_size += (strlen("\"_col1\":") + 5 + key_number) * hmap->size();
+        if (op != exists)
+        {
+            output_size += (strlen("\"_col1\":") + 5 + key_number) * hmap->size();
+        }
     }
     else
     {
@@ -1286,14 +1292,16 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
             {
                 output_size += std::to_string(it.first[i]).length();
             }
-
-            if (op != average)
+            if (op != exists)
             {
-                output_size += std::to_string(it.second[0]).length();
-            }
-            else
-            {
-                output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
+                if (op != average)
+                {
+                    output_size += std::to_string(it.second[0]).length();
+                }
+                else
+                {
+                    output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
+                }
             }
         }
         output_size += hmap->size() * (key_number + 1) * 3;
@@ -1548,12 +1556,12 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
     // Calc spill size
     size_t spill_mem_size = hmap->size() * sizeof(long) * (key_number + value_number);
-    std::cout << "opening files " << std::endl;
+    std::cout << "opening files size: " << spill_file->size() << std::endl;
     if ((*spill_file)[0].first == -1)
     {
         for (int i = 0; i < partitions; i++)
         {
-            // std::cout << "opening file " << (fileName + "_" + std::to_string(i)) << std::endl;
+            std::cout << "opening file " << (fileName + "_" + std::to_string(i)) << std::endl;
             (*spill_file)[i].first = open((fileName + "_" + std::to_string(i)).c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
             if ((*spill_file)[i].first == -1)
             {
