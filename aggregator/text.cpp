@@ -1296,7 +1296,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
                 output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
             }
         }
-        output_size += hmap->size() * (key_number  + 1) * 3;
+        output_size += hmap->size() * (key_number + 1) * 3;
     }
     std::cout << "Output file size: " << output_size << std::endl;
 
@@ -1548,7 +1548,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
     // Calc spill size
     size_t spill_mem_size = hmap->size() * sizeof(long) * (key_number + value_number);
-
+    std::cout << "opening files " << std::endl;
     if ((*spill_file)[0].first == -1)
     {
         for (int i = 0; i < partitions; i++)
@@ -1564,6 +1564,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
         }
     }
 
+    std::cout << "extending files" << std::endl;
     // extend file
     for (int i = 0; i < partitions; i++)
     {
@@ -1577,7 +1578,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
         }
     }
     std::vector<char *> spills;
-    // std::cout << "opening mappings " << fileName << std::endl;
+    std::cout << "opening mappings " << std::endl;
 
     for (int i = 0; i < partitions; i++)
     {
@@ -1591,7 +1592,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
             exit(EXIT_FAILURE);
         }
     }
-
+    std::cout << "writing files" << std::endl;
     // Write int to Mapping
     std::vector<unsigned long> counters = std::vector<unsigned long>(partitions, 0);
     std::vector<unsigned long> writeheads = std::vector<unsigned long>(partitions, 0);
@@ -1640,7 +1641,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
             writehead += freed_space;
         }
     }
-
+    std::cout << "freeing mappings " << std::endl;
     // std::cout << "freeing up mapping " << fileName << std::endl;
 
     for (int i = 0; i < partitions; i++)
@@ -1654,6 +1655,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
             exit(EXIT_FAILURE);
         }
     }
+    std::cout << "finish" << std::endl;
     // Cleanup: clear hashmap and free rest of mapping space
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
@@ -2126,9 +2128,9 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     }
     else
     {
+        std::cout << "spilling to s3 from file" << std::endl;
         for (int i = 0; i < partitions; i++)
         {
-            std::cout << "spilling to s3 from file" << std::endl;
             counter = 0;
             if (deencode)
             {
@@ -2138,8 +2140,8 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
             {
                 spillS3File(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
             }
-            std::cout << "spilled to s3 from file" << std::endl;
         }
+        std::cout << "spilled to s3 from file" << std::endl;
     }
     std::vector<std::pair<file, char>> files;
     for (char i = 0; i < partitions; i++)
@@ -2440,7 +2442,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     {
                         threadLog.sizes["localSpill"]++;
                         threadLog.sizes["localSpillSize"] += temp_spill_size;
-                         std::cout << "local: " << (int)(id) << std::endl;
+                        std::cout << "local: " << (int)(id) << std::endl;
                         spill_file_name = "";
                         spill_file_name += worker_id;
                         spill_file_name += "_";
@@ -2462,7 +2464,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 {
                     threadLog.sizes["s3Spill"]++;
                     threadLog.sizes["s3SpillSize"] += temp_spill_size;
-                     std::cout << "s3: " << (int)(id) << std::endl;
+                    std::cout << "s3: " << (int)(id) << std::endl;
                     uName = "";
                     uName += worker_id;
                     uName += "_";
