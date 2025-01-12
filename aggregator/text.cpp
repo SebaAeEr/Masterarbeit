@@ -1245,7 +1245,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
 }
 
 // Write hashmap hmap into file with head on start.
-unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, unsigned long start, unsigned long free_mem, std::string &outputfilename)
+void writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, unsigned long start, unsigned long free_mem, std::string &outputfilename)
 {
     auto write_start_time = std::chrono::high_resolution_clock::now();
     unsigned long output_size = 0;
@@ -1419,7 +1419,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     log_file.sizes["write_output_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count();
 
     close(file);
-    return mapped_count + start_page;
+    *start = mapped_count + start_page;
 }
 
 int getPartition(std::array<unsigned long, max_size> key)
@@ -3694,7 +3694,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
             bool asdf = false;
             writing_ouput.lock();
-            *output_file_head += writeHashmap(hmap, *output_file_head, pagesize * 30, outputfilename);
+            writeHashmap(hmap, *output_file_head, pagesize * 30, outputfilename);
             writing_ouput.unlock();
 
             hmap->clear();
