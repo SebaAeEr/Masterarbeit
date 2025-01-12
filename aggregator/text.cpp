@@ -1308,11 +1308,9 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
         output_size += hmap->size() * (key_number + 1) * 3; */
         output_size += hmap->size() * (key_number + 1) * 15;
     }
-    std::cout << "Output file size: " << output_size << std::endl;
 
     int file = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
 
-    std::cout << "extending" << std::endl;
     // Extend file file.
     lseek(file, start + output_size - 1, SEEK_SET);
     if (write(file, "", 1) == -1)
@@ -1326,9 +1324,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     size_t start_page = start - start_diff;
 
     // Map file with given size.
-    std::cout << "mapping" << std::endl;
     char *mappedoutputFile = static_cast<char *>(mmap(nullptr, output_size + start_diff, PROT_WRITE | PROT_READ, MAP_SHARED, file, start_page));
-    std::cout << "madvise " << std::endl;
     madvise(mappedoutputFile, output_size + start_diff, MADV_SEQUENTIAL | MADV_WILLNEED);
     if (mappedoutputFile == MAP_FAILED)
     {
@@ -1414,12 +1410,11 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
         exit(EXIT_FAILURE);
     }
     freed_mem += mapped_count - head;
-    std::cout << "freed mem: " << freed_mem << " size: " << output_size + start_diff << std::endl;
     // std::cout << "Output file size: " << output_size << std::endl;
     log_file.sizes["write_output_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count();
 
     close(file);
-    return output_size;
+    return mapped_count + start_page;
 }
 
 int getPartition(std::array<unsigned long, max_size> key)
