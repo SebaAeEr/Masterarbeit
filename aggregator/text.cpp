@@ -1308,7 +1308,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
         output_size += hmap->size() * (key_number + 1) * 3; */
         output_size += hmap->size() * (key_number + 1) * 15;
     }
-    std::cout << "calc output size" << std::endl;
+    std::cout << "calc output size: " << output_size << std::endl;
     int file = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
 
     // Extend file file.
@@ -3147,7 +3147,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         madvise(spill_map_char, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
                         input_head = 0;
                         offset = ((sum - it.second) + map_start);
-                        //std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << " spillnum: " << c << std::endl;
+                        // std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << " spillnum: " << c << std::endl;
                     }
                     else
                     {
@@ -3332,7 +3332,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         }
 
         // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
-        if (comb_hash_size.load() * (*avg) + base_size >= memLimit * 0.9)
+        if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9)
         {
 
             unsigned long used_space = newi - input_head;
@@ -3378,19 +3378,19 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             }
             // if (!locked && used_space <= pagesize * 40 && hmap->size() * (*avg) + base_size >= memLimit * 0.9)
             // if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99 && !locked)
-            if (hmap->size() >= *max_hash_size * 0.95 && !locked && add && used_space <= pagesize * 40 && (*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9)
+            if (hmap->size() >= *max_hash_size * 0.95 && !locked && add && used_space <= pagesize * 40)
             {
                 std::cout << "head base: " << input_head_base << std::endl;
                 locked = true;
                 *input_head_base = i + 1;
             }
-           /*  else
-            {
-                if (!locked && add)
-                {
-                    std::cout << "hmap->size() >= *max_hash_size * 0.95: " << (hmap->size() >= *max_hash_size * 0.95) << "used_space <= pagesize * 40: " << (used_space <= pagesize * 40) << "(*max_hash_size) * (*avg) >= (memLimit / conc_threads) * 0.9" << ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9) << std::endl;
-                }
-            } */
+            /*  else
+             {
+                 if (!locked && add)
+                 {
+                     std::cout << "hmap->size() >= *max_hash_size * 0.95: " << (hmap->size() >= *max_hash_size * 0.95) << "used_space <= pagesize * 40: " << (used_space <= pagesize * 40) << "(*max_hash_size) * (*avg) >= (memLimit / conc_threads) * 0.9" << ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9) << std::endl;
+                 }
+             } */
         }
     }
     // std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
@@ -3596,7 +3596,10 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             // std::cout << "Start merging from: " << start_bit_merge << std::endl;
 
             size_t old_input_head_base = input_head_base;
-            addXtoLocalSpillHead(spills, &input_head_base, 1);
+            if (input_head_base > 0)
+            {
+                addXtoLocalSpillHead(spills, &input_head_base, 1);
+            }
 
             std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
             if (multiThread_subMerge)
@@ -3653,10 +3656,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     s3_start_head += merge_file_num;
                     std::cout << " to start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
                 }
-                if (s3_start_head - s3spillNames2->size() > 0 && counter > 0)
+                if (s3spillNames2->size() % merge_file_num > 0 && counter > 0)
                 {
-                    addXtoLocalSpillHead(spills, &input_head_base, s3_start_head - s3spillNames2->size());
-                    std::cout << "add local spill: " << s3_start_head - s3spillNames2->size() << " to: " << input_head_base << std::endl;
+                    std::cout << "add local spill: " << s3_start_head;
+                    addXtoLocalSpillHead(spills, &input_head_base, s3spillNames2->size() % merge_file_num);
+                    std::cout << " to " << s3_start_head << " by: " << s3spillNames2->size() % merge_file_num << std::endl;
                 }
                 counter = 0;
                 while (input_head_base < comb_spill_size)
