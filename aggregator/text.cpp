@@ -1335,7 +1335,7 @@ void writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         exit(EXIT_FAILURE);
     }
     unsigned long freed_mem = 0;
-    int counter = start;
+    unsigned long counter = start;
     // Write into file through mapping. Starting at the given start point.
     unsigned long mapped_count = start_diff;
     unsigned long head = 0;
