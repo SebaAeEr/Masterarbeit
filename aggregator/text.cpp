@@ -3378,11 +3378,18 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             }
             // if (!locked && used_space <= pagesize * 40 && hmap->size() * (*avg) + base_size >= memLimit * 0.9)
             // if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99 && !locked)
-            if (hmap->size() >= *max_hash_size * 0.95 && !locked && used_space <= pagesize * 40 && (*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9)
+            if (hmap->size() >= *max_hash_size * 0.95 && !locked && add && used_space <= pagesize * 40 && (*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9)
             {
                 std::cout << "head base: " << input_head_base << std::endl;
                 locked = true;
                 *input_head_base = i + 1;
+            }
+            else
+            {
+                if (!locked && add)
+                {
+                    std::cout << "hmap->size() >= *max_hash_size * 0.95: " << (hmap->size() >= *max_hash_size * 0.95) << "used_space <= pagesize * 40: " << (used_space <= pagesize * 40) << "(*max_hash_size) * (*avg) >= (memLimit / conc_threads) * 0.9" << ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9) << std::endl;
+                }
             }
         }
     }
