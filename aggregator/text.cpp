@@ -1410,7 +1410,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
         exit(EXIT_FAILURE);
     }
     freed_mem += mapped_count - head;
-    // std::cout << "Output file size: " << output_size << std::endl;
+    std::cout << "Real output file size: " << mapped_count + start_page << std::endl;
     log_file.sizes["write_output_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count();
 
     close(file);
@@ -3680,7 +3680,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             written_lines += hmap->size();
             if (deencode)
             {
-                std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " locked: " << locked << std::endl;
+                //  std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " locked: " << locked << std::endl;
+                std::cout << "output_file_head: " << *output_file_head << std::endl;
             }
             else
             {
