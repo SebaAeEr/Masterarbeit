@@ -1308,7 +1308,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
         output_size += hmap->size() * (key_number + 1) * 3; */
         output_size += hmap->size() * (key_number + 1) * 15;
     }
-
+    std::cout << "calc output size" << std::endl;
     int file = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
 
     // Extend file file.
@@ -1335,12 +1335,17 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
         exit(EXIT_FAILURE);
     }
     unsigned long freed_mem = 0;
-
+    int counter = start;
     // Write into file through mapping. Starting at the given start point.
     unsigned long mapped_count = start_diff;
     unsigned long head = 0;
     for (auto &it : *hmap)
     {
+        if (counter < 20)
+        {
+            std::cout << it.first[0] << ":" << it.second[0] << std::endl;
+            counter++;
+        }
         if (isJson)
         {
             mapped_count += writeString(&mappedoutputFile[mapped_count], "{");
@@ -1410,7 +1415,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
         exit(EXIT_FAILURE);
     }
     freed_mem += mapped_count - head;
-    std::cout << "Real output file size: " << mapped_count + start_page << std::endl;
+    std::cout << "Real output file size: " << mapped_count << std::endl;
     log_file.sizes["write_output_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count();
 
     close(file);
