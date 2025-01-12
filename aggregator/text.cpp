@@ -3075,9 +3075,13 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     }
     if (add)
     {
-        *s3spillFile_head = s3spillNames2->size() - 1;
+        *s3spillFile_head = s3spillNames2->size();
+        std::cout << "adding local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
     }
-    // std::cout << "Merging local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
+    else
+    {
+        std::cout << "Merging local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
+    }
 
     // std::cout << "New round" << std::endl;
     // Go through entire mapping
@@ -3380,7 +3384,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             // if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99 && !locked)
             if (hmap->size() >= *max_hash_size * 0.95 && !locked && add && used_space <= pagesize * 40)
             {
-                std::cout << "head base: " << input_head_base << std::endl;
+                std::cout << "head base: " << *input_head_base << std::endl;
                 locked = true;
                 *input_head_base = i + 1;
             }
@@ -3586,12 +3590,15 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             int int_n = 0;
             auto temp_it = s3spillNames2->begin();
             int start_bit_merge = 0;
-            s3spillFile_head = std::max((int)(s3spillNames2->size()), s3spillFile_head + 1);
-
-            for (int i = 0; i < s3spillFile_head; i++)
+            if (s3spillFile_head < s3spillNames2->size())
             {
-                start_bit_merge += get<2>(*temp_it).size();
-                temp_it++;
+                s3spillFile_head = s3spillFile_head + 1;
+
+                for (int i = 0; i < s3spillFile_head; i++)
+                {
+                    start_bit_merge += get<2>(*temp_it).size();
+                    temp_it++;
+                }
             }
             // std::cout << "Start merging from: " << start_bit_merge << std::endl;
 
