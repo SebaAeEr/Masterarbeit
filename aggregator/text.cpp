@@ -3586,7 +3586,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             int int_n = 0;
             auto temp_it = s3spillNames2->begin();
             int start_bit_merge = 0;
-            s3spillFile_head++;
+            s3spillFile_head = std::max((int)(s3spillNames2->size()), s3spillFile_head + 1);
 
             for (int i = 0; i < s3spillFile_head; i++)
             {
@@ -3656,11 +3656,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     s3_start_head += merge_file_num;
                     std::cout << " to start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
                 }
-                if (s3spillNames2->size() % merge_file_num > 0 && counter > 0)
+                if ((s3spillNames2->size() - s3spillFile_head) % merge_file_num > 0 && counter > 0)
                 {
-                    std::cout << "add local spill: " << s3_start_head;
-                    addXtoLocalSpillHead(spills, &input_head_base, s3spillNames2->size() % merge_file_num);
-                    std::cout << " to " << s3_start_head << " by: " << s3spillNames2->size() % merge_file_num << std::endl;
+                    std::cout << "add local spill: " << input_head_base;
+                    addXtoLocalSpillHead(spills, &input_head_base, (s3spillNames2->size() - s3spillFile_head) % merge_file_num);
+                    std::cout << " to " << input_head_base << " by: " << (s3spillNames2->size() - s3spillFile_head) % merge_file_num << std::endl;
                 }
                 counter = 0;
                 while (input_head_base < comb_spill_size)
