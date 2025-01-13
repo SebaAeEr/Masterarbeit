@@ -35,6 +35,7 @@
 #include "network/tasked_send_receiver.hpp"
 #include "network/transaction.hpp" */
 
+// Aggregation functions
 enum Operation
 {
     count,
@@ -42,43 +43,57 @@ enum Operation
     exists,
     average
 };
-
+// file representation in Mana file
 struct file
 {
+    // name of file
     std::string name;
+    // size of file in B
     size_t size;
+    // all subfiles with size in B and number of tuples
     std::vector<std::pair<size_t, size_t>> subfiles;
+    // status of file 0: free, 255: merged, 1-254: worked on by worker with status as id
     unsigned char status;
 };
-
+// partition representation in Mana file
 struct partition
 {
+    // partition number
     char id;
+    // lock of partition
     bool lock;
+    // files in partition
     std::vector<file> files;
 };
-
+// Worker representation in Mana file
 struct manaFileWorker
 {
+    // Worker id
     char id;
+    // Length in chars of Worker entry in Mana file
     int length;
+    // lock of worker
     bool locked;
+    // partitions of worker
     std::vector<partition> partitions;
 };
-
+// Mana file struct
 struct manaFile
 {
+    // worker id that locks file
     char worker_lock;
+    // thread id that locks file
     char thread_lock;
+    // all workers in manaFile
     std::vector<manaFileWorker> workers;
 };
-
+// Log struct for a thread
 struct threadLog
 {
     std::unordered_map<std::string, size_t> sizes;
     std::vector<size_t> spillTimes;
 };
-
+// Log struct for a test
 struct testLog
 {
     bool success;
@@ -87,7 +102,7 @@ struct testLog
     int tuple_outputFile;
     int tuple_testFile;
 };
-
+// Log struct
 struct logFile
 {
     std::unordered_map<std::string, size_t> sizes;
@@ -103,49 +118,88 @@ struct logFile
     std::string err_msg;
 };
 
+// length of key- and value-array in Hashmap
 static const int max_size = 2;
+// coloumn names of the keys of the aggregation
 std::string key_names[max_size];
+// Aggregation function
 enum Operation op;
+// Name of coloumn of aggregation function
 std::string opKeyName;
+// Number of keys
 int key_number;
+// Number of values for aggregation function
 int value_number;
+// Id of worker
 char worker_id;
+// Mana file name in S3
 std::string manag_file_name = "manag_file";
+// length of pagesize in op system
 long pagesize;
+// bucketname of S3
 std::string bucketName = "trinobucket2";
+// Whether memory size of programm should be tracked
 bool log_size;
+// Whether times, configuration, etc. of programm should be tracked
 bool log_time;
+// unique log file name
 std::string date_now;
+// start time of programm iteration
 std::chrono::_V2::system_clock::time_point start_time;
+// Memory usage of mappings, variables and input streams from awssdk
 unsigned long base_size = 1;
+// Max number of threads
 int threadNumber;
+// S3 file name of the lock file
 std::string lock_file_name = "lock";
+// Max file size spilled to s3 in B
 size_t max_s3_spill_size = 10000000;
+// Memory used by bitmaps and input streams from awssdk
 unsigned long extra_mem = 0;
-unsigned long mainMem_usage = 0;
+// Size of spills in Background memory
+unsigned long backMem_usage = 0;
+// Whether spills should be decoded
 bool deencode = true;
+// Whether aggregation should also execute a mergePhase (legacy)
 bool mergePhase = false;
+// Whether more than 1 partitions should be set
 bool set_partitions = true;
+// Whether multiple get requests for the Mana file should be send after a timelimit
 bool straggler_removal = true;
+// Whether multiple partitions should be merged in parallel
 bool multiThread_merge = true;
+// Whether given files should be merged in parallel
 bool multiThread_subMerge = true;
+// Whether a file_queue should be used to minimize write requests to the Mana file
 bool use_file_queue = true;
+// Key values that are being tracked (debug)
 std::vector<unsigned long> test_values = {};
+// Number of partitions
 int partitions = -1;
+// log file
 logFile log_file;
+// Number of threads writing the Mana file
 std::atomic<int> mana_writeThread_num(0);
+// Local Worker lock for the Mana file
 std::mutex local_mana_lock;
-int merge_file_num = 5;
-float average_write_speed = 1.5;
+// Whether file format is Json or CSV
 bool isJson = false;
+// Write Lock for output file
 std::mutex writing_ouput;
+// Write Lock for file_queue
 std::mutex file_queue_mutex;
+// Whether another threads already tries to write the file_queue
 std::atomic<bool> file_queue_status(true);
+// File queue collecting files of all threads that should be added to the Mana file. It takes the file struct and the partition the should be written to in the Mana file.
 std::vector<std::pair<file, char>> file_queue;
+// Min number of files in a partition for a Helper worker to merge the files
 int minFileNumMergeHelper = 2;
+// Number of Threads trying to get the Mana file
 int getManaThreads_num = 0;
+// Whether a ProgressBar should be shown
 bool showProgressBar;
 
+// hash function for an long array
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
     std::size_t h = 0;
@@ -155,6 +209,7 @@ auto hash = [](const std::array<unsigned long, max_size> a)
     }
     return h;
 };
+// Comparison function of two long arrays
 auto comp = [](const std::array<unsigned long, max_size> v1, const std::array<unsigned long, max_size> v2)
 {
     for (int i = 0; i < max_size; i++)
@@ -166,7 +221,7 @@ auto comp = [](const std::array<unsigned long, max_size> v1, const std::array<un
     }
     return true;
 };
-
+// Comparison function of two tuples representing a S3 file
 struct CompareBySecond
 {
     bool operator()(const std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>> &a, const std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>> &b) const
@@ -181,8 +236,7 @@ struct CompareBySecond
     }
 };
 
-// Aggregator(std::string *key_names, enum Operation op, std::string opKeyName, int key_number, int value_number) : key_names(key_names), op(op), opKeyName(opKeyName), key_number(key_number), value_number(value_number) {}
-
+// parseLine of /proc/self/status file
 size_t parseLine(char *line)
 {
     // https://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
@@ -195,7 +249,10 @@ size_t parseLine(char *line)
     i = atoi(p);
     return i;
 }
-
+/**
+ *  @brief Get the program memory size
+ * @return memory size of program
+ * */
 size_t getPhyValue()
 { // Note: this value is in KB!
     FILE *file = fopen("/proc/self/status", "r");
@@ -213,7 +270,14 @@ size_t getPhyValue()
     fclose(file);
     return result;
 }
-
+/**
+ * @brief Write a string into the mapping and return the number of chars written
+ *
+ * @param mapping pointer to char mapping
+ * @param string string to written to mapping
+ *
+ * @return number of chars written to mapping
+ */
 int writeString(char *mapping, const std::string &string)
 {
     int counter = 0;
@@ -225,6 +289,11 @@ int writeString(char *mapping, const std::string &string)
     return counter;
 }
 
+/**
+ * @brief Write logFile struct to log file in JSON format
+ *
+ * @param log_t logFile to be written to file
+ */
 void writeLogFile(logFile log_t)
 {
     std::ofstream output;
@@ -374,28 +443,14 @@ void writeLogFile(logFile log_t)
     output.close();
 }
 
-std::string getManaVersion(Aws::S3::S3Client *minio_client)
-{
-    manaFile mana;
-    Aws::S3::Model::GetObjectRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(manag_file_name);
-    Aws::S3::Model::GetObjectOutcome outcome;
-
-    while (true)
-    {
-        outcome = minio_client->GetObject(request);
-        if (!outcome.IsSuccess())
-        {
-            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
-        }
-        else
-        {
-            return outcome.GetResult().GetVersionId();
-        }
-    }
-}
-
+/**
+ * @brief Request call to get the Mana file
+ *
+ * @param minio_client pointer to the minio_client
+ * @param done shared pointer to atomic bool which is set to true when function received the Mana file and writes it to return_value
+ * @param return_value pointer to manaFile where received ManaFile is written to
+ * @param  donedone pointer to bool which is set to true if function is finished
+ */
 void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bool>> done, manaFile *return_value, bool *donedone)
 {
     Aws::S3::Model::GetObjectRequest request;
@@ -505,6 +560,13 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
     return;
 }
 
+/**
+ * @brief Get manaFile struct from S3
+ *
+ * @param minio_client pointer to aws client
+ *
+ * @return manaFile struct
+ */
 manaFile getMana(Aws::S3::S3Client *minio_client)
 {
     auto get_start_time = std::chrono::high_resolution_clock::now();
@@ -555,42 +617,15 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     }
     return mana;
 }
-
-void writeManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<Aws::IOStream> in_stream, size_t size, bool freeLock, std::atomic<bool> &done, std::atomic<bool> &return_value)
-{
-    Aws::S3::Model::PutObjectRequest in_request;
-    in_request.SetBucket(bucketName);
-    in_request.SetKey(manag_file_name);
-    in_request.SetBody(in_stream);
-    in_request.SetContentLength(size);
-    // in_request.SetWriteOffsetBytes(1000);
-
-    auto in_outcome = minio_client->PutObject(in_request);
-    if (!in_outcome.IsSuccess())
-    {
-        std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << size << std::endl;
-    }
-    else
-    {
-        if (freeLock)
-        {
-            Aws::S3::Model::DeleteObjectRequest delete_request;
-            delete_request.WithKey(lock_file_name).WithBucket(bucketName);
-            auto outcome = minio_client->DeleteObject(delete_request);
-            if (!outcome.IsSuccess())
-            {
-                // std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
-                return_value.exchange(false);
-                done.exchange(true);
-                return;
-            }
-        }
-        return_value.exchange(true);
-        done.exchange(true);
-        return;
-    }
-}
-
+/**
+ * @brief Write manaFile struct to the Mana file in S3
+ *
+ * @param minio_client pointer to aws client
+ * @param mana manaFile struct written to Mana file
+ * @param freeLock whether locks for Mana file should be unlocked
+ *
+ * @return success
+ */
 bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
 {
     auto write_start_time = std::chrono::high_resolution_clock::now();
@@ -708,6 +743,13 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
     }
 }
 
+/**
+ * @brief Write the lock file if possible
+ *
+ * @param minio_client pointer to aws client
+ *
+ * @return success (fail if lock file already exists)
+ */
 bool writeLock(Aws::S3::S3Client *minio_client)
 {
     Aws::S3::Model::PutObjectRequest request;
@@ -732,6 +774,14 @@ bool writeLock(Aws::S3::S3Client *minio_client)
     }
 }
 
+/**
+ * @brief get write lock for Mana file and receive manaFile
+ *
+ * @param minio_client pointer to aws client
+ * @param thread_id thread id of function caller
+ *
+ * @return manaFile struct
+ */
 manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
 {
     auto lock_start_time = std::chrono::high_resolution_clock::now();
@@ -766,7 +816,9 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
     }
 }
 
-// Initialisation of Minio client
+/**
+ * @brief initialize awssdk
+ */
 Aws::S3::S3Client init()
 {
     Aws::Client::ClientConfiguration c_config;
@@ -780,7 +832,11 @@ Aws::S3::S3Client init()
     Aws::S3::S3Client minio_client = Aws::S3::S3Client(cred, c_config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
     return minio_client;
 }
-
+/**
+ * @brief print Mana file from S3
+ *
+ * @param minio_client pointer to aws client
+ */
 void printMana(Aws::S3::S3Client *minio_client)
 {
     manaFile mana = getMana(minio_client);
@@ -804,7 +860,11 @@ void printMana(Aws::S3::S3Client *minio_client)
     }
 }
 
-// Reset Mana file if worker id = 1 (Main worker) or add worker id if id != 1 (Helper)
+/**
+ * @brief Reset Mana file if worker id = 1 (Main worker) or add worker id if id != 1 (Helper)
+ *
+ * @param minio_client pointer to aws client
+ */
 void initManagFile(Aws::S3::S3Client *minio_client)
 {
     manaFile mana;
@@ -823,7 +883,11 @@ void initManagFile(Aws::S3::S3Client *minio_client)
     writeMana(minio_client, mana, true);
     // printMana(minio_client);
 }
-
+/**
+ * @brief print a progress bar
+ *
+ * @param progress fill ration of progress bar
+ */
 void printProgressBar(float progress)
 {
     if (showProgressBar)
@@ -845,6 +909,11 @@ void printProgressBar(float progress)
     }
 }
 
+/**
+ * @brief delete all files in S3 that have an entry in the Mana file
+ *
+ *  @param minio_client pointer to aws client
+ */
 void cleanup(Aws::S3::S3Client *minio_client)
 {
     manaFile mana = getMana(minio_client);
@@ -879,71 +948,11 @@ void cleanup(Aws::S3::S3Client *minio_client)
         }
     }
 }
-
-void encode(unsigned long l, std::vector<char> *res)
-{
-    char l_bytes = l == 0 ? 0 : (static_cast<int>(log2(l)) + 8) / 8;
-    // std::cout << "long: " << l << ", " << std::bitset<64>(l) << " l_bytes: " << (int)(l_bytes) << std::endl;
-    res->push_back(l_bytes);
-
-    char byteArray[sizeof(long)];
-    std::memcpy(byteArray, &l, sizeof(long));
-    /* for (auto &it : byteArray)
-    {
-        std::cout << std::bitset<8>(it) << ", ";
-    }
-    std::cout << std::endl;*/
-    for (int i = 0; i < l_bytes; i++)
-    {
-        res->push_back(byteArray[i]);
-    }
-    /* for (auto &it : *res)
-    {
-        std::cout << std::bitset<8>(it) << ", ";
-    }
-    std::cout << std::endl;*/
-}
-
-unsigned long decode(std::vector<char> *in_stream)
-{
-    int l_bytes = (*in_stream)[0];
-    char char_buf[sizeof(long)];
-    int counter = 0;
-    for (auto it = in_stream->begin(); it != in_stream->end(); ++it)
-    {
-        if (counter == 0)
-        {
-            counter++;
-            continue;
-        }
-        char_buf[counter - 1] = *it;
-        counter++;
-        if (counter == in_stream->size())
-        {
-            break;
-        }
-    }
-    for (auto &it : char_buf)
-    {
-        std::cout << std::bitset<8>(it) << ", ";
-    }
-    std::cout << std::endl;
-    for (int i = 0; i < sizeof(long) - l_bytes; i++)
-    {
-        char_buf[counter - 1] = 0;
-        counter++;
-    }
-    for (auto &it : char_buf)
-    {
-        std::cout << std::bitset<8>(it) << ", ";
-    }
-    std::cout << std::endl;
-    unsigned long buf;
-    // spill.read(char_buf, sizeof(long));
-    std::memcpy(&buf, &char_buf, sizeof(long));
-    return buf;
-}
-
+/**
+ * @brief set the number of partitions
+ *
+ * @param comb_hash_size size of all hashmaps in memory
+ */
 void setPartitionNumber(size_t comb_hash_size)
 {
     if (set_partitions)
@@ -958,7 +967,14 @@ void setPartitionNumber(size_t comb_hash_size)
     }
     log_file.sizes["partitionNumber"] = partitions;
 }
-
+/**
+ * @brief Add a file entry in the Mana file
+ *
+ * @param minio_client pointer to aws client
+ * @param files vector of files to be added to Mana file. pair of file struct and partition id of file
+ * @param write_to_id worker id the files should be written to
+ * @param thread_id thread id of function caller
+ */
 void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
 {
     std::vector<std::pair<file, char>> *files_temp;
@@ -1057,7 +1073,13 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
     }
     return;
 }
-
+/**
+ * @brief Get all filenames of a partition that are free or being worked on
+ *
+ * @param minio_client pointer to aws client
+ * @param partition_id id of the partition
+ * @param files pointer to set of files the result will be written to
+ */
 void getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id, std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *files)
 {
     manaFile mana = getMana(minio_client);
@@ -1082,7 +1104,17 @@ void getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id, st
         }
     }
 }
-
+/**
+ * @brief Get file structs (if not given worker_id and partition_id) of files that worker can merge (only called from mergeHelper)
+ *
+ * @param minio_client pointer to aws client
+ * @param beggarWorker worker id that should be helped. If 0 beggarWorker is set by function
+ * @param partition_id partition that should be helped. If beggarWorker is 0, partition is set by function
+ * @param blacklist pointer to vector of filenames that should be ignored
+ * @param res pointer to tuple with vector of file structs, the beggarWorker and partition_id where results of function are written to
+ * @param thread_id Thread id the function is called by
+ * @param min_file_num Min number of files the function should return. If not possible 0 will be returned
+ */
 void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char partition_id, std::vector<std::string> *blacklist, std::tuple<std::vector<file>, char, char> *res, char thread_id, char min_file_num)
 {
     // std::cout << "getting file name" << std::endl;
@@ -1246,8 +1278,16 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
     writeMana(minio_client, mana, true);
     return;
 }
-
-// Write hashmap hmap into file with head on start.
+/**
+ * @brief Write hashmap hmap into output file.
+ *
+ * @param hmap pointer to hashmap
+ * @param start start point in outputfile
+ * @param free_mem available memory for function
+ * @param outputfilename output file name
+ *
+ * @return new size of output file
+ */
 unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, unsigned long start, unsigned long free_mem, std::string &outputfilename)
 {
     auto write_start_time = std::chrono::high_resolution_clock::now();
@@ -1425,12 +1465,29 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     return mapped_count + start_page;
 }
 
+/**
+ * @brief return hash of key array
+ *
+ * @param key key array
+ *
+ * @return hash value
+ */
 int getPartition(std::array<unsigned long, max_size> key)
 {
     auto h = hash(key);
     return h % partitions;
 }
-
+/**
+ * @brief read a csv line
+ *
+ * @param mapping pointer to mapping the line should read of
+ * @param start index of line start in mapping
+ * @param keys array of coloumn names
+ * @param lineObject pointer to hashmap where the values are written to
+ * @param limit size of file that is read
+ *
+ * @return new index for next line
+ */
 unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], std::unordered_map<std::string, std::string> *lineObjects, size_t limit)
 {
     unsigned long i = start;
@@ -1488,7 +1545,17 @@ unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], s
         }
     }
 }
-
+/**
+ * @brief read a json line
+ *
+ * @param mapping pointer to mapping the line should read of
+ * @param start index of line start in mapping
+ * @param keys array of coloumn names
+ * @param lineObject pointer to hashmap where the values are written to
+ * @param limit size of file that is read
+ *
+ * @return new index for next line
+ */
 unsigned long parseJson(char *mapping, unsigned long start, std::string keys[], std::unordered_map<std::string, std::string> *lineObjects, size_t limit)
 {
     unsigned long i = start;
@@ -1544,7 +1611,17 @@ unsigned long parseJson(char *mapping, unsigned long start, std::string keys[], 
         }
     }
 }
-
+/**
+ * @brief read a line of the input file
+ *
+ * @param mapping pointer to mapping the line should read of
+ * @param start index of line start in mapping
+ * @param keys array of coloumn names
+ * @param lineObject pointer to hashmap where the values are written to
+ * @param limit size of file that is read
+ *
+ * @return new index for next line
+ */
 unsigned long readTuple(char *mapping, unsigned long start, std::string keys[], std::unordered_map<std::string, std::string> *lineObjects, size_t limit)
 {
     if (isJson)
@@ -1556,7 +1633,14 @@ unsigned long readTuple(char *mapping, unsigned long start, std::string keys[], 
         return parseCSV(mapping, start, keys, lineObjects, limit);
     }
 }
-
+/**
+ * @brief Spill the hashmap to a local file encoded
+ *
+ * @param hmap pointer to hashmap
+ * @param spill_file vector of files the hashmap is written to. Pair of filename and size of file (filename expected)
+ * @param id thread id of caller
+ * @param free_mem available memory for function
+ */
 void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap,
                         std::vector<std::pair<std::string, size_t>> *spill_file, char id, size_t free_mem)
 {
@@ -1667,7 +1751,14 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     // Cleanup: clear hashmap and free rest of mapping space
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
-
+/**
+ * @brief Spill the hashmap to a local file
+ *
+ * @param hmap pointer to hashmap
+ * @param spill_file vector of files the hashmap is written to. Pair of filename and size of file (filename expected)
+ * @param id thread id of caller
+ * @param free_mem available memory for function
+ */
 void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<std::string, size_t>> *spill_file,
                  char id, size_t free_mem)
 {
@@ -1774,7 +1865,15 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
-
+/**
+ * @brief Execute the PutRequest
+ *
+ * @param minio_client pointer to aws client
+ * @param request pointer to the PutRequest
+ * @param name name of file (error message)
+ * @param size size of file (error message)
+ * @param done pointer to bool that is set to true if function is finished
+ */
 void writeS3FileCall(Aws::S3::S3Client *minio_client, Aws::S3::Model::PutObjectRequest *request, std::string &name, size_t size, bool *done)
 {
     while (true)
@@ -1792,7 +1891,14 @@ void writeS3FileCall(Aws::S3::S3Client *minio_client, Aws::S3::Model::PutObjectR
     }
     *done = true;
 }
-
+/**
+ * @brief Write a io stream to S3
+ *
+ * @param minio_client pointer to aws client
+ * @param body io stream
+ * @param size size of stream
+ * @param name name of file
+ */
 void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOStream> body, size_t size, std::string &name)
 {
     auto write_start_time = std::chrono::high_resolution_clock::now();
@@ -1801,40 +1907,21 @@ void writeS3File(Aws::S3::S3Client *minio_client, const std::shared_ptr<Aws::IOS
     request.SetKey(name);
     request.SetBody(body);
     request.SetContentLength(size);
-    size_t expected_time = size / average_write_speed;
     bool done;
-
-    /* if (straggler_removal)
-    {
-        std::vector<std::thread> threads;
-        while (!done)
-        {
-            auto thread_get_start_time = std::chrono::high_resolution_clock::now();
-            threads.push_back(std::thread(writeS3FileCall, minio_client, &request, std::ref(name), size, &done));
-            size_t duration = 0;
-            while (duration < expected_time)
-            {
-                if (done)
-                {
-                    // std::cout << "size " << threads.size() << std::endl;
-                    for (auto &thread : threads)
-                    {
-                        thread.detach();
-                    }
-                    break;
-                }
-                duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - thread_get_start_time).count());
-            }
-        }
-    }
-    else
-    { */
     writeS3FileCall(minio_client, &request, name, size, &done);
-    //}
 
     log_file.writeCall_s3_file_durs.push_back({std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count(), size});
 }
-
+/**
+ * @brief Write a hashmap to S3
+ *
+ * @param hmap pointer to hashmap
+ * @param minio_client pointer to aws client
+ * @param sizes pointer to vector of vectors(partitions) of subfiles (pair of size in B and tuple number) of each subfile
+ * @param uniqueName name of S3 file (without partition number)
+ * @param start_counter pointer to vector containing the number of subfiles per file
+ * @param partition_id optional partition id if all hashmap entries are in one partition
+ */
 void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, Aws::S3::S3Client *minio_client,
                  std::vector<std::vector<std::pair<size_t, size_t>>> *sizes, std::string uniqueName, std::vector<int> *start_counter, char partition_id = -1)
 {
@@ -1965,7 +2052,16 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     }
     return;
 }
-
+/**
+ * @brief Write a local file to S3
+ *
+ * @param spill_file local file (pair of filename, size of file)
+ * @param minio_client pointer to aws client
+ * @param sizes pointer to vectors of subfiles (pair of size in B and tuple number)
+ * @param uniqueName name of S3 file (without partition number)
+ * @param start_counter pointer to vector containing the number of subfiles per file
+ * @param partition_id optional partition id if all hashmap entries are in one partition
+ */
 void spillS3FileEncoded(std::pair<std::string, size_t> spill_file, Aws::S3::S3Client *minio_client, std::vector<std::pair<size_t, size_t>> *sizes, std::string uniqueName, int *start_counter)
 {
     size_t spill_mem_size = spill_file.second;
@@ -2416,14 +2512,14 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
                 threadLog.spillTimes.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count());
 
-                if (memLimitBack > mainMem_usage + temp_spill_size - temp_local_spill_size)
+                if (memLimitBack > backMem_usage + temp_spill_size - temp_local_spill_size)
                 {
-                    if (memLimitBack < mainMem_usage + temp_spill_size * threadNumber)
+                    if (memLimitBack < backMem_usage + temp_spill_size * threadNumber)
                     {
                         threadLog.sizes["localS3Spill"]++;
                         threadLog.sizes["s3SpillSize"] += temp_spill_size;
                         std::cout << "local + s3: " << (int)(id) << std::endl;
-                        mainMem_usage += temp_spill_size - temp_local_spill_size;
+                        backMem_usage += temp_spill_size - temp_local_spill_size;
                         temp_local_spill_size = temp_spill_size;
                         auto start_wait_time = std::chrono::high_resolution_clock::now();
                         if (spillS3Thread)
@@ -2465,7 +2561,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                         spill_file_name += std::to_string(spill_number);
                         spill_file_name += "_";
                         spill_file_name += "spill";
-                        mainMem_usage += temp_spill_size;
+                        backMem_usage += temp_spill_size;
                         std::vector<std::pair<std::string, size_t>> spill_file(partitions);
                         for (int p = 0; p < partitions; p++)
                         {
@@ -2531,7 +2627,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         spill_file_name += "temp_spill";
         struct stat stats;
         stat(spill_file_name.c_str(), &stats);
-        mainMem_usage -= stats.st_size;
+        backMem_usage -= stats.st_size;
         remove(spill_file_name.c_str());
     }
     try
@@ -2686,7 +2782,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
               std::vector<std::pair<int, std::vector<char>>> *s3spillBitmaps, std::vector<std::pair<std::string, size_t>> *spills, bool add, int *s3spillFile_head,
               int *bit_head, int *subfile_head, size_t *s3spillStart_head, size_t *s3spillStart_head_chars, size_t *input_head_base, size_t size_after_init, std::atomic<size_t> *read_lines,
               Aws::S3::S3Client *minio_client, std::shared_mutex *writeLock, float *avg, float memLimit, std::atomic<unsigned long> &comb_hash_size,
-              std::atomic<unsigned long> *diff, bool increase_size, size_t *max_hash_size, int t_id)
+              std::atomic<unsigned long> *diff, bool increase_size, size_t *max_hash_size, int t_id, int merge_file_num)
 {
     // input_head_base;
     unsigned long num_entries = 0;
@@ -3348,7 +3444,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         }
 
         // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
-        if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9)
+        if (comb_hash_size.load() * (*avg) + base_size >= memLimit * 0.9)
         {
 
             unsigned long used_space = newi - input_head;
@@ -3359,9 +3455,9 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
 
             if (used_space > pagesize)
             {
-                std::cout << threadNumber << ": freeing " << used_space << std::endl;
-                // std::cout << "Freeing up mapping" << std::endl;
-                //   calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
+                // std::cout << threadNumber << ": freeing " << used_space << std::endl;
+                //  std::cout << "Freeing up mapping" << std::endl;
+                //    calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
                 unsigned long freed_space_temp = used_space - (used_space % pagesize);
                 if (deencode)
                 {
@@ -3381,18 +3477,19 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 }
                 diff->fetch_sub(freed_space_temp);
 
-                std::cout << threadNumber << ": freed" << std::endl;
-                // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(long) + input_head << std::endl;
-                // Update Head to point at the new unfreed mapping space.
-                // std::cout << "Freed up mapping" << std::endl;
-                //  std::cout << input_head << std::endl;
-                //   Update numHashRows so that the estimations are still correct.
+                // std::cout << threadNumber << ": freed" << std::endl;
+                //  std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(long) + input_head << std::endl;
+                //  Update Head to point at the new unfreed mapping space.
+                //  std::cout << "Freed up mapping" << std::endl;
+                //   std::cout << input_head << std::endl;
+                //    Update numHashRows so that the estimations are still correct.
 
                 // std::cout << "hashmap size: " << emHashmap.size() * avg << " freed space: " << freed_space_temp << std::endl;
             }
             // if (!locked && used_space <= pagesize * 40 && hmap->size() * (*avg) + base_size >= memLimit * 0.9)
             // if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99 && !locked)
-            if (hmap->size() >= *max_hash_size * 0.95 && !locked && add && used_space <= pagesize * 40)
+            // if (hmap->size() >= *max_hash_size * 0.95 && !locked && add && used_space <= pagesize * 40)
+            if (!locked && add && used_space <= pagesize * 40)
             {
                 std::cout << "head base: " << i + 1 << std::endl;
                 locked = true;
@@ -3592,7 +3689,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         auto s3spillFile_head_old = s3spillFile_head;
         auto input_head_base_old = input_head_base;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
-                            size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size, 0);
+                            size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size, 0, 0);
 
         std::cout << "Start adding from: " << input_head_base_old << " to " << input_head_base << " subfile_head: " << subfile_head << std::endl;
         //  std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
@@ -3643,7 +3740,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     }
                     counter++;
                 }
-                merge_file_num = std::max(2, (int)(std::ceil((float)(mergefile_num_temp) / threadNumber)));
+                int merge_file_num = std::max(2, (int)(std::ceil((float)(mergefile_num_temp) / threadNumber)));
                 std::cout << "mergefile_num_temp: " << mergefile_num_temp << " merge_file_num: " << merge_file_num << " spills->size(): " << spills->size() << std::endl;
 
                 std::vector<std::thread> threads;
@@ -3661,7 +3758,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     start_bits[counter] = start_bit_head;
                     std::cout << "merging s3 from start_head: " << s3_start_head << " bit_start_head: " << start_bit_head;
                     threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &start_heads[counter], &start_bits[counter], &int_n, &n, &n, &input_head_base,
-                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size, t_c));
+                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size, t_c, merge_file_num));
                     counter++;
                     t_c++;
                     if (s3_start_head + merge_file_num < s3spillNames2->size())
@@ -3689,7 +3786,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     start_heads_local[counter] = input_head_base;
                     std::cout << "counter: " << counter << " merging local input_head_base: " << input_head_base;
                     threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &int_n, &n, &n, &start_heads_local[counter],
-                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size, t_c));
+                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size, t_c, merge_file_num));
                     counter++;
                     t_c++;
                     addXtoLocalSpillHead(spills, &input_head_base, merge_file_num);
@@ -3705,7 +3802,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             else
             {
                 subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3spillFile_head, &start_bit_merge, &int_n, &n, &n, &input_head_base,
-                         size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, false, max_hash_size, 0);
+                         size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, false, max_hash_size, 0, 0);
             }
 
             s3spillFile_head--;
@@ -3748,9 +3845,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
                 written_lines += hmap->size();
                 spillS3Hmap(hmap, minio_client, &write_sizes, uName, &write_counter, partition);
-                /*if (memMainLimit < mainMem_usage + spill_size + comb_spill_size)
+                /*if (memMainLimit < backMem_usage + spill_size + comb_spill_size)
                 {
-                    if (memMainLimit <= mainMem_usage + spill_size)
+                    if (memMainLimit <= backMem_usage + spill_size)
                     {
                         // std::cout << "Writing file: " << uName << std::endl;
                         // std::cout << "Writing hmap to " << uName << " with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
@@ -5019,17 +5116,21 @@ int main(int argc, char **argv)
 
         // setup mana file
         initManagFile(&minio_client);
+
         start_time = std::chrono::high_resolution_clock::now();
+
+        // setup log file name
+
         time_t now = time(0);
         struct tm tstruct;
         char buf[80];
         tstruct = *localtime(&now);
-        // Visit http://en.cppreference.com/w/cpp/chrono/c/strftime
-        // for more information about date/time format
-        // strftime(buf, sizeof(buf), "%m-%d_%H-%M", &tstruct);
         strftime(buf, sizeof(buf), "%H-%M", &tstruct);
         date_now = std::to_string(tpc_query) + "_" + memLimit_string_vec[i] + "_" + memLimitBack_string_vec[i] + "_" + std::to_string(threadNumber) + "_" + buf;
         std::cout << date_now << std::endl;
+
+        // log configuration
+
         log_file.sizes.insert(std::make_pair("threadNumber", threadNumber));
         log_file.sizes["mainLimit"] = memLimit;
         log_file.sizes["backLimit"] = memLimitBack;
@@ -5041,6 +5142,9 @@ int main(int argc, char **argv)
         log_file.sizes["straggler_removal"] = straggler_removal;
         log_file.sizes["multiThread_subMerge"] = multiThread_subMerge;
         bool failed = false;
+
+        // check if we have json or csv file format
+
         std::string suffix = "json";
         if (test_file != "-")
         {
@@ -5051,9 +5155,9 @@ int main(int argc, char **argv)
             isJson = input_file.substr(input_file.length() - suffix.length()) == suffix;
         }
 
+        // aggregate if input_file is given
         if (input_file != "-")
         {
-
             try
             {
                 aggregate(input_file, agg_output, memLimit, true, minio_client, memLimitBack);
@@ -5064,14 +5168,21 @@ int main(int argc, char **argv)
                 log_file.err_msg = err.what();
                 failed = true;
             }
+
+            // log time
+
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
             std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
             log_file.sizes["queryDuration"] = duration;
             log_file.failed = failed;
         }
+
+        // remember log_size configuration
         bool temp_log_size = log_size;
+        // keep log_size only if we have a helper worker (test and input file not given) otherwise set it to false
         log_size = test_file == "-" && input_file == "-" ? log_size : false;
+        // run test if test file is given and aggregation didn't fail
         if (test_file != "-" && !failed)
         {
             std::cout << "Testing" << std::endl;
@@ -5085,12 +5196,19 @@ int main(int argc, char **argv)
             }
         }
 
+        // mergeHelp
         if (do_mergeHelp)
         {
+            // setup variables for mergeHelp
+            // Size of all Hashmap in memory
             std::atomic_ulong comb_hash_size = 0;
+            // Size of all open mappings
             std::atomic_ulong diff = 0;
+            // Average size of Hasmap entry in memory
             float avg = 1;
+            // Hashmap
             emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
+            // set use_file_queue false as it is only needed in aggregate
             use_file_queue = false;
             try
             {
@@ -5107,11 +5225,14 @@ int main(int argc, char **argv)
         {
             writeLogFile(log_file);
         }
+        // reset log_size
         log_size = temp_log_size;
     }
+    // wait for all Threads started to get Mana to finish
     while (getManaThreads_num > 0)
     {
     }
+    // shutdown awssdk
     Aws::ShutdownAPI(options);
     return 1;
     // return aggregate("test.txt", "output_test.json");
