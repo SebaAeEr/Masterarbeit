@@ -2916,9 +2916,9 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             values[k] = buf[k + key_number];
                         }
-                        std::shared_lock<std::shared_mutex> lock(*writeLock);
+                        writeLock->lock_shared();
                         bool contained = hmap->contains(keys);
-                        writeLock->unlock();
+                        writeLock->unlock_shared();
                         if (contained)
                         {
 
@@ -2929,7 +2929,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                                 temp[k] += values[k];
                             }
                             bool asdf = false;
-                            std::unique_lock<std::shared_mutex> lock(*writeLock);
+                            writeLock->lock();
                             (*hmap)[keys] = temp;
                             writeLock->unlock();
 
@@ -3278,12 +3278,12 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             i = newi + offset;
             read_lines->fetch_add(1);
             // std::cout << "i: " << i << ", newi: " << newi << std::endl;
-              std::cout << "shared locking" << std::endl;
+            std::cout << "shared locking" << std::endl;
 
-            std::shared_lock<std::shared_mutex> lock(*writeLock);
+            writeLock->lock_shared();
             bool contained = hmap->contains(keys);
             std::cout << "shared unlocking" << std::endl;
-            writeLock->unlock();
+            writeLock->unlock_shared();
             std::cout << "shared unlocked" << std::endl;
             //    Update count if customerkey is in hashmap and delete pair in spill
             if (contained)
@@ -3295,7 +3295,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     temp[k] += values[k];
                 }
                 std::cout << "locking" << std::endl;
-                std::unique_lock<std::shared_mutex> lock(*writeLock);
+                writeLock->lock();
                 (*hmap)[keys] = temp;
                 std::cout << "unlocking" << std::endl;
                 writeLock->unlock();
