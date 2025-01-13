@@ -3177,7 +3177,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99)
                             {
-                                std::cout << threadNumber << ": locking s3" << std::endl;
                                 if (add && !locked)
                                 {
                                     // std::cout << "Calc size: " << hmap->size() * (*avg) + base_size << " base_size: " << base_size << " hmap length " << hmap->size() << " memlimit: " << memLimit << std::endl;
@@ -3192,7 +3191,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
 
                                     break;
                                 }
-                                std::cout << threadNumber << ": locking s3" << std::endl;
                             }
                         }
                     }
@@ -3263,6 +3261,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         if ((!deencode && i >= sum / sizeof(long)) || (deencode && i >= sum))
         {
+            std::cout << t_id << ": new mapping" << std::endl;
             sum = 0;
             int c = 0;
             for (auto &it : *spills)
@@ -3324,7 +3323,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         madvise(spill_map_char, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
                         input_head = 0;
                         offset = ((sum - it.second) + map_start);
-                        std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << " spillnum: " << c << std::endl;
+                        std::cout << t_id << ": opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << " spillnum: " << c << std::endl;
                     }
                     else
                     {
@@ -3348,6 +3347,11 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     break;
                 }
                 c++;
+            }
+            if ((!deencode && i >= sum / sizeof(long)) || (deencode && i >= sum))
+            {
+                std::cout << t_id << ": i too big" << std::endl;
+                break;
             }
         }
         newi = i - offset;
@@ -3539,6 +3543,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 //  std::cout << "Freeing up mapping" << std::endl;
                 //    calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
                 unsigned long freed_space_temp = used_space - (used_space % pagesize);
+                std::cout << t_id << ": freeing: " << freed_space_temp << std::endl;
                 if (deencode)
                 {
                     if (munmap(&spill_map_char[input_head], freed_space_temp) == -1)
@@ -3567,19 +3572,20 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 // std::cout << "hashmap size: " << emHashmap.size() * avg << " freed space: " << freed_space_temp << std::endl;
             }
             // if (!locked && used_space <= pagesize * 40 && hmap->size() * (*avg) + base_size >= memLimit * 0.9)
-            // if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99 && !locked)
+            if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99 && !locked && add && used_space <= pagesize * 40)
             // if (hmap->size() >= *max_hash_size * 0.95 && !locked && add && used_space <= pagesize * 40)
-            if (!locked && add && used_space <= pagesize * 40)
+            // if (!locked && add && used_space <= pagesize * 40)
             {
                 std::cout << "head base: " << i + 1 << std::endl;
                 locked = true;
                 *input_head_base = i + 1;
             }
+            std::cout << t_id << ": freed" << std::endl;
             // std::cout << "freed " << threadNumber << std::endl;
         }
     }
     // std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
-
+    std::cout << t_id << ": finishing" << std::endl;
     //  save empty flag and release the mapping
     if (deencode)
     {
@@ -3613,6 +3619,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         close(file_handler);
     }
+    std::cout << t_id << ": finished" << std::endl;
     return !locked;
 }
 
