@@ -3289,12 +3289,9 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 {
                     temp[k] += values[k];
                 }
-                std::cout << "locking" << std::endl;
                 writeLock->lock();
                 (*hmap)[keys] = temp;
-                std::cout << "unlocking" << std::endl;
                 writeLock->unlock();
-                std::cout << "unlocked" << std::endl;
                 if (deencode)
                 {
                     // std::cout << "ognewi first: " << (int) (spill_map_char[ognewi]);
