@@ -3575,6 +3575,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
     while (!finished)
     {
+        std::cout << "Adding" << std::endl;
         auto s3spillFile_head_old = s3spillFile_head;
         auto input_head_base_old = input_head_base;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
