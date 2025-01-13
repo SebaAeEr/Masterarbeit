@@ -3472,7 +3472,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     if (gets3Files)
     {
         getAllMergeFileNames(minio_client, partition, &s3spillNames);
-        s3spillNames2 = s3spillNames;
+        s3spillNames2 = &s3spillNames;
     }
     auto merge_start_time = std::chrono::high_resolution_clock::now();
     diff->exchange(0);
