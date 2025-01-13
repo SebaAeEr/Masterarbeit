@@ -3537,7 +3537,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 used_space *= sizeof(long);
             }
 
-            if (used_space > pagesize)
+            if (used_space > pagesize * 10)
             {
                 // std::cout << threadNumber << ": freeing " << used_space << std::endl;
                 //  std::cout << "Freeing up mapping" << std::endl;
