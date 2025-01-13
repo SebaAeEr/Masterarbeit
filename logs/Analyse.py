@@ -824,7 +824,7 @@ def c_size_by_time():
     try:
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
-        f = open(os.path.join(directory, "times_4_6_6_4_14-50.csv"))
+        f = open(os.path.join(directory, "times_0_6_6_4_17-09.csv"))
         jf = open(os.path.join(directory, "logfile_4_6_0_4_16-25.json"))
     except:
         print("File not found.")
@@ -884,8 +884,6 @@ def c_size_by_time():
             # "Exchange": np.empty(),
         }
     ]
-
-    
 
     for name in names:
         jf = open(os.path.join(directory, name))
@@ -958,10 +956,10 @@ def c_size_by_time():
         merge_hash_dur = jf_data["mergeHashDuration"]
 
         times[0]["write_file_sum"][counter] = write_file_sum
-        times[0]["scan_dur"][counter] =scan_dur
-        times[0]["write_output_sum"][counter] =write_output_sum
-        times[0]["merge_dur"][counter] =merge_dur
-        counter+=1
+        times[0]["scan_dur"][counter] = scan_dur
+        times[0]["write_output_sum"][counter] = write_output_sum
+        times[0]["merge_dur"][counter] = merge_dur
+        counter += 1
         # times +=   [ {
         # "write_file_sum": np.array([write_file_sum]),
         # "scan_dur": np.array([scan_dur]),
@@ -977,7 +975,16 @@ def c_size_by_time():
     if len(names) > 0:
         makeBarFig(
             times,
-            np.array(["straggler rem", "3W", "1W","multi merge","multi subMerge", "deencode"]),
+            np.array(
+                [
+                    "straggler rem",
+                    "3W",
+                    "1W",
+                    "multi merge",
+                    "multi subMerge",
+                    "deencode",
+                ]
+            ),
             "Wall time in min",
         )
         print(str(times))

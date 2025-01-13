@@ -766,6 +766,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id)
     }
 }
 
+// Initialisation of Minio client
 Aws::S3::S3Client init()
 {
     Aws::Client::ClientConfiguration c_config;
@@ -803,6 +804,7 @@ void printMana(Aws::S3::S3Client *minio_client)
     }
 }
 
+// Reset Mana file if worker id = 1 (Main worker) or add worker id if id != 1 (Helper)
 void initManagFile(Aws::S3::S3Client *minio_client)
 {
     manaFile mana;
@@ -2999,6 +3001,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99)
                             {
+                                std::cout << threadNumber << ": locking s3" << std::endl;
                                 if (add && !locked)
                                 {
                                     // std::cout << "Calc size: " << hmap->size() * (*avg) + base_size << " base_size: " << base_size << " hmap length " << hmap->size() << " memlimit: " << memLimit << std::endl;
@@ -3013,6 +3016,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
 
                                     break;
                                 }
+                                std::cout << threadNumber << ": locking s3" << std::endl;
                             }
                         }
                     }
@@ -3178,14 +3182,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             std::cout << "newi too big!! " << newi << std::endl;
         }
         unsigned long ognewi = newi;
-        if (deencode)
-        {
-            diff->exchange((newi - input_head));
-        }
-        else
-        {
-            diff->exchange((newi - input_head) * sizeof(long));
-        }
+
         bool empty = false;
         // auto read_tuple_start = std::chrono::high_resolution_clock::now();
 
@@ -3273,6 +3270,28 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 }
             }
         }
+        if (empty)
+        {
+            if (deencode)
+            {
+                diff->fetch_add(i - newi);
+            }
+            else
+            {
+                diff->fetch_add((i - newi) * sizeof(long));
+            }
+        }
+        else
+        {
+            if (deencode)
+            {
+                diff->fetch_add(newi - (i - offset));
+            }
+            else
+            {
+                diff->fetch_add((newi - (i - offset)) * sizeof(long));
+            }
+        }
         // log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
         //   std::cout << keys[0] << ", " << values[0] << std::endl;
         if (!empty)
@@ -3331,14 +3350,16 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
         if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9)
         {
-            // std::cout << "freeing " << threadNumber << std::endl;
+
             unsigned long used_space = newi - input_head;
             if (!deencode)
             {
                 used_space *= sizeof(long);
             }
+
             if (used_space > pagesize)
             {
+                std::cout << threadNumber << ": freeing " << used_space << std::endl;
                 // std::cout << "Freeing up mapping" << std::endl;
                 //   calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
                 unsigned long freed_space_temp = used_space - (used_space % pagesize);
@@ -3348,6 +3369,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     {
                         perror("Could not free memory in merge 1!");
                     }
+                    input_head += freed_space_temp;
                 }
                 else
                 {
@@ -3355,18 +3377,13 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     {
                         perror("Could not free memory in merge 1!");
                     }
-                }
-                // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(long) + input_head << std::endl;
-                // Update Head to point at the new unfreed mapping space.
-
-                if (deencode)
-                {
-                    input_head += freed_space_temp;
-                }
-                else
-                {
                     input_head += freed_space_temp / sizeof(long);
                 }
+                diff->fetch_sub(freed_space_temp);
+
+                std::cout << threadNumber << ": freed" << std::endl;
+                // std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(long) + input_head << std::endl;
+                // Update Head to point at the new unfreed mapping space.
                 // std::cout << "Freed up mapping" << std::endl;
                 //  std::cout << input_head << std::endl;
                 //   Update numHashRows so that the estimations are still correct.
@@ -3395,6 +3412,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             {
                 perror("Could not free memory in merge 2!");
             }
+            diff->fetch_sub(mapping_size - input_head);
         }
     }
     else
@@ -3405,8 +3423,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             {
                 perror("Could not free memory in merge 2!");
             }
+            diff->fetch_sub(mapping_size - input_head * sizeof(long));
         }
     }
+
     // extra_mem -= increase;
     /* if (add)
     {
@@ -4704,10 +4724,12 @@ int main(int argc, char **argv)
     }
     return 0; */
 
+    // Init awssdk; optionally logging
     Aws::SDKOptions options;
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
+    // Status request of Mana file
     if (argc == 2)
     {
         std::string f = argv[1];
@@ -4720,25 +4742,25 @@ int main(int argc, char **argv)
         }
     }
 
-    /*  Aws::S3::S3Client minio_client_2 = init();
-     worker_id = '1';
-     initManagFile(&minio_client_2);
-     std::cout << "printing mana" << std::endl;
-     printMana(&minio_client_2);
-     manaFile mana = getMana(&minio_client_2);
-     partition p;
-     p.id = 1;
-     mana.workers[0].partitions.push_back(p);
-     writeMana(&minio_client_2, mana, true);
-     printMana(&minio_client_2);
-     Aws::ShutdownAPI(options);
-     return 1; */
-    std::string tpc_sup;
-    std::string co_output;
+    // set pagesize with system pagesize
+    pagesize = sysconf(_SC_PAGE_SIZE);
+    // Name of file results are compared to
+    std::string test_file;
+    // Name of file with input data
+    std::string input_file;
+    // Number of TPC query
     int tpc_query;
+    // Main memory Limit in B
     size_t memLimit;
+    // Background memory limit in B
     size_t memLimitBack;
+    // Number of iterations with different setup
     int iteration = 0;
+    // Bool if mergeHelp should be executed
+    bool do_mergeHelp = false;
+
+    // Vectors of different setups for every iteration
+
     std::vector<size_t> memLimit_vec(1);
     std::vector<size_t> memLimitBack_vec(1);
     std::vector<int> threadNumber_vec(1);
@@ -4749,10 +4771,10 @@ int main(int argc, char **argv)
     std::vector<bool> multiThread_subMerge_vec(1, multiThread_subMerge);
     std::vector<bool> straggler_removal_vec(1, straggler_removal);
     std::vector<bool> use_file_queue_vec(1, use_file_queue);
-    bool do_mergeHelp = false;
     std::vector<std::string> memLimit_string_vec(1);
     std::vector<std::string> memLimitBack_string_vec(1);
 
+    // If no conf file is used configuration can be obtained directly from command (legacy)
     if (argc == 10)
     {
         std::string threadNumber_string;
@@ -4762,8 +4784,8 @@ int main(int argc, char **argv)
         std::string memLimit_string;
         std::string memLimitBack_string;
 
-        co_output = argv[1];
-        tpc_sup = argv[2];
+        input_file = argv[1];
+        test_file = argv[2];
         memLimit_string = argv[3];
         memLimitBack_string = argv[4];
         threadNumber_string = argv[5];
@@ -4783,6 +4805,9 @@ int main(int argc, char **argv)
     }
     else
     {
+        // read conf file and fill configuration vectors
+
+        // standard conf file name if no name is given
         std::string conf_name = "conf";
         if (argc == 2)
         {
@@ -4798,6 +4823,7 @@ int main(int argc, char **argv)
             getline(ss, name, del);
             std::string value;
             getline(ss, value, del);
+            // set conf variables
             switch (str2int(name.c_str()))
             {
             case str2int("tpc_query"):
@@ -4807,12 +4833,12 @@ int main(int argc, char **argv)
             }
             case str2int("input_file"):
             {
-                co_output = value;
+                input_file = value;
                 break;
             }
             case str2int("test_file"):
             {
-                tpc_sup = value;
+                test_file = value;
                 break;
             }
             case str2int("mainLimit"):
@@ -4908,8 +4934,7 @@ int main(int argc, char **argv)
         }
     }
 
-    pagesize = sysconf(_SC_PAGE_SIZE);
-
+    // set configuration of TPC Query
     switch (tpc_query)
     {
     case (13):
@@ -4962,15 +4987,25 @@ int main(int argc, char **argv)
         key_number = 1;
     }
     }
-    std::string agg_output = "output_" + tpc_sup;
+
+    // output file name where results are written to
+    std::string agg_output = "output_" + test_file;
+    // set minio_client
     Aws::S3::S3Client minio_client = init();
     std::cout << "Iterations: " << iteration << std::endl;
+    // show Progress Bar only when we have 1 iteration; with more iterations it is expected user reads output in nohup.out file
     showProgressBar = iteration == 0;
 
+    // Execute aggregation, test and mergeHelp for each iteration
     for (int i = 0; i < iteration + 1; i++)
     {
+        // reset number of partitions and log file
+
         partitions = -1;
         log_file = logFile();
+
+        // set configuration for specific iteration
+
         memLimit = memLimit_vec[i];
         memLimitBack = memLimitBack_vec[i];
         threadNumber = threadNumber_vec[i];
@@ -4981,6 +5016,8 @@ int main(int argc, char **argv)
         multiThread_subMerge = multiThread_subMerge_vec[i];
         straggler_removal = straggler_removal_vec[i];
         use_file_queue = use_file_queue_vec[i];
+
+        // setup mana file
         initManagFile(&minio_client);
         start_time = std::chrono::high_resolution_clock::now();
         time_t now = time(0);
@@ -5005,21 +5042,21 @@ int main(int argc, char **argv)
         log_file.sizes["multiThread_subMerge"] = multiThread_subMerge;
         bool failed = false;
         std::string suffix = "json";
-        if (tpc_sup != "-")
+        if (test_file != "-")
         {
-            isJson = tpc_sup.substr(tpc_sup.length() - suffix.length()) == suffix;
+            isJson = test_file.substr(test_file.length() - suffix.length()) == suffix;
         }
-        else if (co_output != "-")
+        else if (input_file != "-")
         {
-            isJson = co_output.substr(co_output.length() - suffix.length()) == suffix;
+            isJson = input_file.substr(input_file.length() - suffix.length()) == suffix;
         }
 
-        if (co_output != "-")
+        if (input_file != "-")
         {
 
             try
             {
-                aggregate(co_output, agg_output, memLimit, true, minio_client, memLimitBack);
+                aggregate(input_file, agg_output, memLimit, true, minio_client, memLimitBack);
             }
             catch (std::exception &err)
             {
@@ -5034,13 +5071,13 @@ int main(int argc, char **argv)
             log_file.failed = failed;
         }
         bool temp_log_size = log_size;
-        log_size = tpc_sup == "-" && co_output == "-" ? log_size : false;
-        if (tpc_sup != "-" && !failed)
+        log_size = test_file == "-" && input_file == "-" ? log_size : false;
+        if (test_file != "-" && !failed)
         {
             std::cout << "Testing" << std::endl;
             try
             {
-                test(agg_output, tpc_sup);
+                test(agg_output, test_file);
             }
             catch (std::exception &err)
             {
@@ -5078,6 +5115,6 @@ int main(int argc, char **argv)
     Aws::ShutdownAPI(options);
     return 1;
     // return aggregate("test.txt", "output_test.json");
-    /* aggregate("co_output_tiny.json", "tpc_13_output_sup_tiny_c.json");
+    /* aggregate("input_file_tiny.json", "tpc_13_output_sup_tiny_c.json");
     return test("tpc_13_output_sup_tiny_c.json", "tpc_13_sup_tiny.json");S */
 }
