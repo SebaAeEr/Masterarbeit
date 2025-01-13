@@ -3151,7 +3151,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         madvise(spill_map_char, mapping_size, MADV_SEQUENTIAL | MADV_WILLNEED);
                         input_head = 0;
                         offset = ((sum - it.second) + map_start);
-                        // std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << " spillnum: " << c << std::endl;
+                        std::cout << "opening new mapping mapsstart: " << map_start << " mapping size: " << mapping_size << " offset: " << offset << " i: " << i << " spillnum: " << c << std::endl;
                     }
                     else
                     {
@@ -3631,7 +3631,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     counter++;
                 }
                 merge_file_num = std::max(2, (int)(std::ceil((float)(mergefile_num_temp) / threadNumber)));
-                // std::cout << "mergefile_num_temp: " << mergefile_num_temp << " merge_file_num: " << merge_file_num << " comb_spill_size: " << comb_spill_size << std::endl;
+                std::cout << "mergefile_num_temp: " << mergefile_num_temp << " merge_file_num: " << merge_file_num << " spills->size(): " << spills->size() << std::endl;
 
                 std::vector<std::thread> threads;
                 std::vector<int> start_heads(s3spillNames2->size());
@@ -3674,7 +3674,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 while (input_head_base < comb_spill_size)
                 {
                     start_heads_local[counter] = input_head_base;
-                    std::cout << "merging local input_head_base: " << input_head_base;
+                    std::cout << "counter: " << counter << " merging local input_head_base: " << input_head_base;
                     threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &int_n, &n, &n, &start_heads_local[counter],
                                                   size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size, t_c));
                     counter++;
@@ -4356,7 +4356,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         std::vector<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(threadNumber);
         std::vector<size_t> max_HashSizes(threadNumber, 0);
         std::vector<char> thread_bitmap(threadNumber, 0);
-        std::vector<std::vector<std::pair<std::string, size_t>>> multi_spills(threadNumber);
+        std::vector<std::vector<std::pair<std::string, size_t>> *> multi_spills(threadNumber);
         char m_partition = 0;
         int counter = 0;
 
@@ -4385,7 +4385,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                             newThread_ind = thread_ind_counter;
                             if (thread_bitmap[newThread_ind] == 1)
                             {
-                                std::cout << "Joining thread: " << newThread_ind << std::endl;
                                 merge_threads[newThread_ind].join();
                                 thread_bitmap[newThread_ind] = 0;
                             }
@@ -4400,19 +4399,18 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         thread_ind_counter++;
                     }
                 }
-                std::cout << "newThread_ind: " << newThread_ind << std::endl;
 
                 multi_files[newThread_ind].clear();
                 m_partition = getMergePartition(&minio_client);
 
                 if (m_partition != -1)
                 {
-                    multi_spills[newThread_ind] = spills.size() == 1 ? spills[0] : spills[m_partition];
+                    multi_spills[newThread_ind] = spills.size() == 1 ? &spills[0] : &spills[m_partition];
                     thread_bitmap[newThread_ind] = 1;
                     std::cout << "merging partition: " << (int)(m_partition) << std::endl;
                     printProgressBar((float)(counter) / partitions);
                     getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
-                    merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], &multi_spills[newThread_ind], std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
+                    merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], multi_spills[newThread_ind], std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
                                                                &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], -1, 0, increase);
                 }
             }
