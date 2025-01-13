@@ -30,6 +30,7 @@
 #include <atomic>
 #include <future>
 #include <mutex>
+#include <shared_mutex>
 /* #include "cloud/provider.hpp"
 #include "network/tasked_send_receiver.hpp"
 #include "network/transaction.hpp" */
@@ -1561,10 +1562,8 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     // Calc spill size
     size_t spill_mem_size = hmap->size() * sizeof(long) * (key_number + value_number);
     std::vector<int> file_handlers(partitions);
-    std::cout << "opening files size: " << spill_file->size() << std::endl;
     for (int i = 0; i < partitions; i++)
     {
-        std::cout << "opening file " << (*spill_file)[i].first << std::endl;
         file_handlers[i] = open((*spill_file)[i].first.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
         if (file_handlers[i] == -1)
         {
@@ -1574,7 +1573,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
         }
     }
 
-    std::cout << "extending files" << std::endl;
+    // std::cout << "extending files" << std::endl;
     // extend file
     for (int i = 0; i < partitions; i++)
     {
@@ -1588,7 +1587,6 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
         }
     }
     std::vector<char *> spills;
-    std::cout << "opening mappings " << std::endl;
 
     for (int i = 0; i < partitions; i++)
     {
@@ -1602,7 +1600,6 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
             exit(EXIT_FAILURE);
         }
     }
-    std::cout << "writing files" << std::endl;
     // Write int to Mapping
     std::vector<unsigned long> counters = std::vector<unsigned long>(partitions, 0);
     std::vector<unsigned long> writeheads = std::vector<unsigned long>(partitions, 0);
@@ -1651,7 +1648,6 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
             writehead += freed_space;
         }
     }
-    std::cout << "freeing mappings " << std::endl;
     // std::cout << "freeing up mapping " << fileName << std::endl;
 
     for (int i = 0; i < partitions; i++)
@@ -1666,7 +1662,6 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
         }
         close(file_handlers[i]);
     }
-    std::cout << "finish" << std::endl;
     // Cleanup: clear hashmap and free rest of mapping space
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
@@ -2690,7 +2685,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
               std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2,
               std::vector<std::pair<int, std::vector<char>>> *s3spillBitmaps, std::vector<std::pair<std::string, size_t>> *spills, bool add, int *s3spillFile_head,
               int *bit_head, int *subfile_head, size_t *s3spillStart_head, size_t *s3spillStart_head_chars, size_t *input_head_base, size_t size_after_init, std::atomic<size_t> *read_lines,
-              Aws::S3::S3Client *minio_client, std::mutex *writeLock, float *avg, float memLimit, std::atomic<unsigned long> &comb_hash_size,
+              Aws::S3::S3Client *minio_client, std::shared_mutex *writeLock, float *avg, float memLimit, std::atomic<unsigned long> &comb_hash_size,
               std::atomic<unsigned long> *diff, bool increase_size, size_t *max_hash_size, int t_id)
 {
     // input_head_base;
@@ -2921,11 +2916,9 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             values[k] = buf[k + key_number];
                         }
-                        /* while ((*writeLock))
-                        {
-                        }
-                        writeLock-> */
+                        std::shared_lock<std::shared_mutex> lock(*writeLock);
                         bool contained = hmap->contains(keys);
+                        writeLock->unlock();
                         if (contained)
                         {
 
@@ -2936,7 +2929,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                                 temp[k] += values[k];
                             }
                             bool asdf = false;
-                            writeLock->lock();
+                            std::unique_lock<std::shared_mutex> lock(*writeLock);
                             (*hmap)[keys] = temp;
                             writeLock->unlock();
 
@@ -3286,7 +3279,9 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             read_lines->fetch_add(1);
             // std::cout << "i: " << i << ", newi: " << newi << std::endl;
             //  std::cout << "merging/adding" << std::endl;
+            std::shared_lock<std::shared_mutex> lock(*writeLock);
             bool contained = hmap->contains(keys);
+            writeLock->unlock();
             //    Update count if customerkey is in hashmap and delete pair in spill
             if (contained)
             {
@@ -3296,14 +3291,9 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 {
                     temp[k] += values[k];
                 }
-                bool asdf = false;
-                // while (!writeLock->compare_exchange_strong(asdf, true))                {                }
-                writeLock->lock();
+                std::unique_lock<std::shared_mutex> lock(*writeLock);
                 (*hmap)[keys] = temp;
                 writeLock->unlock();
-                // writeLock->exchange(false);
-                //  mergeHashEntries(&emHashmap[keys], &values);
-                //     delete pair in spill
                 if (deencode)
                 {
                     // std::cout << "ognewi first: " << (int) (spill_map_char[ognewi]);
@@ -3573,7 +3563,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     size_t size_after_init = getPhyValue();
     std::vector<int> write_counter(partitions, 0);
     std::vector<std::vector<std::pair<size_t, size_t>>> write_sizes(partitions);
-    std::mutex writeLock;
+    std::shared_mutex writeLock;
 
     bool finished = false;
     bool started_writing = false;
