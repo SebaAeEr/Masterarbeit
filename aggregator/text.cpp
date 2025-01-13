@@ -3368,7 +3368,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
 
         if (deencode)
         {
-            //  std::cout << "decoding " << threadNumber << std::endl;
+            std::cout << t_id << ": decoding: " << newi << std::endl;
             char char_buf[sizeof(long)];
             for (int k = 0; k < key_number; k++)
             {
@@ -3425,7 +3425,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     std::memcpy(&values[k], &char_buf, sizeof(long));
                 }
             }
-            //  std::cout << "decoded " << threadNumber << std::endl;
+            std::cout << t_id << ": decoded: " << newi << std::endl;
         }
         else
         {
@@ -3622,7 +3622,13 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     std::cout << t_id << ": finished" << std::endl;
     return !locked;
 }
-
+/**
+ * @brief Add the size of the next x files to the spill head
+ *
+ * @param spills local spills(pair of filename, size in B)
+ * @param spill_head current spill_head
+ * @param x number of files to add
+ */
 void addXtoLocalSpillHead(std::vector<std::pair<std::string, size_t>> *spills, unsigned long *spill_head, int x)
 {
     size_t sum = 0;
@@ -3649,10 +3655,32 @@ void addXtoLocalSpillHead(std::vector<std::pair<std::string, size_t>> *spills, u
         }
     }
 }
-
+/**
+ * @brief merge all spills of a partition and write the result into the output file
+ *
+ * @param hmap hashmap
+ * @param spills local spills (pair of filename, size in B)
+ * @param comb_hash_size combined size of all hashmaps
+ * @param avg memory average of hashmap entry
+ * @param memLimit available memory
+ * @param diff combined size of all mappings
+ * @param outputfilename filename of the output file
+ * @param s3spillNames2 s3 spills files (tuple of filename, size in B, subfiles (pair of size in B, number of tuples))
+ * @param minio_client aws client
+ * @param writeRes whether results should be written to output file or written to S3
+ * @param uName Filename of file in S3 if results are written to S3
+ * @param backMemLimit avaible space in background memory
+ * @param output_file_head start index of output file
+ * @param done whether this function has finished
+ * @param max_hash_size biggest size of hashmap
+ * @param partition partition of files being merged (optional only needed if results are written to S3 or getS3files is true)
+ * @param beggarWorker worker owning the files
+ * @param increase whether the first input stream buffer should be added to the memory consumption
+ * @param gets3Files whether the function should get all available files of the given partition to merge
+ *  */
 int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<std::string, size_t>> *spills, std::atomic<unsigned long> &comb_hash_size,
           float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename, std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client,
-          bool writeRes, std::string &uName, size_t memMainLimit, size_t *output_file_head, char *done, size_t *max_hash_size, char partition = -1, char beggarWorker = 0, bool increase = false, bool gets3Files = false)
+          bool writeRes, std::string &uName, size_t backMemLimit, size_t *output_file_head, char *done, size_t *max_hash_size, char partition = -1, char beggarWorker = 0, bool increase = false, bool gets3Files = false)
 {
     // Open the outputfile to write results
     /* if (writeRes)
@@ -3932,9 +3960,9 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
                 written_lines += hmap->size();
                 spillS3Hmap(hmap, minio_client, &write_sizes, uName, &write_counter, partition);
-                /*if (memMainLimit < backMem_usage + spill_size + comb_spill_size)
+                /*if (backMemLimit < backMem_usage + spill_size + comb_spill_size)
                 {
-                    if (memMainLimit <= backMem_usage + spill_size)
+                    if (backMemLimit <= backMem_usage + spill_size)
                     {
                         // std::cout << "Writing file: " << uName << std::endl;
                         // std::cout << "Writing hmap to " << uName << " with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << std::endl;
@@ -4033,7 +4061,15 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     extra_mem -= bitmap_size_sum;
     return 1;
 }
-
+/**
+ * @brief set the status of file in the Mana file
+ *
+ * @param minio_client aws client
+ * @param file_stati map of filename and status
+ * @param worker_id worker owning the files
+ * @param partition_id partition the files are in
+ * @param thread_id thread id calling this function
+ */
 void setFileStatus(Aws::S3::S3Client *minio_client, std::unordered_map<std::string, char> *file_stati, char worker_id, char partition_id, char thread_id)
 {
     manaFile mana = getLockedMana(minio_client, thread_id);
@@ -4063,9 +4099,21 @@ void setFileStatus(Aws::S3::S3Client *minio_client, std::unordered_map<std::stri
     }
     writeMana(minio_client, mana, true);
 }
-
-void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client minio_client, bool init, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap,
-                    std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> &diff, float *avg, char startBeggarWorker = 0, char p_id = 0)
+/**
+ * @brief execute the helpMerge where available files are taken from S3, merged and written back to S3
+ *
+ * @param memLimit available memory
+ * @param backMemLimit available background memory
+ * @param minio_client aws client
+ * @param init if size printer should be initialized
+ * @param hmap hashmap
+ * @param comb_hash_size combined size of all hashmaps
+ * @param diff combined size of all mappings
+ * @param avg average size of entries in the hashmap
+ * @param startbeggarWorker first worker id this worker should help
+ */
+void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client minio_client, bool init, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap,
+                    std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> &diff, float *avg, char startBeggarWorker = 0)
 {
     int finished = 0;
     std::thread sizePrinter;
@@ -4224,7 +4272,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
 
         size_t spill_time_old = log_file.sizes["mergeHelp_spilling_Duration"];
         auto spill_start_time = std::chrono::high_resolution_clock::now();
-        merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, memMainLimit, &zero, &temp, &max_hashSize, partition_id, beggarWorker);
+        merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, backMemLimit, &zero, &temp, &max_hashSize, partition_id, beggarWorker);
         log_file.sizes["mergeHelp_merging_Duration"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - spill_start_time).count() - (log_file.sizes["mergeHelp_spilling_Duration"] - spill_time_old);
         // std::cout << "Merge finished" << std::endl;
         if (hmap->size() == 0)
@@ -4262,6 +4310,13 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
     log_file.sizes["mergeHelpDuration"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - mergeHelp_start_time).count();
     std::cout << "End of helping Phase" << std::endl;
 }
+/**
+ * @brief Get the partition the main worker should first merge and write to the output
+ *
+ * @param minio_client aws client
+ *
+ * @result partition the worker should merge
+ */
 char getMergePartition(Aws::S3::S3Client *minio_client)
 {
     manaFile mana = getLockedMana(minio_client, 0);
@@ -4335,9 +4390,16 @@ char getMergePartition(Aws::S3::S3Client *minio_client)
     }
     return partition;
 }
-
-// aggregate inputfilename and write results into outpufilename
-int aggregate(std::string inputfilename, std::string outputfilename, size_t memLimit, bool measure_mem, Aws::S3::S3Client minio_client, size_t memLimitBack)
+/**
+ * @brief aggregate inputfilename and write results into outpufilename
+ *
+ * @param inputfilename file name of the input file
+ * @param outputfilename file name of the output file
+ * @param memLimit available memory
+ * @param minio_client aws client
+ * @param memLimitBack available background memory
+ */
+int aggregate(std::string inputfilename, std::string outputfilename, size_t memLimit, Aws::S3::S3Client minio_client, size_t memLimitBack)
 {
     // Inits and decls
 
@@ -4373,10 +4435,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     int readingMode = -1;
     int finished = 0;
     std::thread sizePrinter;
-    if (measure_mem)
-    {
-        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, std::ref(comb_hash_size), &diff, &avg);
-    }
+    sizePrinter = std::thread(printSize, std::ref(finished), memLimit, std::ref(comb_hash_size), &diff, &avg);
 
     // auto scan_start_time = std::chrono::high_resolution_clock::now();
     char id = 0;
@@ -4672,14 +4731,18 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     log_file.sizes["mergeTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
     log_file.sizes["selectivity"] = (log_file.sizes["linesWritten"] * 1000) / log_file.sizes["inputLines"];
 
-    if (measure_mem)
-    {
-        finished++;
-        sizePrinter.join();
-    }
+    finished++;
+    sizePrinter.join();
     return 0;
 }
-
+/**
+ * @brief test if both files have the same data
+ *
+ * @param file1name file name of file 1
+ * @param file2name file name of file 2
+ *
+ * @result success
+ */
 int test(std::string file1name, std::string file2name)
 {
     int fd = open(file1name.c_str(), O_RDONLY);
@@ -4855,7 +4918,12 @@ int test(std::string file1name, std::string file2name)
     }
     return 1;
 }
-
+/**
+ * @brief turn string to int
+ *
+ * @param str string
+ * @param h ?
+ */
 constexpr unsigned int str2int(const char *str, int h = 0)
 {
     return !str[h] ? 5381 : (str2int(str, h + 1) * 33) ^ str[h];
