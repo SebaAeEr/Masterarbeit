@@ -3368,7 +3368,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
 
         if (deencode)
         {
-            std::cout << t_id << ": decoding: " << newi << std::endl;
+            // std::cout << t_id << ": decoding: " << newi << std::endl;
             char char_buf[sizeof(long)];
             for (int k = 0; k < key_number; k++)
             {
@@ -3376,14 +3376,15 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 char l_bytes = spill_map_char[newi];
                 if (l_bytes < 0 && k == 0)
                 {
-                    // std::cout << "l_bytes negative: " << (int)(l_bytes) << " add: " << l_bytes * -1 + 1;
+                    std::cout << "l_bytes negative: " << (int)(l_bytes) << " add: " << l_bytes * -1 + 1;
                     i += l_bytes * -1 + 1;
                     for (int s = 0; s < key_number + value_number - 1; s++)
                     {
-                        // std::cout << ", " << spill_map_char[i] + 1;
+                        std::cout << ", " << spill_map_char[i] + 1;
                         i += spill_map_char[i] + 1;
                     }
-                    // std::cout << std::endl;
+                    i--;
+                    std::cout << std::endl;
                     empty = true;
                     break;
                 }
@@ -3425,7 +3426,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     std::memcpy(&values[k], &char_buf, sizeof(long));
                 }
             }
-            std::cout << t_id << ": decoded: " << newi << std::endl;
+            // std::cout << t_id << ": decoded: " << newi << std::endl;
         }
         else
         {
@@ -3561,13 +3562,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     input_head += freed_space_temp / sizeof(long);
                 }
                 diff->fetch_sub(freed_space_temp);
-
-                // std::cout << threadNumber << ": freed" << std::endl;
-                //  std::cout << "Free: " << input_head << " - " << freed_space_temp / sizeof(long) + input_head << std::endl;
-                //  Update Head to point at the new unfreed mapping space.
-                //  std::cout << "Freed up mapping" << std::endl;
-                //   std::cout << input_head << std::endl;
-                //    Update numHashRows so that the estimations are still correct.
 
                 // std::cout << "hashmap size: " << emHashmap.size() * avg << " freed space: " << freed_space_temp << std::endl;
             }
