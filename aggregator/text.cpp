@@ -1768,7 +1768,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         }
         close(file_handlers[i]);
     }
-    std::cout << "spilled to file" << std::endl;
+    // std::cout << "spilled to file" << std::endl;
 
     // std::cout << "Spilled with size: " << spill_mem_size << std::endl;
 }
@@ -2136,7 +2136,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     }
     else
     {
-        std::cout << "spilling to s3 from file" << std::endl;
+        // std::cout << "spilling to s3 from file" << std::endl;
         for (int i = 0; i < partitions; i++)
         {
             counter = 0;
@@ -2149,7 +2149,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
                 spillS3File(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
             }
         }
-        std::cout << "spilled to s3 from file" << std::endl;
+        // std::cout << "spilled to s3 from file" << std::endl;
     }
     std::vector<std::pair<file, char>> files;
     for (char i = 0; i < partitions; i++)
@@ -2697,6 +2697,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     size_t increase = 0;
     int file_counter = 0;
     int conc_threads = multiThread_merge ? threadNumber : 1;
+    conc_threads = 4;
 
     for (auto &it : *spills)
     {
@@ -3086,6 +3087,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             int c = 0;
             for (auto &it : *spills)
             {
+                //  std::cout << "opening new mapping" << std::endl;
                 sum += it.second;
                 if ((!deencode && i < sum / sizeof(long)) || (deencode && i < sum))
                 {
@@ -3169,6 +3171,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             }
         }
         newi = i - offset;
+        read_lines->fetch_add(1);
 
         if (newi > mapping_size)
         {
@@ -3188,6 +3191,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
 
         if (deencode)
         {
+            //  std::cout << "decoding " << threadNumber << std::endl;
             char char_buf[sizeof(long)];
             for (int k = 0; k < key_number; k++)
             {
@@ -3244,6 +3248,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     std::memcpy(&values[k], &char_buf, sizeof(long));
                 }
             }
+            //  std::cout << "decoded " << threadNumber << std::endl;
         }
         else
         {
@@ -3274,7 +3279,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         {
             newi--;
             i = newi + offset;
-            read_lines->fetch_add(1);
+
             // std::cout << "i: " << i << ", newi: " << newi << std::endl;
 
             writeLock->lock_shared();
@@ -3326,7 +3331,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         // If pair in spill is not deleted and memLimit is not exceeded, add pair in spill to hashmap and delete pair in spill
         if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9)
         {
-
+            // std::cout << "freeing " << threadNumber << std::endl;
             unsigned long used_space = newi - input_head;
             if (!deencode)
             {
@@ -3372,17 +3377,11 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             // if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99 && !locked)
             if (hmap->size() >= *max_hash_size * 0.95 && !locked && add && used_space <= pagesize * 40)
             {
-                std::cout << "head base: " << *input_head_base << std::endl;
+                std::cout << "head base: " << i + 1 << std::endl;
                 locked = true;
                 *input_head_base = i + 1;
             }
-            /*  else
-             {
-                 if (!locked && add)
-                 {
-                     std::cout << "hmap->size() >= *max_hash_size * 0.95: " << (hmap->size() >= *max_hash_size * 0.95) << "used_space <= pagesize * 40: " << (used_space <= pagesize * 40) << "(*max_hash_size) * (*avg) >= (memLimit / conc_threads) * 0.9" << ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9) << std::endl;
-                 }
-             } */
+            // std::cout << "freed " << threadNumber << std::endl;
         }
     }
     // std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
@@ -3904,7 +3903,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
                 uName = worker_id;
                 uName += "_merge_" + std::to_string(counter);
                 std::vector<std::pair<std::string, size_t>> local_files(partitions, {"", 0});
-                std::cout << "spilling to " << uName << " hmap size: " << hmap->size() << std::endl;
+                // std::cout << "spilling to " << uName << " hmap size: " << hmap->size() << std::endl;
                 auto spill_start_time = std::chrono::high_resolution_clock::now();
                 spillToMinio(hmap, local_files, uName, &minio_client, beggarWorker, 0, 1);
                 log_file.sizes["mergeHelp_spilling_Duration"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - spill_start_time).count();
