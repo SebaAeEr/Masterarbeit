@@ -5315,7 +5315,7 @@ int main(int argc, char **argv)
         {
             try
             {
-                aggregate(input_file, agg_output, memLimit, true, minio_client, memLimitBack);
+                aggregate(input_file, agg_output, memLimit, minio_client, memLimitBack);
             }
             catch (std::exception &err)
             {
