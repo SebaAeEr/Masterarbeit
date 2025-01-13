@@ -2053,14 +2053,13 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     return;
 }
 /**
- * @brief Write a local file to S3
+ * @brief Write a local file to S3 encoded
  *
  * @param spill_file local file (pair of filename, size of file)
  * @param minio_client pointer to aws client
- * @param sizes pointer to vectors of subfiles (pair of size in B and tuple number)
- * @param uniqueName name of S3 file (without partition number)
+ * @param sizes pointer to vector of subfiles (pair of size in B and tuple number)
+ * @param uniqueName name of S3 file (without subfilenumber)
  * @param start_counter pointer to vector containing the number of subfiles per file
- * @param partition_id optional partition id if all hashmap entries are in one partition
  */
 void spillS3FileEncoded(std::pair<std::string, size_t> spill_file, Aws::S3::S3Client *minio_client, std::vector<std::pair<size_t, size_t>> *sizes, std::string uniqueName, int *start_counter)
 {
@@ -2138,7 +2137,15 @@ void spillS3FileEncoded(std::pair<std::string, size_t> spill_file, Aws::S3::S3Cl
     sizes->push_back({spill_mem_size_temp, temp_counter});
     close(file_handler);
 }
-
+/**
+ * @brief Write a local file to S3
+ *
+ * @param spill_file local file (pair of filename, size of file)
+ * @param minio_client pointer to aws client
+ * @param sizes pointer to vector of subfiles (pair of size in B and tuple number)
+ * @param uniqueName name of S3 file (without subfilenumber)
+ * @param start_counter pointer to vector containing the number of subfiles per file
+ */
 void spillS3File(std::pair<std::string, size_t> spill_file, Aws::S3::S3Client *minio_client, std::vector<std::pair<size_t, size_t>> *sizes, std::string uniqueName, int *start_counter)
 {
     size_t spill_mem_size = spill_file.second;
@@ -2216,7 +2223,17 @@ void spillS3File(std::pair<std::string, size_t> spill_file, Aws::S3::S3Client *m
     sizes->push_back({spill_mem_size_temp, temp_counter});
     close(file_handler);
 }
-
+/**
+ * @brief Spill hashmap or local file to S3
+ *
+ * @param hmap pointer to hashmap
+ * @param spill_file vector of local files (pair of filename, size of file) (if empty hashmap is spilled)
+ * @param uniqueName name of S3 file (without subfilenumber)
+ * @param minio_client pointer to aws client
+ * @param write_to_id worker id the files belong to
+ * @param fileStatus status of file in Mana file
+ * @param thread_id Thread id of caller
+ */
 void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<std::string, size_t>> spill_file, std::string uniqueName,
                   Aws::S3::S3Client *minio_client, char write_to_id, unsigned char fileStatus, char thread_id)
 {
@@ -2272,7 +2289,12 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     mana_writeThread_num.fetch_add(1);
     thread.detach();
 }
-
+/**
+ * @brief execute the aggregation function
+ *
+ * @param hashValue pointer to array of values
+ * @param value new value
+ */
 void execOperation(std::array<unsigned long, max_size> *hashValue, int value)
 {
     switch (op)
@@ -2289,7 +2311,13 @@ void execOperation(std::array<unsigned long, max_size> *hashValue, int value)
         break;
     }
 }
-
+/**
+ * @brief add new hmap entry
+ *
+ * @param hmap pointer to hashmap
+ * @param keys key of hashmap entry
+ * @param opValue value of hashmap entry
+ */
 void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::array<unsigned long, max_size> keys, unsigned long opValue)
 {
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
@@ -2337,7 +2365,24 @@ void addPair(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<un
     }
     }
 }
-
+/**
+ * @brief Scan input file and insert values into hashmap. If memoryLimit is reached spill hashmap to local memory if possible otherwise to S3.
+ *
+ * @param hmap pointer to hashmap that is being filled
+ * @param file input file handle
+ * @param start index where to start in input file
+ * @param size length of chars to be read
+ * @param addOffset whether to finish last line eventhough size is overstepped
+ * @param memLimit available memory
+ * @param spill_files pointer to vector of vectors(partitions) to local files the hashmap is spilled to. Will be filled by the function if it has local spills
+ * @param numLines number of lines the functions reads
+ * @param comb_hash_size combined size of all the hashmaps
+ * @param shared_diff combined size of all mappings
+ * @param minio_client pointer to aws client
+ * @param readBytes combined number of chars read
+ * @param memLimitBack background memory limit
+ * @param comb_spill_size combined size of all spills
+ */
 void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, int file, size_t start, size_t size, bool addOffset, size_t memLimit,
                  float &avg, std::vector<std::vector<std::pair<std::string, size_t>>> *spill_files, std::atomic<unsigned long> &numLines, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> *shared_diff, Aws::S3::S3Client *minio_client,
                  std::atomic<unsigned long> &readBytes, unsigned long memLimitBack, std::atomic<unsigned long> &comb_spill_size)
@@ -2604,7 +2649,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 hmap->clear();
             }
         }
-        // After line is read clear it and set reading to false till the next {
         numLines.fetch_add(1);
         numLinesLocal++;
     }
@@ -2645,8 +2689,16 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         std::cout << "Not able to print time: " << err.what() << std::endl;
     }
 }
-
-void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> *diff, float *avg)
+/**
+ * @brief iteratively calculates the average size of hashmap entries and logs program size
+ *
+ * @param finished Whether to stop function
+ * @param memLimit Main memory limit
+ * @param comb_hash_size combined size of all hashmaps in memory
+ * @param diff combined size of all mappings
+ * @param avg average size of hashmap entries
+ */
+void printSize(int &finished, size_t memLimit, std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> *diff, float *avg)
 {
     std::ofstream output;
     if (log_size)
@@ -2776,7 +2828,35 @@ void printSize(int &finished, size_t memLimit, int threadNumber, std::atomic<uns
     log_file.sizes["maxMainUsage"] = maxSize;
     output.close();
 }
-
+/**
+ * @brief Add and/or merge spill files to the given hashmap
+ *
+ * @param hmap hashmap
+ * @param s3spillNames2 s3 spills (tuples of filename, size in B, subfiles(pairs of size in B, number of tuples))
+ * @param s3spillBitmaps bitmaps for the s3 files (pair of file handle (if bitmap is spilled), char vector (if not))
+ * @param spills local spills (pairs of filename, size in B)
+ * @param add whether to add entries to hashmap or only merge
+ * @param s3spillFile_head index of first s3 spill file
+ * @param bit_head index of first bitmap
+ * @param subfile_head index of first subfile in S3 first file
+ * @param s3spillStart_head index of first tuple in first S3 file (not decoded)
+ * @param s3spillStart_head_charsindex of first tuple in first S3 file (decoded)
+ * @param input_head_base index of first tuple in first local file
+ * @param size_after_init memory usage of program before function call
+ * @param read_lines number of lines read
+ * @param minio_client aws client
+ * @param writeLock read and write lock for hashmap
+ * @param avg average size of hashmap entry
+ * @param memLImit available memory
+ * @param comb_hash_size combined size of all hashmaps
+ * @param diff combined size of all mappings
+ * @param increase_size whether size of input stream should be added to program memory usage
+ * @param max_hash_size biggest size of hashmap
+ * @param t_id thread id
+ * @param merge_file_num number of files to be merged
+ *
+ * @return whether memory limit was reached
+ */
 bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap,
               std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2,
               std::vector<std::pair<int, std::vector<char>>> *s3spillBitmaps, std::vector<std::pair<std::string, size_t>> *spills, bool add, int *s3spillFile_head,
@@ -4004,7 +4084,7 @@ void helpMergePhase(size_t memLimit, size_t memMainLimit, Aws::S3::S3Client mini
 
     if (init)
     {
-        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, 1, std::ref(comb_hash_size), &diff, avg);
+        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, std::ref(comb_hash_size), &diff, avg);
     }
 
     while (true)
@@ -4288,7 +4368,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::thread sizePrinter;
     if (measure_mem)
     {
-        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, threadNumber, std::ref(comb_hash_size), &diff, &avg);
+        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, std::ref(comb_hash_size), &diff, &avg);
     }
 
     // auto scan_start_time = std::chrono::high_resolution_clock::now();
