@@ -3468,9 +3468,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     {
         output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     } */
+    std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> s3spillNames;
     if (gets3Files)
     {
-        getAllMergeFileNames(minio_client, partition, s3spillNames2);
+        getAllMergeFileNames(minio_client, partition, &s3spillNames);
+        s3spillNames2 = s3spillNames;
     }
     auto merge_start_time = std::chrono::high_resolution_clock::now();
     diff->exchange(0);
@@ -4404,7 +4406,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     }
                 }
 
-                multi_files[newThread_ind].clear();
+                // multi_files[newThread_ind].clear();
                 m_partition = getMergePartition(&minio_client);
 
                 if (m_partition != -1)
@@ -4413,7 +4415,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     thread_bitmap[newThread_ind] = 1;
                     std::cout << "merging partition: " << (int)(m_partition) << std::endl;
                     printProgressBar((float)(counter) / partitions);
-                    getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
+                    // getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
                     merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], multi_spills[newThread_ind], std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
                                                                &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], m_partition, 0, increase, true);
                 }
