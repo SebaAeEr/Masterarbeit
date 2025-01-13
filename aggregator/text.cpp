@@ -3278,10 +3278,13 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             i = newi + offset;
             read_lines->fetch_add(1);
             // std::cout << "i: " << i << ", newi: " << newi << std::endl;
-            //  std::cout << "merging/adding" << std::endl;
+              std::cout << "shared locking" << std::endl;
+
             std::shared_lock<std::shared_mutex> lock(*writeLock);
             bool contained = hmap->contains(keys);
+            std::cout << "shared unlocking" << std::endl;
             writeLock->unlock();
+            std::cout << "shared unlocked" << std::endl;
             //    Update count if customerkey is in hashmap and delete pair in spill
             if (contained)
             {
@@ -3291,9 +3294,12 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 {
                     temp[k] += values[k];
                 }
+                std::cout << "locking" << std::endl;
                 std::unique_lock<std::shared_mutex> lock(*writeLock);
                 (*hmap)[keys] = temp;
+                std::cout << "unlocking" << std::endl;
                 writeLock->unlock();
+                std::cout << "unlocked" << std::endl;
                 if (deencode)
                 {
                     // std::cout << "ognewi first: " << (int) (spill_map_char[ognewi]);
