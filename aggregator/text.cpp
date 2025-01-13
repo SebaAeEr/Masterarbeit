@@ -1669,11 +1669,9 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
 void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, std::vector<std::pair<std::string, size_t>> *spill_file,
                  char id, size_t free_mem)
 {
-    std::cout << "spilling to file" << std::endl;
     if (deencode)
     {
         spillToFileEncoded(hmap, spill_file, id, free_mem);
-        std::cout << "spilled to file" << std::endl;
         return;
     }
     // hmap = (emhash8::HashMap<std::array<int, key_number>, std::array<int, value_number>, decltype(hash), decltype(comp)> *)(hmap);
@@ -3278,13 +3276,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             i = newi + offset;
             read_lines->fetch_add(1);
             // std::cout << "i: " << i << ", newi: " << newi << std::endl;
-            std::cout << "shared locking" << std::endl;
 
             writeLock->lock_shared();
             bool contained = hmap->contains(keys);
-            std::cout << "shared unlocking" << std::endl;
             writeLock->unlock_shared();
-            std::cout << "shared unlocked" << std::endl;
             //    Update count if customerkey is in hashmap and delete pair in spill
             if (contained)
             {
