@@ -4635,6 +4635,15 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         {
             spills.push_back(std::vector<std::pair<std::string, size_t>>(0));
         }
+        for (auto &s : spills)
+        {
+            std::cout << "partition:\n   ";
+            for (auto f : s)
+            {
+                std::cout << f.first << ":" << f.second << " , ";
+            }
+            std::cout << std::endl;
+        }
         printProgressBar(0);
         while (m_partition != -1)
         {
