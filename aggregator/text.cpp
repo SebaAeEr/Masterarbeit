@@ -3321,10 +3321,9 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     {
                         map_start = i - (sum - it.second) - ((i - (sum - it.second)) % pagesize);
                         mapping_size = it.second - map_start;
-                        // spill_map_char = static_cast<char *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handler, map_start));
-                        spill_map_char = static_cast<char *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handler, 0));
-                        i = (sum - it.second);
-                        map_start = 0;
+                        spill_map_char = static_cast<char *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handler, map_start));
+                        /* i = (sum - it.second);
+                        map_start = 0; */
                         if (spill_map_char == MAP_FAILED)
                         {
                             close(file_handler);
