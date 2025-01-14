@@ -4679,7 +4679,14 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 }
 
                 // multi_files[newThread_ind].clear();
-                m_partition = getMergePartition(&minio_client);
+                if (s3spilled)
+                {
+                    m_partition = getMergePartition(&minio_client);
+                }
+                else if (!spills.empty())
+                {
+                    m_partition = counter;
+                }
 
                 if (m_partition != -1)
                 {
