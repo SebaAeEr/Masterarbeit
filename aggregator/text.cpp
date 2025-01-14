@@ -4709,7 +4709,21 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             }
             else
             {
-                m_partition = getMergePartition(&minio_client);
+                if (s3spilled)
+                {
+                    m_partition = getMergePartition(&minio_client);
+                }
+                else if (!spills.empty())
+                {
+                    if (counter < partitions)
+                    {
+                        m_partition = counter;
+                    }
+                    else
+                    {
+                        m_partition = -1;
+                    }
+                }
                 if (m_partition != -1)
                 {
                     std::cout << "merging partition: " << (int)(m_partition) << std::endl;
