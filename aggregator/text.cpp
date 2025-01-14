@@ -3321,7 +3321,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     {
                         map_start = i - (sum - it.second) - ((i - (sum - it.second)) % pagesize);
                         mapping_size = it.second - map_start;
-                        spill_map_char = static_cast<char *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handler, map_start));
+                        // spill_map_char = static_cast<char *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handler, map_start));
+                        spill_map_char = static_cast<char *>(mmap(nullptr, mapping_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handler, 0));
+                        i = (sum - it.second);
+                        map_start = 0;
                         if (spill_map_char == MAP_FAILED)
                         {
                             close(file_handler);
@@ -3581,7 +3584,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             {
                 std::cout << "head base: " << i + 1 << std::endl;
                 locked = true;
-                *input_head_base = i;
+                *input_head_base = i + 1;
             }
             // std::cout << t_id << ": freed" << std::endl;
             // std::cout << "freed " << threadNumber << std::endl;
