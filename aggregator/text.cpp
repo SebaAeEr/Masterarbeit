@@ -31,9 +31,9 @@
 #include <future>
 #include <mutex>
 #include <shared_mutex>
-/* #include "cloud/provider.hpp"
+#include "cloud/provider.hpp"
 #include "network/tasked_send_receiver.hpp"
-#include "network/transaction.hpp" */
+#include "network/transaction.hpp"
 
 // Aggregation functions
 enum Operation
