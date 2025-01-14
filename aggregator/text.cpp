@@ -3514,7 +3514,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 if (hmap->size() > *max_hash_size)
                 {
                     comb_hash_size.fetch_add(1);
-                    *max_hash_size++;
+                    *max_hash_size += 1;
                 }
                 // delete pair in spill
                 if (deencode)
@@ -4552,6 +4552,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
     }
     comb_hash_size.exchange(0);
+    diff.exchange(0);
     // delete[] emHashmaps;
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - mergeH_start_time).count()) / 1000000;
     std::cout << "Merging of hastables finished with time: " << duration << "s." << std::endl;
