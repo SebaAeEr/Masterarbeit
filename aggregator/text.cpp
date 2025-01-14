@@ -3264,7 +3264,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         if ((!deencode && i >= sum / sizeof(long)) || (deencode && i >= sum))
         {
             // std::cout << t_id << ": new mapping" << std::endl;
-            if(i != sum && i != *input_head_base) {
+            if (i != sum && i != *input_head_base)
+            {
                 std::cout << "i!=sum! i: " << i << " sum: " << sum << std::endl;
             }
             sum = 0;
@@ -3381,7 +3382,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             {
 
                 char l_bytes = spill_map_char[newi];
-                if(l_bytes > 8) {
+                if (l_bytes > 8)
+                {
                     std::cout << "l_bytes too big! l_bytes: " << (int)(l_bytes) << std::endl;
                 }
                 if (l_bytes < 0 && k == 0)
@@ -3579,7 +3581,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             {
                 std::cout << "head base: " << i + 1 << std::endl;
                 locked = true;
-                *input_head_base = i + 1;
+                *input_head_base = i;
             }
             // std::cout << t_id << ": freed" << std::endl;
             // std::cout << "freed " << threadNumber << std::endl;
