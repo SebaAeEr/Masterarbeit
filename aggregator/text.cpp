@@ -31,9 +31,9 @@
 #include <future>
 #include <mutex>
 #include <shared_mutex>
-#include "cloud/provider.hpp"
+/* #include "cloud/provider.hpp"
 #include "network/tasked_send_receiver.hpp"
-#include "network/transaction.hpp"
+#include "network/transaction.hpp" */
 
 // Aggregation functions
 enum Operation
@@ -4944,7 +4944,7 @@ constexpr unsigned int str2int(const char *str, int h = 0)
 
 int main(int argc, char **argv)
 {
-    // The file to be downloaded
+    /* // The file to be downloaded
     auto url = "s3a://131.159.16.208:9000";
     auto fileName = "trinobucket2/manag_file";
 
@@ -4987,7 +4987,7 @@ int main(int argc, char **argv)
         std::string_view rawDataString(reinterpret_cast<const char *>(it.getData()) + it.getOffset(), it.getSize());
         std::cout << rawDataString << std::endl;
     }
-    return 0;
+    return 0; */
 
     // Init awssdk; optionally logging
     Aws::SDKOptions options;
