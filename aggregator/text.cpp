@@ -1703,15 +1703,15 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
             spill[counter] = l_bytes;
             counter++;
 
-            /* char byteArray[sizeof(long)];
+            char byteArray[sizeof(long)];
             std::memcpy(byteArray, &it.first[i], sizeof(long));
             for (int k = 0; k < l_bytes; k++)
             {
                 spill[counter] = byteArray[k];
                 counter++;
-            } */
-            std::memcpy(&spill[counter], &it.first[i], l_bytes);
-            counter += l_bytes;
+            }
+            /* std::memcpy(&spill[counter], &it.first[i], l_bytes);
+            counter += l_bytes; */
         }
         for (int i = 0; i < value_number; i++)
         {
@@ -1719,15 +1719,15 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
             spill[counter] = l_bytes;
             counter++;
 
-            /* char byteArray[sizeof(long)];
+            char byteArray[sizeof(long)];
             std::memcpy(byteArray, &it.second[i], sizeof(long));
             for (int k = 0; k < l_bytes; k++)
             {
                 spill[counter] = byteArray[k];
                 counter++;
-            } */
-            std::memcpy(&spill[counter], &it.second[i], l_bytes);
-            counter += l_bytes;
+            }
+            /* std::memcpy(&spill[counter], &it.second[i], l_bytes);
+            counter += l_bytes; */
         }
 
         if ((counter - writehead) >= free_mem && (counter - writehead) > pagesize)
