@@ -1384,11 +1384,11 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     unsigned long head = 0;
     for (auto &it : *hmap)
     {
-        if (counter < 20)
+       /*  if (counter < 20)
         {
             std::cout << it.first[0] << ":" << it.second[0] << std::endl;
             counter++;
-        }
+        } */
         if (isJson)
         {
             mapped_count += writeString(&mappedoutputFile[mapped_count], "{");
@@ -2623,7 +2623,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 {
                     threadLog.sizes["s3Spill"]++;
                     threadLog.sizes["s3SpillSize"] += temp_spill_size;
-                    std::cout << "s3: " << (int)(id) << std::endl;
+                   std::cout << "s3: " << (int)(id) << std::endl;
                     uName = "";
                     uName += worker_id;
                     uName += "_";
@@ -3261,7 +3261,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         if ((!deencode && i >= sum / sizeof(long)) || (deencode && i >= sum))
         {
-            std::cout << t_id << ": new mapping" << std::endl;
+           // std::cout << t_id << ": new mapping" << std::endl;
             sum = 0;
             int c = 0;
             for (auto &it : *spills)
@@ -3541,7 +3541,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 //  std::cout << "Freeing up mapping" << std::endl;
                 //    calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
                 unsigned long freed_space_temp = used_space - (used_space % pagesize);
-                std::cout << t_id << ": freeing: " << freed_space_temp << std::endl;
+                //std::cout << t_id << ": freeing: " << freed_space_temp << std::endl;
                 if (deencode)
                 {
                     if (munmap(&spill_map_char[input_head], freed_space_temp) == -1)
@@ -3567,16 +3567,16 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             // if (hmap->size() >= *max_hash_size * 0.95 && !locked && add && used_space <= pagesize * 40)
             // if (!locked && add && used_space <= pagesize * 40)
             {
-                std::cout << "head base: " << i + 1 << std::endl;
+           //     std::cout << "head base: " << i + 1 << std::endl;
                 locked = true;
                 *input_head_base = i + 1;
             }
-            std::cout << t_id << ": freed" << std::endl;
+           // std::cout << t_id << ": freed" << std::endl;
             // std::cout << "freed " << threadNumber << std::endl;
         }
     }
     // std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
-    std::cout << t_id << ": finishing" << std::endl;
+ //   std::cout << t_id << ": finishing" << std::endl;
     //  save empty flag and release the mapping
     if (deencode)
     {
@@ -3610,7 +3610,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         close(file_handler);
     }
-    std::cout << t_id << ": finished" << std::endl;
+   //std::cout << t_id << ": finished" << std::endl;
     return !locked;
 }
 /**
