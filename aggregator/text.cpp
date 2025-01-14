@@ -2877,6 +2877,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     size_t increase = 0;
     int file_counter = 0;
     int conc_threads = multiThread_merge ? threadNumber : 1;
+    conc_threads = 4;
 
     for (auto &it : *spills)
     {
