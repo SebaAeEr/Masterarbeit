@@ -3248,11 +3248,11 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     if (add)
     {
         *s3spillFile_head = s3spillNames2->size();
-        // std::cout << "adding local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
+        std::cout << "adding local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
     }
     else
     {
-        // std::cout << "Merging local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
+        std::cout << "Merging local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
     }
 
     // std::cout << "New round" << std::endl;
@@ -3382,7 +3382,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             char char_buf[sizeof(long)];
             for (int k = 0; k < key_number; k++)
             {
-
                 char l_bytes = spill_map_char[newi];
                 if (l_bytes > 8)
                 {
@@ -3390,12 +3389,11 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 }
                 if (l_bytes < 0 && k == 0)
                 {
-                    i += l_bytes * -1 + 1;
+                    newi += l_bytes * -1 + 1;
                     for (int s = 0; s < key_number + value_number - 1; s++)
                     {
-                        i += spill_map_char[i] + 1;
+                        newi += spill_map_char[newi] + 1;
                     }
-                    i--;
                     empty = true;
                     break;
                 }
@@ -3443,8 +3441,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         {
             if (spill_map[newi] == ULONG_MAX)
             {
-                i += key_number;
-                i += value_number - 1;
+                newi += key_number;
+                newi += value_number;
                 empty = true;
             }
             else
@@ -3484,12 +3482,12 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 diff->fetch_add((newi - (i - offset)) * sizeof(long));
             }
         }
+        newi--;
+        i = newi + offset;
         // log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
         //   std::cout << keys[0] << ", " << values[0] << std::endl;
         if (!empty)
         {
-            newi--;
-            i = newi + offset;
 
             // std::cout << "i: " << i << ", newi: " << newi << std::endl;
 
