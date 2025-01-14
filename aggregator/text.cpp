@@ -1384,11 +1384,11 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     unsigned long head = 0;
     for (auto &it : *hmap)
     {
-       /*  if (counter < 20)
-        {
-            std::cout << it.first[0] << ":" << it.second[0] << std::endl;
-            counter++;
-        } */
+        /*  if (counter < 20)
+         {
+             std::cout << it.first[0] << ":" << it.second[0] << std::endl;
+             counter++;
+         } */
         if (isJson)
         {
             mapped_count += writeString(&mappedoutputFile[mapped_count], "{");
@@ -1703,13 +1703,15 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
             spill[counter] = l_bytes;
             counter++;
 
-            char byteArray[sizeof(long)];
+            /* char byteArray[sizeof(long)];
             std::memcpy(byteArray, &it.first[i], sizeof(long));
             for (int k = 0; k < l_bytes; k++)
             {
                 spill[counter] = byteArray[k];
                 counter++;
-            }
+            } */
+            std::memcpy(&spill[counter], &it.first[i], l_bytes);
+            counter += l_bytes;
         }
         for (int i = 0; i < value_number; i++)
         {
@@ -1717,13 +1719,15 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
             spill[counter] = l_bytes;
             counter++;
 
-            char byteArray[sizeof(long)];
+            /* char byteArray[sizeof(long)];
             std::memcpy(byteArray, &it.second[i], sizeof(long));
             for (int k = 0; k < l_bytes; k++)
             {
                 spill[counter] = byteArray[k];
                 counter++;
-            }
+            } */
+            std::memcpy(&spill[counter], &it.second[i], l_bytes);
+            counter += l_bytes;
         }
 
         if ((counter - writehead) >= free_mem && (counter - writehead) > pagesize)
@@ -1940,7 +1944,7 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     std::vector<unsigned long> temp_counter = std::vector<unsigned long>(partitions, 0);
     std::vector<size_t> spill_mem_size_temp = std::vector<size_t>(partitions, 0);
-
+    char byteArray[sizeof(long)];
     for (auto &it : *hmap)
     {
         int partition;
@@ -1972,12 +1976,12 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         temp_counter[partition]++;
         if (deencode)
         {
+
             for (int i = 0; i < key_number; i++)
             {
                 char l_bytes = it.first[i] == 0 ? 0 : (static_cast<int>(log2(it.first[i])) + 8) / 8;
                 *in_streams[partition] << l_bytes;
 
-                char byteArray[sizeof(long)];
                 std::memcpy(byteArray, &it.first[i], sizeof(long));
                 //*in_streams[partition] << byteArray;
                 for (int k = 0; k < l_bytes; k++)
@@ -1991,7 +1995,6 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                 char l_bytes = it.second[i] == 0 ? 0 : (static_cast<int>(log2(it.second[i])) + 8) / 8;
                 *in_streams[partition] << l_bytes;
 
-                char byteArray[sizeof(long)];
                 std::memcpy(byteArray, &it.second[i], sizeof(long));
                 //*in_streams[partition] << byteArray;
                 for (int k = 0; k < l_bytes; k++)
@@ -2003,7 +2006,6 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         }
         else
         {
-            char byteArray[sizeof(long)];
             for (int i = 0; i < key_number; i++)
             {
                 // std::cout << it.first[i];
@@ -2623,7 +2625,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 {
                     threadLog.sizes["s3Spill"]++;
                     threadLog.sizes["s3SpillSize"] += temp_spill_size;
-                   std::cout << "s3: " << (int)(id) << std::endl;
+                    std::cout << "s3: " << (int)(id) << std::endl;
                     uName = "";
                     uName += worker_id;
                     uName += "_";
@@ -2875,7 +2877,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     size_t increase = 0;
     int file_counter = 0;
     int conc_threads = multiThread_merge ? threadNumber : 1;
-    conc_threads = 4;
 
     for (auto &it : *spills)
     {
@@ -3140,7 +3141,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
 
                         if (spilled_bitmap)
                         {
-                            diff->exchange(index);
+                            // diff->exchange(index);
                             if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9)
                             {
                                 // std::cout << "spilling: " << head - lower_index << std::endl;
@@ -3246,11 +3247,11 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     if (add)
     {
         *s3spillFile_head = s3spillNames2->size();
-        std::cout << "adding local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
+        // std::cout << "adding local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
     }
     else
     {
-        std::cout << "Merging local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
+        // std::cout << "Merging local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
     }
 
     // std::cout << "New round" << std::endl;
@@ -3261,7 +3262,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         if ((!deencode && i >= sum / sizeof(long)) || (deencode && i >= sum))
         {
-           // std::cout << t_id << ": new mapping" << std::endl;
+            // std::cout << t_id << ": new mapping" << std::endl;
             sum = 0;
             int c = 0;
             for (auto &it : *spills)
@@ -3278,6 +3279,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             std::cout << "invalid size: " << mapping_size - input_head * sizeof(long) << std::endl;
                             perror("Could not free memory in merge 2_1!");
                         }
+                        diff->fetch_sub(mapping_size - input_head * sizeof(long));
                         // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(long) << std::endl;
                     }
                     if (spill_map_char != nullptr && mapping_size - input_head > 0)
@@ -3288,6 +3290,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             std::cout << "invalid size: " << mapping_size - input_head << std::endl;
                             perror("Could not free memory in merge 2_1!");
                         }
+                        diff->fetch_sub(mapping_size - input_head);
                         // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(long) << std::endl;
                     }
                     file_counter++;
@@ -3541,7 +3544,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 //  std::cout << "Freeing up mapping" << std::endl;
                 //    calc freed_space (needs to be a multiple of pagesize). And free space according to freedspace and head.
                 unsigned long freed_space_temp = used_space - (used_space % pagesize);
-                //std::cout << t_id << ": freeing: " << freed_space_temp << std::endl;
+                // std::cout << t_id << ": freeing: " << freed_space_temp << std::endl;
                 if (deencode)
                 {
                     if (munmap(&spill_map_char[input_head], freed_space_temp) == -1)
@@ -3567,16 +3570,16 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             // if (hmap->size() >= *max_hash_size * 0.95 && !locked && add && used_space <= pagesize * 40)
             // if (!locked && add && used_space <= pagesize * 40)
             {
-           //     std::cout << "head base: " << i + 1 << std::endl;
+                //     std::cout << "head base: " << i + 1 << std::endl;
                 locked = true;
                 *input_head_base = i + 1;
             }
-           // std::cout << t_id << ": freed" << std::endl;
+            // std::cout << t_id << ": freed" << std::endl;
             // std::cout << "freed " << threadNumber << std::endl;
         }
     }
     // std::cout << "Writing hashmap size: " << emHashmap.size() << std::endl;
- //   std::cout << t_id << ": finishing" << std::endl;
+    //   std::cout << t_id << ": finishing" << std::endl;
     //  save empty flag and release the mapping
     if (deencode)
     {
@@ -3610,7 +3613,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         close(file_handler);
     }
-   //std::cout << t_id << ": finished" << std::endl;
+    // std::cout << t_id << ": finished" << std::endl;
     return !locked;
 }
 /**
@@ -3685,7 +3688,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         s3spillNames2 = &s3spillNames;
     }
     auto merge_start_time = std::chrono::high_resolution_clock::now();
-    diff->exchange(0);
     // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
     unsigned long input_head_base = 0;
     bool locked = true;
@@ -4485,6 +4487,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::vector<std::string> uNames;
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
     std::vector<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>> merge_emHashmaps(threadNumber);
+    std::vector<std::vector<std::pair<std::string, size_t>>> local_spill_files_temp(threadNumber, std::vector<std::pair<std::string, size_t>>(partitions, {"", 0}));
 
     for (int i = 0; i < threadNumber; i++)
     {
@@ -4511,9 +4514,21 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         }
         else
         {  */
+        size_t s_size = emHashmaps[i].size() * sizeof(long) * (key_number + value_number);
         std::string uName = "spill_" + std::to_string(i);
-        std::vector<std::pair<std::string, size_t>> local_files(partitions, {"", 0});
-        spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], local_files, uName, &minio_client, worker_id, 0, i));
+        if (backMem_usage + size < memLimitBack)
+        {
+            for (int p = 0; p < partitions; p++)
+            {
+                local_spill_files_temp[i][p] = {uName + "_" + std::to_string(p), 0};
+            }
+            spill_threads.push_back(std::thread(spillToFile, &emHashmaps[i], &local_spill_files_temp[i], 0, pagesize * 20));
+        }
+        else
+        {
+            std::vector<std::pair<std::string, size_t>> local_files(partitions, {"", 0});
+            spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], local_files, uName, &minio_client, worker_id, 0, i));
+        }
         //}
         // delete &emHashmaps[i];
         // emHashmaps[i].clear();
@@ -4524,6 +4539,13 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
     for (int i = 0; i < threadNumber; i++)
     {
+        if (local_spill_files_temp[i][0].first != "")
+        {
+            for (int p = 0; p < partitions; p++)
+            {
+                spills[p].push_back(local_spill_files_temp[i][p]);
+            }
+        }
         emHashmaps[i] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
     }
     while (mana_writeThread_num.load() != 0)
