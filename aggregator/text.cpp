@@ -1458,7 +1458,7 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
         exit(EXIT_FAILURE);
     }
     freed_mem += mapped_count - head;
-    // std::cout << "Real output file size: " << mapped_count << std::endl;
+    std::cout << "Real output file size: " << mapped_count - start_diff << std::endl;
     log_file.sizes["write_output_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count();
 
     close(file);
@@ -3658,6 +3658,57 @@ void addXtoLocalSpillHead(std::vector<std::pair<std::string, size_t>> *spills, u
         }
     }
 }
+
+size_t calc_outputSize(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap)
+{
+    size_t output_size = 0;
+    // Calc the output size for hmap.
+    for (auto &it : *hmap)
+    {
+        for (int i = 0; i < key_number; i++)
+        {
+            output_size += std::to_string(it.first[i]).length();
+        }
+        if (op != exists)
+        {
+            if (op != average)
+            {
+                output_size += std::to_string(it.second[0]).length();
+            }
+            else
+            {
+                output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
+            }
+        }
+    }
+    if (isJson)
+    {
+        for (int i = 0; i < key_number; i++)
+        {
+            output_size += ("\"" + key_names[i] + "\":").length() * hmap->size();
+        }
+
+        // unsigned long output_size_test = strlen(("\"custkey\":,\"_col1\":}").c_str())
+        output_size += (strlen("\"_col1\":") + 5 + key_number) * hmap->size();
+        if (op != exists)
+        {
+            output_size += (strlen("\"_col1\":") + 5 + key_number) * hmap->size();
+        }
+    }
+    else
+    {
+        // " "
+        output_size += hmap->size() * (key_number) * 2;
+        // ,
+        output_size += hmap->size() * (key_number - 1);
+        if (op != exists)
+        {
+            output_size += hmap->size() * 3;
+        }
+    }
+    return output_size;
+}
+
 /**
  * @brief merge all spills of a partition and write the result into the output file
  *
@@ -3940,6 +3991,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
              } */
             bool asdf = false;
             writing_ouput.lock();
+            size_t test = calc_outputSize(hmap);
+            std::cout << "calc output: " << test << std::endl;
             *output_file_head = writeHashmap(hmap, *output_file_head, pagesize * 30, outputfilename);
             writing_ouput.unlock();
 
@@ -5314,6 +5367,7 @@ int main(int argc, char **argv)
 
         partitions = -1;
         log_file = logFile();
+        backMem_usage = 0;
 
         // set configuration for specific iteration
 
