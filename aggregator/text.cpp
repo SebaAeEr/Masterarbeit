@@ -3932,10 +3932,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             diff->fetch_add(newi - ognewi + 1);
             diff_add += newi - ognewi + 1;
             diff_diff += newi - ognewi + 1;
-            if (diff_diff != newi - input_head)
-            {
-                std::cout << "diff_diff != newi - input_head! " << diff_diff << " != " << newi << " - " << input_head << std::endl;
-            }
         }
         else
         {
