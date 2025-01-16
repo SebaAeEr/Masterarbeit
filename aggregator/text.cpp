@@ -3816,7 +3816,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         input_head = 0;
                         offset = ((sum - it.second) + map_start) / sizeof(long);
                     }
-                    diff_diff = i - offset - 1;
+                    diff_diff = i - offset;
                     diff->fetch_add(diff_diff);
                     // std::cout << "sum: " << sum / sizeof(long) << " offset: " << offset << " head: " << input_head_base << " map_start: " << map_start / sizeof(long) << " i: " << i << std::endl;
                     break;
@@ -4029,18 +4029,16 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     }
                     input_head += freed_space_temp / sizeof(long);
                 }
-                if (diff->load() > freed_space_temp)
+                if (diff_diff > (used_space % pagesize))
                 {
-                    if (diff_diff > (used_space % pagesize))
-                    {
-                        diff->fetch_sub(diff_diff - (used_space % pagesize));
-                        diff_diff = used_space % pagesize;
-                    }
-                    else
-                    {
-                        std::cout << "diff_diff too small! " << diff_diff << " - " << used_space % pagesize << std::endl;
-                    }
+                    diff->fetch_sub(freed_space_temp);
+                    diff_diff -= freed_space_temp;
                 }
+                else
+                {
+                    std::cout << "diff_diff too small! " << diff_diff << " - " << used_space % pagesize << std::endl;
+                }
+
                 diff_sub_s += freed_space_temp;
                 /* else
                 {
