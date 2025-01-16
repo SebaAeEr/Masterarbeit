@@ -822,13 +822,17 @@ def c_size_by_time():
     #     "logfile_4_6_0_4_00-45.json",
     #     "logfile_4_6_0_4_01-29.json",
     # ]
-    names = ["logfile_0_6_0_4_22-42.json","logfile_4_6_100_4_21-55.json", "logfile_4_6_0_4_20-57.json"]
+    names = [
+        "logfile_0_6_0_4_22-42.json",
+        "logfile_4_6_100_4_21-55.json",
+        "logfile_4_6_0_4_20-57.json",
+    ]
     labels = np.array(["3W", "Local", "S3"])
     try:
         directory = "c++_logs"
         # f = open(os.path.join(directory, "times_11-29_12-12.csv"))
-        f = open(os.path.join(directory, "times_13_4_100_4_15-36.csv"))
-        jf = open(os.path.join(directory, "logfile_0_6_100_4_10-19.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_20-57.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_20-57.json"))
     except:
         print("File not found.")
         return
@@ -924,18 +928,20 @@ def c_size_by_time():
         # plt.figure(7)
         # plt.hist(write_file_dur, bins=30, label="write_file_dur")
         # plt.title("write file dur")
-        if(len(write_file_dur) >  0) :
+        if len(write_file_dur) > 0:
             average_1 = sum(write_file_dur) / len(write_file_dur)
             print("write_file_dur avg: " + str(average_1))
             average_2 = sum(write_file_size) / len(write_file_size)
             print("write_file_size avg: " + str(average_2))
-            print("write_file_size / write_file_dur  avg: " + str(average_2 / average_1))
+            print(
+                "write_file_size / write_file_dur  avg: " + str(average_2 / average_1)
+            )
 
         # plt.figure(8)
         get_file_dur = jf_data["getCall_s3_file_dur"]
         # plt.hist(get_file_dur, bins=30, label="get_file_dur")
         # plt.title("get_file_dur")
-        if(len(get_file_dur) > 0):
+        if len(get_file_dur) > 0:
             average = sum(get_file_dur) / len(get_file_dur)
             print("write_mana_dur avg: " + str(average))
 

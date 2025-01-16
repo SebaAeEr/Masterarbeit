@@ -3460,30 +3460,17 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 }
             }
         }
-        if (empty)
+        newi--;
+        i = newi + offset;
+        if (deencode)
         {
-            if (deencode)
-            {
-                diff->fetch_add(i - newi);
-            }
-            else
-            {
-                diff->fetch_add((i - newi) * sizeof(long));
-            }
+            diff->fetch_add(newi - ognewi);
         }
         else
         {
-            if (deencode)
-            {
-                diff->fetch_add(newi - (i - offset));
-            }
-            else
-            {
-                diff->fetch_add((newi - (i - offset)) * sizeof(long));
-            }
+            diff->fetch_add((newi - ognewi) * sizeof(long));
         }
-        newi--;
-        i = newi + offset;
+
         // log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
         //   std::cout << keys[0] << ", " << values[0] << std::endl;
         if (!empty)
@@ -4160,24 +4147,22 @@ void setFileStatus(Aws::S3::S3Client *minio_client, std::unordered_map<std::stri
  * @param memLimit available memory
  * @param backMemLimit available background memory
  * @param minio_client aws client
- * @param init if size printer should be initialized
+ * @param thread_id id of thread
  * @param hmap hashmap
  * @param comb_hash_size combined size of all hashmaps
  * @param diff combined size of all mappings
  * @param avg average size of entries in the hashmap
  * @param startbeggarWorker first worker id this worker should help
  */
-void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client minio_client, bool init, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap,
-                    std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> &diff, float *avg, char startBeggarWorker = 0)
+void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client minio_client, emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, char thread_id,
+                    std::atomic<unsigned long> &comb_hash_size, std::atomic<unsigned long> &diff, float *avg)
 {
-    int finished = 0;
-    std::thread sizePrinter;
 
     std::vector<std::string> blacklist;
 
-    char beggarWorker = startBeggarWorker;
+    char beggarWorker = 0;
     char partition_id = partition_id;
-    std::string uName = "merge";
+    std::string uName = thread_id + "_merge";
     std::string empty_string = "";
     int counter = 0;
     std::tuple<std::vector<file>, char, char> files;
@@ -4185,17 +4170,12 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
     std::vector<std::string> file_names;
     std::thread minioSpiller;
     std::string first_fileName;
-    std::string local_spillName = "helpMergeSpill";
+    std::string local_spillName = thread_id + "_helpMergeSpill";
     bool b_minioSpiller = false;
     std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> spills = {};
     size_t zero = 0;
     size_t max_hashSize = 0;
     auto mergeHelp_start_time = std::chrono::high_resolution_clock::now();
-
-    if (init)
-    {
-        sizePrinter = std::thread(printSize, std::ref(finished), memLimit, std::ref(comb_hash_size), &diff, avg);
-    }
 
     while (true)
     {
@@ -4322,6 +4302,8 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         }
         log_file.mergeHelp_merge_tuple_num.push_back({first_tuple_num, col_tuple_num - first_tuple_num});
         uName = worker_id;
+        uName += "_";
+        uName += thread_id;
         uName += "_merge_" + std::to_string(counter);
         char temp = true;
 
@@ -4350,11 +4332,6 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
     {
         minioSpiller.join();
     }
-    finished = 2;
-    if (init)
-    {
-        sizePrinter.join();
-    }
     if (log_file.sizes["linesRead"] > 0)
     {
         log_file.sizes["selectivity"] = (log_file.sizes["linesWritten"] * 1000) / log_file.sizes["linesRead"];
@@ -4365,6 +4342,29 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
     log_file.sizes["mergeHelpDuration"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - mergeHelp_start_time).count();
     std::cout << "End of helping Phase" << std::endl;
 }
+
+void helpMerge(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client minio_client)
+{
+    emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmaps[threadNumber];
+    std::atomic<unsigned long> comb_hash_size = 0;
+    std::atomic<unsigned long> diff = 0;
+    std::vector<std::thread> threads(threadNumber);
+    float avg = 1;
+    int finished = 0;
+    std::thread sizePrinter;
+    sizePrinter = std::thread(printSize, std::ref(finished), memLimit, std::ref(comb_hash_size), &diff, &avg);
+    for (char i = 0; i < threadNumber; i++)
+    {
+        threads[i] = std::thread(helpMergePhase, memLimit / threadNumber, backMemLimit / threadNumber, minio_client, &emHashmaps[i], i, std::ref(comb_hash_size), std::ref(diff), &avg);
+    }
+    for (char i = 0; i < threadNumber; i++)
+    {
+        threads[i].join();
+    }
+    finished = 2;
+    sizePrinter.join();
+}
+
 /**
  * @brief Get the partition the main worker should first merge and write to the output
  *
@@ -4622,7 +4622,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     log_file.sizes["mergeHashDuration"] = duration;
     finished++;
 
-    if (mergePhase)
+    /* if (mergePhase)
     {
         auto colmerge_start_time = std::chrono::high_resolution_clock::now();
         helpMergePhase(memLimit, memLimitBack, minio_client, false, &emHashmap, comb_hash_size, diff, &avg, worker_id);
@@ -4654,7 +4654,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         std::cout << "Collective Merge ended with time: " << duration << "s." << std::endl;
         log_file.sizes["mergeColTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
         log_file.sizes["mergeColDuration"] = duration;
-    }
+    }*/
     auto merge_start_time = std::chrono::high_resolution_clock::now();
 
     // Free up rest of mapping of input file and close the file
@@ -5480,7 +5480,7 @@ int main(int argc, char **argv)
             use_file_queue = false;
             try
             {
-                helpMergePhase(memLimit, memLimitBack, minio_client, true, &hmap, comb_hash_size, diff, &avg);
+                helpMerge(memLimit, memLimitBack, minio_client);
             }
             catch (std::exception &err)
             {
@@ -5503,7 +5503,4 @@ int main(int argc, char **argv)
     // shutdown awssdk
     Aws::ShutdownAPI(options);
     return 1;
-    // return aggregate("test.txt", "output_test.json");
-    /* aggregate("input_file_tiny.json", "tpc_13_output_sup_tiny_c.json");
-    return test("tpc_13_output_sup_tiny_c.json", "tpc_13_sup_tiny.json");S */
 }
