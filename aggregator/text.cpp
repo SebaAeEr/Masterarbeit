@@ -445,51 +445,6 @@ void writeLogFile(logFile log_t)
     output.close();
 }
 
-void getWorkerCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bool>> done, manaFile *return_value, bool *donedone, char worker_id)
-{
-    Aws::S3::Model::GetObjectRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(manag_file_name + "_" + worker_id);
-    Aws::S3::Model::GetObjectOutcome outcome;
-
-    while (true)
-    {
-        // request.SetVersionId(manag_version);
-        outcome = minio_client->GetObject(request);
-
-        // outcome.GetResult().SetObjectLockMode();
-        if (!outcome.IsSuccess())
-        {
-            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
-        }
-        else
-        {
-            break;
-        }
-    }
-    bool asdf = false;
-    if (done->compare_exchange_strong(asdf, true))
-    {
-        // manaFile mana;
-
-        auto &out_stream = outcome.GetResult().GetBody();
-        manaFileWorker worker;
-        while (out_stream.peek() != EOF)
-        {
-            partition part;
-            part.id = out_stream.get();
-            part.lock = out_stream.get() == 1;
-            getPartitionCall(minio_client, )
-        }
-        *donedone = true;
-    }
-
-    // std::cout << "use count: " << done.use_count() << std::endl;
-    done.reset();
-    getManaThreads_num--;
-    return;
-}
-
 void getPartitionCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bool>> done, manaFile *return_value, bool *donedone, char partition_id)
 {
     Aws::S3::Model::GetObjectRequest request;
@@ -589,6 +544,55 @@ void getPartitionCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atom
             }
             worker.partitions = partitions;
             return_value->workers.push_back(worker);
+        }
+        *donedone = true;
+    }
+
+    // std::cout << "use count: " << done.use_count() << std::endl;
+    done.reset();
+    getManaThreads_num--;
+    return;
+}
+
+void getWorkerCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bool>> done, manaFile *return_value, bool *donedone, char worker_id)
+{
+    Aws::S3::Model::GetObjectRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(manag_file_name + "_" + worker_id);
+    Aws::S3::Model::GetObjectOutcome outcome;
+
+    while (true)
+    {
+        // request.SetVersionId(manag_version);
+        outcome = minio_client->GetObject(request);
+
+        // outcome.GetResult().SetObjectLockMode();
+        if (!outcome.IsSuccess())
+        {
+            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
+        }
+        else
+        {
+            break;
+        }
+    }
+    std::shared_ptr<std::atomic<bool>> p_done = std::make_shared<std::atomic<bool>>(false);
+    bool p_donedone = false;
+    bool asdf = false;
+    if (done->compare_exchange_strong(asdf, true))
+    {
+        // manaFile mana;
+
+        auto &out_stream = outcome.GetResult().GetBody();
+        manaFileWorker worker;
+
+        while (out_stream.peek() != EOF)
+        {
+            partition part;
+            part.id = out_stream.get();
+            part.lock = out_stream.get() == 1;
+            manaFile mana_temp;
+            getPartitionCall(minio_client, p_done, &mana_temp, &p_donedone, part.id);
         }
         *donedone = true;
     }
