@@ -3816,7 +3816,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         input_head = 0;
                         offset = ((sum - it.second) + map_start) / sizeof(long);
                     }
-                    diff_diff = i - offset;
+                    diff_diff = i - offset - 1;
                     diff->fetch_add(diff_diff);
                     // std::cout << "sum: " << sum / sizeof(long) << " offset: " << offset << " head: " << input_head_base << " map_start: " << map_start / sizeof(long) << " i: " << i << std::endl;
                     break;
