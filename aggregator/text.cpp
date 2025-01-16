@@ -973,20 +973,20 @@ bool writeLock(Aws::S3::S3Client *minio_client, char worker_id = -1, char partit
     {
         if (partition_id != -1)
         {
-            request.SetKey(lock_file_name.c_str() + "_" + worker_id + "_" + partition_id);
+            request.SetKey(lock_file_name + "_" + worker_id + "_" + partition_id);
         }
         else if (worker_id != -1)
         {
-            request.SetKey(lock_file_name.c_str() + "_" + worker_id);
+            request.SetKey(lock_file_name + "_" + worker_id);
         }
         else
         {
-            request.SetKey(lock_file_name.c_str());
+            request.SetKey(lock_file_name);
         }
     }
     else
     {
-        request.SetKey(lock_file_name.c_str());
+        request.SetKey(lock_file_name);
     }
     // Calc spill size
     const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
