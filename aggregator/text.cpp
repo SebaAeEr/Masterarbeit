@@ -3725,6 +3725,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             std::cout << "invalid size: " << mapping_size - input_head * sizeof(long) << std::endl;
                             perror("Could not free memory in merge 2_1!");
                         }
+
                         if (diff->load() > diff_diff)
                         {
                             diff->fetch_sub(diff_diff);
@@ -3744,6 +3745,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             std::cout << "invalid size: " << mapping_size - input_head << std::endl;
                             perror("Could not free memory in merge 2_1!");
+                        }
+                        if (diff_diff != mapping_size - input_head)
+                        {
+                            std::cout << "Diff diff != mapping_size - input_head! " << diff_diff << " != " << mapping_size << " - " << input_head << std::endl;
                         }
                         if (diff->load() > diff_diff)
                         {
@@ -3928,6 +3933,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             diff->fetch_add(newi - ognewi);
             diff_add += newi - ognewi;
             diff_diff += newi - ognewi;
+            if (diff_diff != newi - input_head)
+            {
+                std::cout << "diff_diff != newi - input_head! " << diff_diff << " != " << newi << " - " << input_head << std::endl;
+            }
         }
         else
         {
@@ -4634,6 +4643,8 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
             if (hmap->size() > 0)
             {
                 uName = worker_id;
+                uName += "_";
+                uName += thread_id;
                 uName += "_merge_" + std::to_string(counter);
                 std::vector<std::pair<std::string, size_t>> local_files(partitions, {"", 0});
                 // std::cout << "spilling to " << uName << " hmap size: " << hmap->size() << std::endl;
