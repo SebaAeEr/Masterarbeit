@@ -85,5 +85,5 @@
     },
     "C_Cpp.errorSquiggles": "disabled",
     "python.analysis.autoImportCompletions": true,
-    "cmake.sourceDirectory": "/wsl.localhost/Ubuntu/home/sebthelegend/Masterarbeit/aggregator"
+    "cmake.sourceDirectory": "/home/sebthelegend/Masterarbeit/aggregator"
 }

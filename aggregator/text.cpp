@@ -4610,7 +4610,8 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
 
     char beggarWorker = 0;
     char partition_id = partition_id;
-    std::string uName = thread_id + "_merge";
+    std::string uName = std::to_string((int)(thread_id));
+    uName += "_merge";
     std::string empty_string = "";
     int counter = 0;
     std::tuple<std::vector<file>, char, char> files;
@@ -4618,7 +4619,8 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
     std::vector<std::string> file_names;
     std::thread minioSpiller;
     std::string first_fileName;
-    std::string local_spillName = thread_id + "_helpMergeSpill";
+    std::string local_spillName = std::to_string((int)(thread_id));
+    local_spillName += "_helpMergeSpill";
     bool b_minioSpiller = false;
     std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> spills = {};
     size_t zero = 0;
@@ -4753,7 +4755,8 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         log_file.mergeHelp_merge_tuple_num.push_back({first_tuple_num, col_tuple_num - first_tuple_num});
         uName = worker_id;
         uName += "_";
-        uName += thread_id;
+        uName += std::to_string((int)(thread_id));
+        ;
         uName += "_merge_" + std::to_string(counter);
         char temp = true;
 
