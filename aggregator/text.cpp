@@ -3729,7 +3729,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         if (diff->load() > diff_diff)
                         {
                             diff->fetch_sub(diff_diff);
-                            diff_diff = 0;
                         }
                         diff_sub_f += mapping_size - input_head * sizeof(long);
                         /*  else
@@ -3754,7 +3753,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         {
                             diff->fetch_sub(diff_diff);
                             diff_sub_f += diff_diff;
-                            diff_diff = 0;
                         }
 
                         /* else
@@ -3818,7 +3816,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                         input_head = 0;
                         offset = ((sum - it.second) + map_start) / sizeof(long);
                     }
-
+                    diff_diff = i - offset;
+                    diff->fetch_add(diff_diff);
                     // std::cout << "sum: " << sum / sizeof(long) << " offset: " << offset << " head: " << input_head_base << " map_start: " << map_start / sizeof(long) << " i: " << i << std::endl;
                     break;
                 }
@@ -3930,9 +3929,9 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         i = newi + offset;
         if (deencode)
         {
-            diff->fetch_add(newi - ognewi);
-            diff_add += newi - ognewi;
-            diff_diff += newi - ognewi;
+            diff->fetch_add(newi - ognewi + 1);
+            diff_add += newi - ognewi + 1;
+            diff_diff += newi - ognewi + 1;
             if (diff_diff != newi - input_head)
             {
                 std::cout << "diff_diff != newi - input_head! " << diff_diff << " != " << newi << " - " << input_head << std::endl;
