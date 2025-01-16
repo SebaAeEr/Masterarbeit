@@ -173,7 +173,7 @@ bool multiThread_subMerge = true;
 // Whether a file_queue should be used to minimize write requests to the Mana file
 bool use_file_queue = true;
 // Whether the mana file is split to distribute requests
-bool split_mana = true;
+bool split_mana = false;
 // Key values that are being tracked (debug)
 std::vector<unsigned long> test_values = {};
 // Number of partitions
@@ -832,6 +832,215 @@ manaFile getMana(Aws::S3::S3Client *minio_client, char worker_id = -1, char part
     }
     return mana;
 }
+
+bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, char worker_id, char partition_id)
+{
+    auto write_start_time = std::chrono::high_resolution_clock::now();
+    while (true)
+    {
+        Aws::S3::Model::PutObjectRequest in_request;
+        in_request.SetBucket(bucketName);
+        in_request.SetKey(manag_file_name + "_" + worker_id + "_" + partition_id);
+        const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+        size_t in_mem_size = 0;
+        partition partition;
+
+        for (auto &w : mana.workers)
+        {
+            if (w.id == worker_id)
+            {
+                for (auto &p : w.partitions)
+                {
+                    if (p.id == partition_id)
+                    {
+                        partition = p;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
+        for (auto &file : partition.files)
+        {
+            in_mem_size += file.name.length() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * file.subfiles.size();
+            char int_buf[sizeof(int)];
+            *in_stream << file.name;
+            *in_stream << ',';
+            int l_temp = file.subfiles.size();
+            std::memcpy(int_buf, &l_temp, sizeof(int));
+            //*in_stream << int_buf;
+            for (int i = 0; i < sizeof(int); i++)
+            {
+                *in_stream << int_buf[i];
+            }
+            char file_length_buf[sizeof(size_t)];
+            std::memcpy(file_length_buf, &file.size, sizeof(size_t));
+            //*in_stream << file_length_buf;
+            for (int i = 0; i < sizeof(size_t); i++)
+            {
+                *in_stream << file_length_buf[i];
+            }
+            for (auto &sub_file : file.subfiles)
+            {
+                std::memcpy(file_length_buf, &sub_file.first, sizeof(size_t));
+                // *in_stream << file_length_buf;
+                for (int i = 0; i < sizeof(size_t); i++)
+                {
+                    *in_stream << file_length_buf[i];
+                }
+                std::memcpy(file_length_buf, &sub_file.second, sizeof(size_t));
+                //*in_stream << file_length_buf;
+                for (int i = 0; i < sizeof(size_t); i++)
+                {
+                    *in_stream << file_length_buf[i];
+                }
+            }
+            // std::cout << "write Mana: " << std::bitset<8>(file.status) << " name: " << file.name << std::endl;
+            *in_stream << file.status;
+        }
+        in_request.SetBody(in_stream);
+        in_request.SetContentLength(in_mem_size);
+        // in_request.SetWriteOffsetBytes(1000);
+        // std::cout << "writing mana" << std::endl;
+        auto in_outcome = minio_client->PutObject(in_request);
+        if (!in_outcome.IsSuccess())
+        {
+            std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
+        }
+        else
+        {
+            // std::cout << "mana written" << std::endl;
+            if (freeLock)
+            {
+                Aws::S3::Model::DeleteObjectRequest delete_request;
+                delete_request.WithKey(lock_file_name + "_" + worker_id + "_" + partition_id).WithBucket(bucketName);
+                auto outcome = minio_client->DeleteObject(delete_request);
+                if (!outcome.IsSuccess())
+                {
+                    std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+                    return false;
+                }
+            }
+            log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
+            return 1;
+        }
+    }
+}
+
+bool writeManaWorker(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, char worker_id)
+{
+    auto write_start_time = std::chrono::high_resolution_clock::now();
+    while (true)
+    {
+        Aws::S3::Model::PutObjectRequest in_request;
+        in_request.SetBucket(bucketName);
+        in_request.SetKey(manag_file_name + "_" + worker_id);
+        const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+        manaFileWorker worker;
+        size_t in_mem_size = 0;
+        for (auto &w : mana.workers)
+        {
+            if (w.id == worker_id)
+            {
+                worker = w;
+                break;
+            }
+        }
+        for (auto &partition : worker.partitions)
+        {
+            in_mem_size += 2;
+            *in_stream << partition.id;
+            char locked = partition.lock ? 1 : 0;
+            *in_stream << locked;
+        }
+
+        in_request.SetBody(in_stream);
+        in_request.SetContentLength(in_mem_size);
+        // in_request.SetWriteOffsetBytes(1000);
+        // std::cout << "writing mana" << std::endl;
+        auto in_outcome = minio_client->PutObject(in_request);
+        if (!in_outcome.IsSuccess())
+        {
+            std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
+        }
+        else
+        {
+            // std::cout << "mana written" << std::endl;
+            if (freeLock)
+            {
+                Aws::S3::Model::DeleteObjectRequest delete_request;
+                delete_request.WithKey(lock_file_name + "_" + worker_id).WithBucket(bucketName);
+                auto outcome = minio_client->DeleteObject(delete_request);
+                if (!outcome.IsSuccess())
+                {
+                    std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+                    return false;
+                }
+            }
+            log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
+            return 1;
+        }
+    }
+}
+
+bool writeDistMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock)
+{
+    auto write_start_time = std::chrono::high_resolution_clock::now();
+    while (true)
+    {
+        Aws::S3::Model::PutObjectRequest in_request;
+        in_request.SetBucket(bucketName);
+        in_request.SetKey(manag_file_name);
+        const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
+        size_t in_mem_size = 2;
+        if (freeLock)
+        {
+            char free = 0;
+            *in_stream << free;
+            *in_stream << free;
+        }
+        else
+        {
+            *in_stream << mana.worker_lock;
+            *in_stream << mana.thread_lock;
+        }
+        for (auto &worker : mana.workers)
+        {
+            in_mem_size += 2;
+            *in_stream << worker.id;
+            char locked = worker.locked ? 1 : 0;
+            *in_stream << locked;
+        }
+        in_request.SetBody(in_stream);
+        in_request.SetContentLength(in_mem_size);
+        // in_request.SetWriteOffsetBytes(1000);
+        // std::cout << "writing mana" << std::endl;
+        auto in_outcome = minio_client->PutObject(in_request);
+        if (!in_outcome.IsSuccess())
+        {
+            std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
+        }
+        else
+        {
+            // std::cout << "mana written" << std::endl;
+            if (freeLock)
+            {
+                Aws::S3::Model::DeleteObjectRequest delete_request;
+                delete_request.WithKey(lock_file_name).WithBucket(bucketName);
+                auto outcome = minio_client->DeleteObject(delete_request);
+                if (!outcome.IsSuccess())
+                {
+                    std::cerr << "Error: deleteObject: " << outcome.GetError().GetExceptionName() << ": " << outcome.GetError().GetMessage() << std::endl;
+                    return false;
+                }
+            }
+            log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
+            return 1;
+        }
+    }
+}
+
 /**
  * @brief Write manaFile struct to the Mana file in S3
  *
