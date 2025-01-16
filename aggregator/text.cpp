@@ -172,6 +172,8 @@ bool multiThread_merge = true;
 bool multiThread_subMerge = true;
 // Whether a file_queue should be used to minimize write requests to the Mana file
 bool use_file_queue = true;
+// Whether the mana file is split to distribute requests
+bool split_mana = true;
 // Key values that are being tracked (debug)
 std::vector<unsigned long> test_values = {};
 // Number of partitions
@@ -443,6 +445,224 @@ void writeLogFile(logFile log_t)
     output.close();
 }
 
+void getWorkerCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bool>> done, manaFile *return_value, bool *donedone, char worker_id)
+{
+    Aws::S3::Model::GetObjectRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(manag_file_name);
+    Aws::S3::Model::GetObjectOutcome outcome;
+
+    while (true)
+    {
+        // request.SetVersionId(manag_version);
+        outcome = minio_client->GetObject(request);
+
+        // outcome.GetResult().SetObjectLockMode();
+        if (!outcome.IsSuccess())
+        {
+            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
+        }
+        else
+        {
+            break;
+        }
+    }
+    bool asdf = false;
+    if (done->compare_exchange_strong(asdf, true))
+    {
+        // manaFile mana;
+
+        auto &out_stream = outcome.GetResult().GetBody();
+
+        return_value->worker_lock = out_stream.get();
+        return_value->thread_lock = out_stream.get();
+        return_value->workers = {};
+        while (out_stream.peek() != EOF)
+        {
+            manaFileWorker worker;
+
+            char workerid = out_stream.get();
+            worker.id = workerid;
+            worker.locked = out_stream.get() == 1;
+            std::vector<partition> partitions = {};
+            int length;
+            char length_buf[sizeof(int)];
+            out_stream.read(length_buf, sizeof(int));
+            std::memcpy(&length, &length_buf, sizeof(int));
+            worker.length = length;
+            int head = 0;
+            while (head < length)
+            {
+                partition part;
+                part.id = out_stream.get();
+                part.lock = out_stream.get() == 1;
+                int part_length;
+                char part_length_buf[sizeof(int)];
+                out_stream.read(part_length_buf, sizeof(int));
+                std::memcpy(&part_length, &part_length_buf, sizeof(int));
+
+                std::vector<file> files = {};
+                for (int k = 0; k < part_length; k++)
+                {
+                    file file;
+                    char temp = out_stream.get();
+                    std::string filename = "";
+                    while (temp != ',')
+                    {
+                        filename += temp;
+                        temp = out_stream.get();
+                    }
+                    file.name = filename;
+
+                    int number;
+                    out_stream.read(part_length_buf, sizeof(int));
+                    std::memcpy(&number, &part_length_buf, sizeof(int));
+
+                    size_t file_length;
+                    char length_buf[sizeof(size_t)];
+                    out_stream.read(length_buf, sizeof(size_t));
+                    std::memcpy(&file_length, &length_buf, sizeof(size_t));
+                    file.size = file_length;
+
+                    for (char i = 0; i < number; i++)
+                    {
+                        size_t sub_file_length;
+                        out_stream.read(length_buf, sizeof(size_t));
+                        std::memcpy(&sub_file_length, &length_buf, sizeof(size_t));
+                        size_t sub_file_tuples;
+                        out_stream.read(length_buf, sizeof(size_t));
+                        std::memcpy(&sub_file_tuples, &length_buf, sizeof(size_t));
+                        file.subfiles.push_back({sub_file_length, sub_file_tuples});
+                    }
+                    file.status = out_stream.get();
+                    files.push_back(file);
+                    head += sizeof(size_t) * number * 2 + sizeof(size_t) + filename.size() + 2 + sizeof(int);
+                }
+                part.files = files;
+                partitions.push_back(part);
+                head += sizeof(int) + 2;
+            }
+            worker.partitions = partitions;
+            return_value->workers.push_back(worker);
+        }
+        *donedone = true;
+    }
+
+    // std::cout << "use count: " << done.use_count() << std::endl;
+    done.reset();
+    getManaThreads_num--;
+    return;
+}
+
+void getPartitionCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bool>> done, manaFile *return_value, bool *donedone, char partition_id)
+{
+    Aws::S3::Model::GetObjectRequest request;
+    request.SetBucket(bucketName);
+    request.SetKey(manag_file_name);
+    Aws::S3::Model::GetObjectOutcome outcome;
+
+    while (true)
+    {
+        // request.SetVersionId(manag_version);
+        outcome = minio_client->GetObject(request);
+
+        // outcome.GetResult().SetObjectLockMode();
+        if (!outcome.IsSuccess())
+        {
+            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
+        }
+        else
+        {
+            break;
+        }
+    }
+    bool asdf = false;
+    if (done->compare_exchange_strong(asdf, true))
+    {
+        // manaFile mana;
+
+        auto &out_stream = outcome.GetResult().GetBody();
+
+        return_value->worker_lock = out_stream.get();
+        return_value->thread_lock = out_stream.get();
+        return_value->workers = {};
+        while (out_stream.peek() != EOF)
+        {
+            manaFileWorker worker;
+
+            char workerid = out_stream.get();
+            worker.id = workerid;
+            worker.locked = out_stream.get() == 1;
+            std::vector<partition> partitions = {};
+            int length;
+            char length_buf[sizeof(int)];
+            out_stream.read(length_buf, sizeof(int));
+            std::memcpy(&length, &length_buf, sizeof(int));
+            worker.length = length;
+            int head = 0;
+            while (head < length)
+            {
+                partition part;
+                part.id = out_stream.get();
+                part.lock = out_stream.get() == 1;
+                int part_length;
+                char part_length_buf[sizeof(int)];
+                out_stream.read(part_length_buf, sizeof(int));
+                std::memcpy(&part_length, &part_length_buf, sizeof(int));
+
+                std::vector<file> files = {};
+                for (int k = 0; k < part_length; k++)
+                {
+                    file file;
+                    char temp = out_stream.get();
+                    std::string filename = "";
+                    while (temp != ',')
+                    {
+                        filename += temp;
+                        temp = out_stream.get();
+                    }
+                    file.name = filename;
+
+                    int number;
+                    out_stream.read(part_length_buf, sizeof(int));
+                    std::memcpy(&number, &part_length_buf, sizeof(int));
+
+                    size_t file_length;
+                    char length_buf[sizeof(size_t)];
+                    out_stream.read(length_buf, sizeof(size_t));
+                    std::memcpy(&file_length, &length_buf, sizeof(size_t));
+                    file.size = file_length;
+
+                    for (char i = 0; i < number; i++)
+                    {
+                        size_t sub_file_length;
+                        out_stream.read(length_buf, sizeof(size_t));
+                        std::memcpy(&sub_file_length, &length_buf, sizeof(size_t));
+                        size_t sub_file_tuples;
+                        out_stream.read(length_buf, sizeof(size_t));
+                        std::memcpy(&sub_file_tuples, &length_buf, sizeof(size_t));
+                        file.subfiles.push_back({sub_file_length, sub_file_tuples});
+                    }
+                    file.status = out_stream.get();
+                    files.push_back(file);
+                    head += sizeof(size_t) * number * 2 + sizeof(size_t) + filename.size() + 2 + sizeof(int);
+                }
+                part.files = files;
+                partitions.push_back(part);
+                head += sizeof(int) + 2;
+            }
+            worker.partitions = partitions;
+            return_value->workers.push_back(worker);
+        }
+        *donedone = true;
+    }
+
+    // std::cout << "use count: " << done.use_count() << std::endl;
+    done.reset();
+    getManaThreads_num--;
+    return;
+}
+
 /**
  * @brief Request call to get the Mana file
  *
@@ -567,7 +787,7 @@ void getManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<bo
  *
  * @return manaFile struct
  */
-manaFile getMana(Aws::S3::S3Client *minio_client)
+manaFile getMana(Aws::S3::S3Client *minio_client, char worker_id = -1, char partition_id = -1)
 {
     auto get_start_time = std::chrono::high_resolution_clock::now();
     std::shared_ptr<std::atomic<bool>> done = std::make_shared<std::atomic<bool>>(false);
@@ -583,7 +803,25 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
         {
             getManaThreads_num++;
             auto thread_get_start_time = std::chrono::high_resolution_clock::now();
-            threads.push_back(std::thread(getManaCall, minio_client, done, &mana, &donedone));
+            if (split_mana)
+            {
+                if (partition_id != -1)
+                {
+                    threads.push_back(std::thread(getPartitionCall, minio_client, done, &mana, &donedone, partition_id));
+                }
+                else if (worker_id != -1)
+                {
+                    threads.push_back(std::thread(getWorkerCall, minio_client, done, &mana, &donedone, worker_id));
+                }
+                else
+                {
+                    threads.push_back(std::thread(getManaCall, minio_client, done, &mana, &donedone));
+                }
+            }
+            else
+            {
+                threads.push_back(std::thread(getManaCall, minio_client, done, &mana, &donedone));
+            }
             size_t duration = 0;
             while (duration < 65000)
             {
@@ -606,7 +844,25 @@ manaFile getMana(Aws::S3::S3Client *minio_client)
     }
     else
     {
-        getManaCall(minio_client, done, &mana, &donedone);
+        if (split_mana)
+        {
+            if (partition_id != -1)
+            {
+                getPartitionCall(minio_client, done, &mana, &donedone, partition_id);
+            }
+            else if (worker_id != -1)
+            {
+                getWorkerCall(minio_client, done, &mana, &donedone, worker_id);
+            }
+            else
+            {
+                getManaCall(minio_client, done, &mana, &donedone);
+            }
+        }
+        else
+        {
+            getManaCall(minio_client, done, &mana, &donedone);
+        }
     }
     done.reset();
     log_file.get_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - get_start_time).count());
@@ -3284,7 +3540,14 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             std::cout << "invalid size: " << mapping_size - input_head * sizeof(long) << std::endl;
                             perror("Could not free memory in merge 2_1!");
                         }
-                        diff->fetch_sub(mapping_size - input_head * sizeof(long));
+                        if (diff->load() > mapping_size - input_head * sizeof(long))
+                        {
+                            diff->fetch_sub(mapping_size - input_head * sizeof(long));
+                        }
+                        else
+                        {
+                            std::cout << "Diff too small 1! diff: " << diff->load() << " - " << mapping_size - input_head * sizeof(long) << std::endl;
+                        }
                         // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(long) << std::endl;
                     }
                     if (spill_map_char != nullptr && mapping_size - input_head > 0)
@@ -3295,7 +3558,14 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             std::cout << "invalid size: " << mapping_size - input_head << std::endl;
                             perror("Could not free memory in merge 2_1!");
                         }
-                        diff->fetch_sub(mapping_size - input_head);
+                        if (diff->load() > mapping_size - input_head)
+                        {
+                            diff->fetch_sub(mapping_size - input_head);
+                        }
+                        else
+                        {
+                            std::cout << "Diff too small 1! diff: " << diff->load() << " - " << mapping_size - input_head << std::endl;
+                        }
                         // std::cout << "Free: " << input_head << " - " << mapping_size / sizeof(long) << std::endl;
                     }
                     file_counter++;
@@ -3557,7 +3827,14 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     }
                     input_head += freed_space_temp / sizeof(long);
                 }
-                diff->fetch_sub(freed_space_temp);
+                if (diff->load() > freed_space_temp)
+                {
+                    diff->fetch_sub(freed_space_temp);
+                }
+                else
+                {
+                    std::cout << "Diff too small 2! diff: " << diff->load() << " - " << freed_space_temp << std::endl;
+                }
 
                 // std::cout << "hashmap size: " << emHashmap.size() * avg << " freed space: " << freed_space_temp << std::endl;
             }
@@ -3585,7 +3862,14 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             {
                 perror("Could not free memory in merge 2!");
             }
-            diff->fetch_sub(mapping_size - input_head);
+            if (diff->load() > mapping_size - input_head)
+            {
+                diff->fetch_sub(mapping_size - input_head);
+            }
+            else
+            {
+                std::cout << "Diff too small 3! diff: " << diff->load() << " - " << mapping_size - input_head << std::endl;
+            }
         }
     }
     else
@@ -3596,7 +3880,14 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             {
                 perror("Could not free memory in merge 2!");
             }
-            diff->fetch_sub(mapping_size - input_head * sizeof(long));
+            if (diff->load() > mapping_size - input_head * sizeof(long))
+            {
+                diff->fetch_sub(mapping_size - input_head * sizeof(long));
+            }
+            else
+            {
+                std::cout << "Diff too small 3! diff: " << diff->load() << " - " << mapping_size - input_head * sizeof(long) << std::endl;
+            }
         }
     }
 
@@ -3684,8 +3975,8 @@ size_t calc_outputSize(emhash8::HashMap<std::array<unsigned long, max_size>, std
     }
     else
     {
-        // " "
-        output_size += hmap->size() * (key_number) * 2;
+        // ""\n
+        output_size += hmap->size() * key_number * 3;
         // ,
         output_size += hmap->size() * (key_number - 1);
         if (op != exists)
