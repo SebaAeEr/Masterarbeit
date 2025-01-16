@@ -4637,7 +4637,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
             {
                 uName = worker_id;
                 uName += "_";
-                uName += thread_id;
+                uName += std::to_string((int)(thread_id));
                 uName += "_merge_" + std::to_string(counter);
                 std::vector<std::pair<std::string, size_t>> local_files(partitions, {"", 0});
                 // std::cout << "spilling to " << uName << " hmap size: " << hmap->size() << std::endl;
