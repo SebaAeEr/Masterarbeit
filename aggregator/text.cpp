@@ -1474,43 +1474,31 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
     writeMana(minio_client, mana, true);
     return;
 }
-/**
- * @brief Write hashmap hmap into output file.
- *
- * @param hmap pointer to hashmap
- * @param start start point in outputfile
- * @param free_mem available memory for function
- * @param outputfilename output file name
- *
- * @return new size of output file
- */
-unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, unsigned long start, unsigned long free_mem, std::string &outputfilename)
-{
-    auto write_start_time = std::chrono::high_resolution_clock::now();
-    unsigned long output_size = 0;
-    if (isJson)
-    {
-        // Calc the output size for hmap.
 
-        /* for (auto &it : *hmap)
+size_t calc_outputSize(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap)
+{
+    size_t output_size = 0;
+    // Calc the output size for hmap.
+    for (auto &it : *hmap)
+    {
+        for (int i = 0; i < key_number; i++)
         {
-            for (int i = 0; i < key_number; i++)
+            output_size += std::to_string(it.first[i]).length();
+        }
+        if (op != exists)
+        {
+            if (op != average)
             {
-                output_size += std::to_string(it.first[i]).length();
+                output_size += std::to_string(it.second[0]).length();
             }
-            if (op != exists)
+            else
             {
-                if (op != average)
-                {
-                    output_size += std::to_string(it.second[0]).length();
-                }
-                else
-                {
-                    output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
-                }
+                output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
             }
         }
-        output_size += hmap->size() * (key_number + 1) * 40;
+    }
+    if (isJson)
+    {
         for (int i = 0; i < key_number; i++)
         {
             output_size += ("\"" + key_names[i] + "\":").length() * hmap->size();
@@ -1521,54 +1509,63 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
         if (op != exists)
         {
             output_size += (strlen("\"_col1\":") + 5 + key_number) * hmap->size();
-        }*/
-        output_size += hmap->size() * (key_number + 1) * 40;
+        }
     }
     else
     {
-        /* for (auto &it : *hmap)
+        // ""\n
+        output_size += hmap->size() * key_number * 3;
+        // ,
+        output_size += hmap->size() * (key_number - 1);
+        if (op != exists)
         {
-            for (int i = 0; i < key_number; i++)
-            {
-                output_size += std::to_string(it.first[i]).length();
-            }
-            if (op != exists)
-            {
-                if (op != average)
-                {
-                    output_size += std::to_string(it.second[0]).length();
-                }
-                else
-                {
-                    output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
-                }
-            }
+            output_size += hmap->size() * 3;
         }
-        output_size += hmap->size() * (key_number + 1) * 3; */
-        output_size += hmap->size() * (key_number + 1) * 15;
     }
+    return output_size;
+}
+
+/**
+ * @brief Write hashmap hmap into output file.
+ *
+ * @param hmap pointer to hashmap
+ * @param start start point in outputfile
+ * @param free_mem available memory for function
+ * @param outputfilename output file name
+ *
+ * @return new size of output file
+ */
+void writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, unsigned long *output_size, unsigned long free_mem, std::string &outputfilename)
+{
+    auto write_start_time = std::chrono::high_resolution_clock::now();
+    size_t added_size = calc_outputSize(hmap);
+    writing_ouput.lock();
+    unsigned long start = *output_size;
+    *output_size += added_size;
+
     //  std::cout << "calc output size: " << output_size << std::endl;
     int file = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
 
     // Extend file file.
-    lseek(file, start + output_size - 1, SEEK_SET);
+    lseek(file, (*output_size) - 1, SEEK_SET);
     if (write(file, "", 1) == -1)
     {
         close(file);
         perror("Error writing last byte of the file");
         exit(EXIT_FAILURE);
     }
+    writing_ouput.unlock();
 
     size_t start_diff = start % pagesize;
     size_t start_page = start - start_diff;
 
     // Map file with given size.
-    char *mappedoutputFile = static_cast<char *>(mmap(nullptr, output_size + start_diff, PROT_WRITE | PROT_READ, MAP_SHARED, file, start_page));
-    madvise(mappedoutputFile, output_size + start_diff, MADV_SEQUENTIAL | MADV_WILLNEED);
+    char *mappedoutputFile = static_cast<char *>(mmap(nullptr, added_size + start_diff, PROT_WRITE | PROT_READ, MAP_SHARED, file, start_page));
+    madvise(mappedoutputFile, added_size + start_diff, MADV_SEQUENTIAL | MADV_WILLNEED);
     if (mappedoutputFile == MAP_FAILED)
     {
 
-        std::cout << "Start: " << output_size << " + " << start_diff << " start_page: " << start_page << " is fd valid? " << fcntl(file, F_GETFD) << std::endl;
+        std::cout << "Start: " << added_size << " + " << start_diff << " start_page: " << start_page << " is fd valid? " << fcntl(file, F_GETFD) << std::endl;
         perror("Error mmapping the file in write Hashmap");
         close(file);
         exit(EXIT_FAILURE);
@@ -1647,18 +1644,17 @@ unsigned long writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>,
     {
         perror("Could not free memory in writeHashmap 2!");
     }
-    if (ftruncate(file, mapped_count + start_page) == -1)
+    /* if (ftruncate(file, mapped_count + start_page) == -1)
     {
         close(file);
         perror("Error truncation file in write Hashmap");
         exit(EXIT_FAILURE);
-    }
+    } */
     freed_mem += mapped_count - head;
     std::cout << "Real output file size: " << mapped_count - start_diff << std::endl;
     log_file.sizes["write_output_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count();
 
     close(file);
-    return mapped_count + start_page;
 }
 
 /**
@@ -3888,56 +3884,6 @@ void addXtoLocalSpillHead(std::vector<std::pair<std::string, size_t>> *spills, u
     }
 }
 
-size_t calc_outputSize(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap)
-{
-    size_t output_size = 0;
-    // Calc the output size for hmap.
-    for (auto &it : *hmap)
-    {
-        for (int i = 0; i < key_number; i++)
-        {
-            output_size += std::to_string(it.first[i]).length();
-        }
-        if (op != exists)
-        {
-            if (op != average)
-            {
-                output_size += std::to_string(it.second[0]).length();
-            }
-            else
-            {
-                output_size += std::to_string(it.second[0] / (float)(it.second[1])).length();
-            }
-        }
-    }
-    if (isJson)
-    {
-        for (int i = 0; i < key_number; i++)
-        {
-            output_size += ("\"" + key_names[i] + "\":").length() * hmap->size();
-        }
-
-        // unsigned long output_size_test = strlen(("\"custkey\":,\"_col1\":}").c_str())
-        output_size += (strlen("\"_col1\":") + 5 + key_number) * hmap->size();
-        if (op != exists)
-        {
-            output_size += (strlen("\"_col1\":") + 5 + key_number) * hmap->size();
-        }
-    }
-    else
-    {
-        // ""\n
-        output_size += hmap->size() * key_number * 3;
-        // ,
-        output_size += hmap->size() * (key_number - 1);
-        if (op != exists)
-        {
-            output_size += hmap->size() * 3;
-        }
-    }
-    return output_size;
-}
-
 /**
  * @brief merge all spills of a partition and write the result into the output file
  *
@@ -4219,12 +4165,12 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                  std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
              } */
             bool asdf = false;
-            writing_ouput.lock();
-            size_t test = calc_outputSize(hmap);
+            /* writing_ouput.lock();
+            *output_file_head += calc_outputSize(hmap);
             std::cout << "calc output: " << test << std::endl;
             *output_file_head = writeHashmap(hmap, *output_file_head, pagesize * 30, outputfilename);
-            writing_ouput.unlock();
-
+            writing_ouput.unlock(); */
+            writeHashmap(hmap, output_file_head, pagesize * 30, outputfilename);
             hmap->clear();
             // std::cout << "locked: " << locked << std::endl;
             // comb_hash_size = maxHashsize;
