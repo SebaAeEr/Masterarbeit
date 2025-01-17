@@ -4960,11 +4960,11 @@ void helpMerge(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client minio_cli
     int finished = 0;
     std::thread sizePrinter;
     sizePrinter = std::thread(printSize, std::ref(finished), memLimit, std::ref(comb_hash_size), &diff, &avg);
-    for (char i = 0; i < threadNumber; i++)
+    for (char i = 0; i < 1; i++)
     {
         threads[i] = std::thread(helpMergePhase, memLimit / threadNumber, backMemLimit / threadNumber, minio_client, &emHashmaps[i], i, std::ref(comb_hash_size), std::ref(diff), &avg);
     }
-    for (char i = 0; i < threadNumber; i++)
+    for (char i = 0; i < 1; i++)
     {
         threads[i].join();
     }
