@@ -3490,8 +3490,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 // extra_mem -= increase;
                 return false;
             }
-            // std::cout << "Reading " << get<0>(*set_it) << std::endl;
-            firsts3File = hmap->empty();
+         
+            firsts3File = set_it == std::next(s3spillNames2->begin(), it_counter);
             int sub_file_counter = 0;
 
             if (firsts3File)
@@ -3503,7 +3503,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
 
                 auto read_file_start = std::chrono::high_resolution_clock::now();
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
-                firsts3subFile = hmap->empty();
+                firsts3subFile = sub_file_k == sub_file_counter;
                 std::cout << "Thread " << t_id;
                 if (add)
                 {
@@ -3513,7 +3513,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 {
                     std::cout << " merging ";
                 }
-                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
+                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << *read_lines << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
