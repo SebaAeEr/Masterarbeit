@@ -1677,7 +1677,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
     {
         writeMana(minio_client, mana, true);
         get<1>(*res) = 0;
-        std::cout << "setting beggar to 0" << std::endl;
+       // std::cout << "setting beggar to 0" << std::endl;
         return;
     }
     /* std::cout << "res_files: ";
@@ -4552,13 +4552,13 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             close(it.first);
         }
     }
-    for (auto &it : *s3spillNames2)
+    /* for (auto &it : *s3spillNames2)
     {
         for (int k = 0; k < get<2>(it).size(); k++)
         {
             remove((get<0>(it) + "_" + std::to_string(k)).c_str());
         }
-    }
+    } */
 
     auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
     // std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << " Read lines: " << read_lines << ". macroseconds/line: " << duration * 1000000 / read_lines << std::endl;
@@ -4646,14 +4646,15 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
 
     while (true)
     {
+        std::cout << std::to_string((int)(thread_id)) << ": getting merge file names" << std::endl;
         spills.clear();
         char file_num = hmap->size() == 0 ? 2 : 1;
         getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, 0, file_num);
         if (get<1>(files) == 0)
         {
-
             if (hmap->size() > 0)
             {
+                std::cout << std::to_string((int)(thread_id)) << ": spilling hmap" << std::endl;
                 uName = worker_id;
                 uName += "_";
                 uName += std::to_string((int)(thread_id));
@@ -4719,7 +4720,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
 
                     if (get<1>(files) != 0)
                     {
-                        std::cout << "breaking" << std::endl;
+                        //std::cout << "breaking" << std::endl;
                         break;
                     }
                 }
@@ -4773,23 +4774,23 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         uName = worker_id;
         uName += "_";
         uName += std::to_string((int)(thread_id));
-        ;
         uName += "_merge_" + std::to_string(counter);
         char temp = true;
 
         size_t spill_time_old = log_file.sizes["mergeHelp_spilling_Duration"];
         auto spill_start_time = std::chrono::high_resolution_clock::now();
+        std::cout << std::to_string((int)(thread_id)) << ": merging" << std::endl;
         merge(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, backMemLimit, &zero, &temp, &max_hashSize, partition_id, beggarWorker);
         log_file.sizes["mergeHelp_merging_Duration"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - spill_start_time).count() - (log_file.sizes["mergeHelp_spilling_Duration"] - spill_time_old);
         // std::cout << "Merge finished" << std::endl;
         if (hmap->size() == 0)
         {
+            std::cout << std::to_string((int)(thread_id)) << ": setting stati" << std::endl;
             std::unordered_map<std::string, char> file_stati;
             for (auto &f_name : file_names)
             {
                 file_stati.insert({f_name, 255});
             }
-            std::string temp = uName + "_" + std::to_string(partition_id);
             file_stati.insert({uName, 0});
             setFileStatus(&minio_client, &file_stati, beggarWorker, partition_id, 0);
             file_names.clear();
