@@ -2465,15 +2465,19 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     {
         for (int i = 0; i < partitions; i++)
         {
-            if (!deencode)
+            if (temp_counter[i] > 0)
             {
-                spill_mem_size_temp[i] = temp_counter[i] * sizeof(long) * (key_number + value_number);
+                if (!deencode)
+                {
+                    spill_mem_size_temp[i] = temp_counter[i] * sizeof(long) * (key_number + value_number);
+                }
+
+                std::string n_temp = n[i] + "_" + std::to_string((*start_counter)[i]);
+                // std::cout << "Spill last to file: " << n_temp << " size: " << spill_mem_size_temp[i] << " #tuple: " << temp_counter[i] << std::endl;
+                writeS3File(minio_client, in_streams[i], spill_mem_size_temp[i], n_temp);
+                (*sizes)[i].push_back({spill_mem_size_temp[i], temp_counter[i]});
+                (*start_counter)[i]++;
             }
-            std::string n_temp = n[i] + "_" + std::to_string((*start_counter)[i]);
-            // std::cout << "Spill last to file: " << n_temp << " size: " << spill_mem_size_temp[i] << " #tuple: " << temp_counter[i] << std::endl;
-            writeS3File(minio_client, in_streams[i], spill_mem_size_temp[i], n_temp);
-            (*sizes)[i].push_back({spill_mem_size_temp[i], temp_counter[i]});
-            (*start_counter)[i]++;
         }
     }
     else
@@ -3768,14 +3772,14 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     }
                     if (!add && multiThread_subMerge && file_counter > merge_file_num)
                     {
-                        std::cout << "diff add: " << diff_add << " first diff sub: " << diff_sub_f << " second diff sub: " << diff_sub_s << " third diff sub: " << diff_sub_t << std::endl;
-                        // extra_mem -= increase;
+                        // std::cout << "diff add: " << diff_add << " first diff sub: " << diff_sub_f << " second diff sub: " << diff_sub_s << " third diff sub: " << diff_sub_t << std::endl;
+                        //  extra_mem -= increase;
                         return false;
                     }
                     if (locked && add)
                     {
-                        std::cout << "diff add: " << diff_add << " first diff sub: " << diff_sub_f << " second diff sub: " << diff_sub_s << " third diff sub: " << diff_sub_t << std::endl;
-                        // extra_mem -= increase;
+                        // std::cout << "diff add: " << diff_add << " first diff sub: " << diff_sub_f << " second diff sub: " << diff_sub_s << " third diff sub: " << diff_sub_t << std::endl;
+                        //  extra_mem -= increase;
                         return false;
                     }
                     unsigned long map_start;
@@ -4106,8 +4110,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     {
         close(file_handler);
     }
-    std::cout << "diff add: " << diff_add << " first diff sub: " << diff_sub_f << " second diff sub: " << diff_sub_s << " third diff sub: " << diff_sub_t << std::endl;
-    // std::cout << t_id << ": finished" << std::endl;
+    // std::cout << "diff add: " << diff_add << " first diff sub: " << diff_sub_f << " second diff sub: " << diff_sub_s << " third diff sub: " << diff_sub_t << std::endl;
+    //  std::cout << t_id << ": finished" << std::endl;
     return !locked;
 }
 /**
@@ -4450,6 +4454,13 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 }
                 written_lines += hmap->size();
                 spillS3Hmap(hmap, minio_client, &write_sizes, uName, &write_counter, partition);
+
+                std::cout << "Writing subfiles of file " << (uName + "_" + std::to_string(partition)) << ":\n";
+                for (auto write_size : write_sizes[partition])
+                {
+                    std::cout << write_size.first << ":" << write_size.second << "\n";
+                }
+                std::cout << std::endl;
                 /*if (backMemLimit < backMem_usage + spill_size + comb_spill_size)
                 {
                     if (backMemLimit <= backMem_usage + spill_size)
@@ -4508,6 +4519,12 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         temp_file.size = write_size;
                         temp_file.status = 0;
                         temp_file.subfiles = write_sizes[partition];
+                        std::cout << "Adding file to mana. subdfiles:\n";
+                        for (auto write_size : write_sizes[partition])
+                        {
+                            std::cout << write_size.first << ":" << write_size.second << "\n";
+                        }
+                        std::cout << std::endl;
                         std::vector<std::pair<file, char>> files = std::vector<std::pair<file, char>>(1, {temp_file, partition});
                         // std::cout << "Adding merge file: " << n_temp << " partition: " << partition << " write size: " << write_size << std::endl;
                         addFileToManag(minio_client, files, beggarWorker, 255);
