@@ -1504,7 +1504,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                     if (!parition_found)
                     {
                         partition partition;
-                        partition.id = file.second;
+                        partition.id = file.first;
                         partition.lock = false;
                         for (auto &f : file.second)
                         {
@@ -1518,7 +1518,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                     {
                         for (auto &f : file.second)
                         {
-                            worker.length += file.name.size() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * file.subfiles.size() * 2;
+                            worker.length += f.name.size() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * f.subfiles.size() * 2;
                         }
                     }
                     break;
