@@ -201,6 +201,8 @@ int getManaThreads_num = 0;
 // Whether a ProgressBar should be shown
 bool showProgressBar;
 
+std::mutex partitions_set_lock;
+
 // hash function for an long array
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -1435,6 +1437,7 @@ void setPartitionNumber(size_t comb_hash_size)
  */
 void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
 {
+    std::cout << "Adding file" << std::endl;
     std::unordered_map<char, std::vector<file>> *files_temp;
     if (use_file_queue)
     {
@@ -1448,99 +1451,114 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
     }
     else
     {
+        std::cout << "Adding file to file_temp" << std::endl;
         for (auto &f : files)
         {
             (*files_temp)[f.second].push_back(f.first);
         }
     }
+    std::cout << "Adding file to mana" << std::endl;
     bool open = true;
     if (!use_file_queue || file_queue_status.compare_exchange_strong(open, false))
     {
-        manaFile mana = getLockedMana(minio_client, thread_id);
-        if (use_file_queue)
+        if (!split_mana)
         {
-            file_queue_mutex.lock();
-        }
-        bool partition_locked;
-        for (auto &file : *files_temp)
-        {
-            bool parition_found = false;
-            for (auto &worker : mana.workers)
+            manaFile mana = getLockedMana(minio_client, thread_id);
+            if (use_file_queue)
             {
-                if (worker.id == write_to_id)
+                file_queue_mutex.lock();
+            }
+            bool partition_locked;
+            for (auto &file : *files_temp)
+            {
+                bool parition_found = false;
+                for (auto &worker : mana.workers)
                 {
-                    if (worker.locked)
+                    if (worker.id == write_to_id)
                     {
-                        writeMana(minio_client, mana, true);
-                        mana_writeThread_num.fetch_sub(1);
-                        if (use_file_queue)
+                        if (worker.locked)
                         {
-                            file_queue.clear();
-                            file_queue_status.exchange(true);
-                            file_queue_mutex.unlock();
-                        }
-                        return;
-                    }
-                    for (auto &partition : worker.partitions)
-                    {
-                        if (partition.id == file.first)
-                        {
-                            parition_found = true;
-                            if (!partition.lock)
+                            writeMana(minio_client, mana, true);
+                            mana_writeThread_num.fetch_sub(1);
+                            if (use_file_queue)
                             {
-                                for (auto &f : file.second)
+                                file_queue.clear();
+                                file_queue_status.exchange(true);
+                                file_queue_mutex.unlock();
+                            }
+                            return;
+                        }
+                        for (auto &partition : worker.partitions)
+                        {
+                            if (partition.id == file.first)
+                            {
+                                parition_found = true;
+                                if (!partition.lock)
                                 {
-                                    partition.files.push_back(f);
+                                    for (auto &f : file.second)
+                                    {
+                                        partition.files.push_back(f);
+                                    }
+                                    partition_locked = false;
                                 }
-                                partition_locked = false;
+                                else
+                                {
+                                    partition_locked = true;
+                                }
+                                break;
                             }
-                            else
+                        }
+                        if (!parition_found)
+                        {
+                            partition partition;
+                            partition.id = file.first;
+                            partition.lock = false;
+                            for (auto &f : file.second)
                             {
-                                partition_locked = true;
+                                partition.files.push_back(f);
                             }
-                            break;
+                            worker.partitions.push_back(partition);
+                            worker.length += 2 + sizeof(int);
+                            partition_locked = false;
                         }
-                    }
-                    if (!parition_found)
-                    {
-                        partition partition;
-                        partition.id = file.first;
-                        partition.lock = false;
-                        for (auto &f : file.second)
+                        if (!partition_locked)
                         {
-                            partition.files.push_back(f);
+                            for (auto &f : file.second)
+                            {
+                                worker.length += f.name.size() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * f.subfiles.size() * 2;
+                            }
                         }
-                        worker.partitions.push_back(partition);
-                        worker.length += 2 + sizeof(int);
-                        partition_locked = false;
+                        break;
                     }
-                    if (!partition_locked)
-                    {
-                        for (auto &f : file.second)
-                        {
-                            worker.length += f.name.size() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * f.subfiles.size() * 2;
-                        }
-                    }
-                    break;
                 }
             }
+            if (use_file_queue)
+            {
+                file_queue.clear();
+                file_queue_status.exchange(true);
+                file_queue_mutex.unlock();
+            }
+            writeMana(minio_client, mana, true);
         }
-        if (use_file_queue)
+        else
         {
-            file_queue.clear();
-            file_queue_status.exchange(true);
-            file_queue_mutex.unlock();
+            for (auto &file : *files_temp)
+            {
+                manaFile mana_partition = getLockedMana(minio_client, thread_id, write_to_id, file.first);
+                for (auto &f : file.second)
+                {
+                    mana_partition.workers[0].partitions[0].files.push_back(f);
+                }
+                writeMana(minio_client, mana_partition, true, write_to_id, file.first);
+            }
         }
-        writeMana(minio_client, mana, true);
-        // std::cout << "Printing mana:" << std::endl;
-        // manaFile asdf;
-        // printMana(minio_client, asdf);
         mana_writeThread_num.fetch_sub(1);
     }
     else
     {
         mana_writeThread_num.fetch_sub(1);
     }
+    std::cout << "finished Adding file" << std::endl;
     return;
 }
 /**
@@ -3016,14 +3034,37 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 comb_spill_size.fetch_add(temp_spill_size);
                 if (partitions == -1)
                 {
-                    setPartitionNumber(comb_hash_size);
-                    if (spill_files->size() == 0)
+                    partitions_set_lock.lock();
+                    if (partitions == -1)
                     {
-                        for (int i = 0; i < partitions; i++)
+                        setPartitionNumber(comb_hash_size);
+                        if (spill_files->size() == 0)
                         {
-                            spill_files->push_back({});
+                            for (int i = 0; i < partitions; i++)
+                            {
+                                spill_files->push_back({});
+                            }
+                        }
+                        if (split_mana)
+                        {
+                            manaFile mana_partition;
+                            manaFile mana_worker;
+                            mana_worker.workers.push_back(manaFileWorker());
+                            mana_partition.workers.push_back(manaFileWorker());
+                            mana_partition.workers[0].partitions.push_back(partition());
+                            for (char p = 0; p < partitions; p++)
+                            {
+                                writeMana(minio_client, mana_partition, false, worker_id, p);
+                                partition part;
+                                part.id = p;
+                                part.lock = false;
+                                mana_worker.workers[0].partitions.push_back(part);
+                            }
+                            writeMana(minio_client, mana_worker, false, worker_id);
                         }
                     }
+
+                    partitions_set_lock.unlock();
                 }
                 threadLog.sizes["SpillSize"] += temp_spill_size;
 
