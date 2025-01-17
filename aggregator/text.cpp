@@ -4519,7 +4519,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         temp_file.size = write_size;
                         temp_file.status = 0;
                         temp_file.subfiles = write_sizes[partition];
-                        std::cout << "Adding file to mana. subdfiles:\n";
+                        std::cout << "Adding file " << (uName + "_" + std::to_string(partition)) << " to mana. subdfiles:\n";
                         for (auto write_size : write_sizes[partition])
                         {
                             std::cout << write_size.first << ":" << write_size.second << "\n";
