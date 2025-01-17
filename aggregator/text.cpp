@@ -1437,8 +1437,8 @@ void setPartitionNumber(size_t comb_hash_size)
  */
 void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
 {
-    std::cout << "Adding file" << std::endl;
     std::unordered_map<char, std::vector<file>> *files_temp;
+    std::unordered_map<char, std::vector<file>> local_files_temp;
     if (use_file_queue)
     {
         file_queue_mutex.lock();
@@ -1451,13 +1451,12 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
     }
     else
     {
-        std::cout << "Adding file to file_temp" << std::endl;
         for (auto &f : files)
         {
-            (*files_temp)[f.second].push_back(f.first);
+            local_files_temp[f.second].push_back(f.first);
         }
+        files_temp = &local_files_temp;
     }
-    std::cout << "Adding file to mana" << std::endl;
     bool open = true;
     if (!use_file_queue || file_queue_status.compare_exchange_strong(open, false))
     {
