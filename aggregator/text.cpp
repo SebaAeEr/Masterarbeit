@@ -3504,7 +3504,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 auto read_file_start = std::chrono::high_resolution_clock::now();
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = hmap->empty();
-                /* std::cout << "Thread " << t_id;
+                std::cout << "Thread " << t_id;
                 if (add)
                 {
                     std::cout << " adding ";
@@ -3513,7 +3513,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 {
                     std::cout << " merging ";
                 }
-                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl; */
+                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << read_lines << std::endl;
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
@@ -4589,7 +4589,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 written_lines += hmap->size();
                 spillS3Hmap(hmap, minio_client, &write_sizes, uName, &write_counter, partition);
 
-                std::cout << "Writing subfiles of file " << (uName + "_" + std::to_string(partition)) << ":\n";
+                std::cout << "Writing hashmap with size " << hmap->size() << " subfiles of file " << (uName + "_" + std::to_string(partition)) << ":\n";
                 for (auto write_size : write_sizes[partition])
                 {
                     std::cout << write_size.first << ":" << write_size.second << "\n";
