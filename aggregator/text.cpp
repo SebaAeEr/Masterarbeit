@@ -3490,7 +3490,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 // extra_mem -= increase;
                 return false;
             }
-         
+
             firsts3File = set_it == std::next(s3spillNames2->begin(), it_counter);
             int sub_file_counter = 0;
 
@@ -3503,7 +3503,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
 
                 auto read_file_start = std::chrono::high_resolution_clock::now();
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
-                firsts3subFile = sub_file_k == sub_file_counter;
+                firsts3subFile = firsts3File && sub_file_k == sub_file_counter;
                 std::cout << "Thread " << t_id;
                 if (add)
                 {
