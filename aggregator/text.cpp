@@ -3491,7 +3491,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 return false;
             }
 
-            firsts3File = set_it == std::next(s3spillNames2->begin(), it_counter);
+            firsts3File = file_counter == 1;
             int sub_file_counter = 0;
 
             if (firsts3File)
