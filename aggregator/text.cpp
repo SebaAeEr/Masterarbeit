@@ -1671,7 +1671,9 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
     // std::cout << "getting file name" << std::endl;
     char given_beggarWorker = beggarWorker;
     file m_file;
+    get<0>(*res).clear();
     manaFile mana = getLockedMana(minio_client, thread_id);
+    std::cout << "Getting beggar Worker: " << beggarWorker << std::endl;
     // printMana(minio_client);
     //  If no beggarWorker is yet selected choose the worker with the largest spill
     if (beggarWorker == 0)
@@ -1721,6 +1723,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
         get<1>(*res) = 0;
         return;
     }
+    std::cout << "Got beggar Worker: " << beggarWorker << " Getting files" << std::endl;
 
     // std::cout << "finding files" << std::endl;
     char file_num = threadNumber * 2;
@@ -1791,6 +1794,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
         // std::cout << "setting beggar to 0" << std::endl;
         return;
     }
+    std::cout << "setting file stati" << std::endl;
     /* std::cout << "res_files: ";
     for (auto temp : res_files)
     {
@@ -4767,6 +4771,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
     std::string empty_string = "";
     int counter = 0;
     std::tuple<std::vector<file>, char, char> files;
+    std::get<0>(files) = std::vector<file>(0);
     bool second_loaded = false;
     std::vector<std::string> file_names;
     std::thread minioSpiller;
