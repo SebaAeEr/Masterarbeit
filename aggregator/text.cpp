@@ -1070,6 +1070,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
         }
     }
     auto write_start_time = std::chrono::high_resolution_clock::now();
+    std::cout << "writing mana" << std::endl;
     while (true)
     {
         Aws::S3::Model::PutObjectRequest in_request;
@@ -1157,6 +1158,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
         // in_request.SetWriteOffsetBytes(1000);
         // std::cout << "writing mana" << std::endl;
         auto in_outcome = minio_client->PutObject(in_request);
+
         if (!in_outcome.IsSuccess())
         {
             std::cout << "Error: " << in_outcome.GetError().GetMessage() << " size: " << in_mem_size << std::endl;
@@ -1166,6 +1168,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
             // std::cout << "mana written" << std::endl;
             if (freeLock)
             {
+                std::cout << "freeing lock" << std::endl;
                 Aws::S3::Model::DeleteObjectRequest delete_request;
                 delete_request.WithKey(lock_file_name).WithBucket(bucketName);
                 auto outcome = minio_client->DeleteObject(delete_request);
@@ -1179,6 +1182,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
                 // std::cout << "unlocking" << std::endl;
             }
             log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
+            std::cout << "mana written" << std::endl;
             return 1;
         }
     }
@@ -1834,7 +1838,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
     {
         get<0>(*res).push_back(f);
     }
-    
+
     // std::cout << "unlocking Mana" << std::endl;
     writeMana(minio_client, mana, true);
     return;
