@@ -1802,9 +1802,6 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
     }
     std::cout << std::endl; */
     // std::cout << "writing status" << std::endl;
-    get<1>(*res) = beggarWorker;
-    get<2>(*res) = partition_id;
-    get<0>(*res) = res_files;
 
     for (auto &worker : mana.workers)
     {
@@ -1829,6 +1826,15 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
             }
         }
     }
+    std::cout << "creating result" << std::endl;
+    get<1>(*res) = beggarWorker;
+    get<2>(*res) = partition_id;
+    // get<0>(*res) = res_files;
+    for (auto &f : res_files)
+    {
+        get<0>(*res).push_back(f);
+    }
+    
     // std::cout << "unlocking Mana" << std::endl;
     writeMana(minio_client, mana, true);
     return;
