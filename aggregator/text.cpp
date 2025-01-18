@@ -1255,6 +1255,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id, char wor
         if (writeLock(minio_client, worker_id, partition_id))
         {
             manaFile mana = getMana(minio_client, worker_id, partition_id);
+            std::cout << (int)(thread_id) << ": got lock" << std::endl;
             /* if (mana.worker_lock == 0)
             {
                 // std::cout << "Trying to get lock: " << std::to_string((int)(thread_id)) << std::endl;
@@ -4783,7 +4784,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         std::cout << std::to_string((int)(thread_id)) << ": getting merge file names" << std::endl;
         spills.clear();
         char file_num = hmap->size() == 0 ? 2 : 1;
-        getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, 0, file_num);
+        getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, thread_id, file_num);
         if (get<1>(files) == 0)
         {
             if (hmap->size() > 0)
@@ -4807,7 +4808,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
                 {
                     file_stati.insert({f_name, 255});
                 }
-                setFileStatus(&minio_client, &file_stati, beggarWorker, partition_id, 0);
+                setFileStatus(&minio_client, &file_stati, beggarWorker, partition_id, thread_id);
                 file_names.clear();
                 beggarWorker = 0;
                 partition_id = 0;
@@ -4851,7 +4852,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
                 // std::cout << "found file: " << found_files << std::endl;
                 if (found_files)
                 {
-                    getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, 0, file_num);
+                    getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, thread_id, file_num);
 
                     if (get<1>(files) != 0)
                     {
@@ -4928,7 +4929,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
                 file_stati.insert({f_name, 255});
             }
             file_stati.insert({uName, 0});
-            setFileStatus(&minio_client, &file_stati, beggarWorker, partition_id, 0);
+            setFileStatus(&minio_client, &file_stati, beggarWorker, partition_id, thread_id);
             file_names.clear();
             beggarWorker = 0;
             partition_id = 0;
