@@ -1074,7 +1074,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
         }
     }
     auto write_start_time = std::chrono::high_resolution_clock::now();
-    std::cout << "writing mana" << std::endl;
+    // std::cout << "writing mana" << std::endl;
     while (true)
     {
         Aws::S3::Model::PutObjectRequest in_request;
@@ -1172,7 +1172,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
             // std::cout << "mana written" << std::endl;
             if (freeLock)
             {
-                std::cout << "freeing lock" << std::endl;
+                //  std::cout << "freeing lock" << std::endl;
                 Aws::S3::Model::DeleteObjectRequest delete_request;
                 delete_request.WithKey(lock_file_name).WithBucket(bucketName);
                 auto outcome = minio_client->DeleteObject(delete_request);
@@ -1186,7 +1186,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
                 // std::cout << "unlocking" << std::endl;
             }
             log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
-            std::cout << "mana written" << std::endl;
+            //  std::cout << "mana written" << std::endl;
             return 1;
         }
     }
@@ -1263,7 +1263,7 @@ manaFile getLockedMana(Aws::S3::S3Client *minio_client, char thread_id, char wor
         if (writeLock(minio_client, worker_id, partition_id))
         {
             manaFile mana = getMana(minio_client, worker_id, partition_id);
-            std::cout << (int)(thread_id) << ": got lock" << std::endl;
+            // std::cout << (int)(thread_id) << ": got lock" << std::endl;
             /* if (mana.worker_lock == 0)
             {
                 // std::cout << "Trying to get lock: " << std::to_string((int)(thread_id)) << std::endl;
@@ -1616,7 +1616,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
     {
         mana_writeThread_num.fetch_sub(1);
     }
-    std::cout << "finished Adding file" << std::endl;
+    //  std::cout << "finished Adding file" << std::endl;
     return;
 }
 /**
@@ -3511,6 +3511,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             }
 
             firsts3File = file_counter == 1 && add;
+            std::cout << "firsts3File: " << firsts3File << std::endl;
             int sub_file_counter = 0;
 
             if (firsts3File)
@@ -3523,6 +3524,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 auto read_file_start = std::chrono::high_resolution_clock::now();
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = firsts3File && sub_file_k == sub_file_counter;
+                std::cout << "firsts3subFile: " << firsts3subFile << std::endl;
                 std::cout << "Thread " << t_id;
                 if (add)
                 {
@@ -4471,7 +4473,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     temp_it++;
                 }
             }
-            // std::cout << "Start merging from: " << start_bit_merge << std::endl;
+            std::cout << "Start merging from: " << start_bit_merge << std::endl;
 
             size_t old_input_head_base = input_head_base;
             if (input_head_base > 0)
@@ -4479,7 +4481,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 addXtoLocalSpillHead(spills, &input_head_base, 1);
             }
 
-            // std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
+            std::cout << "round local spill: " << old_input_head_base << " up to: " << input_head_base << std::endl;
             if (multiThread_subMerge)
             {
                 int mergefile_num_temp = std::max(0, (int)(s3spillNames2->size() - s3spillFile_head));
@@ -4501,7 +4503,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     counter++;
                 }
                 int merge_file_num = std::max(2, (int)(std::ceil((float)(mergefile_num_temp) / threadNumber)));
-                //  std::cout << "mergefile_num_temp: " << mergefile_num_temp << " merge_file_num: " << merge_file_num << " spills->size(): " << spills->size() << std::endl;
+                std::cout << "mergefile_num_temp: " << mergefile_num_temp << " merge_file_num: " << merge_file_num << " spills->size(): " << spills->size() << std::endl;
 
                 std::vector<std::thread> threads;
                 std::vector<int> start_heads(s3spillNames2->size());
