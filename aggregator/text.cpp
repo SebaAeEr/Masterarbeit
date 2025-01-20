@@ -286,13 +286,20 @@ size_t getPhyValue()
  *
  * @return number of chars written to mapping
  */
-int writeString(char *mapping, const std::string &string)
+int writeString(char *mapping, const std::string &string, size_t output_size = -1)
 {
     int counter = 0;
     for (auto &it : string)
     {
-        mapping[counter] = it;
-        counter++;
+        if (output_size != -1 && output_size <= counter)
+        {
+            std::cout << "wrong output size! " << counter << ">" << output_size << std::endl;
+        }
+        else
+        {
+            mapping[counter] = it;
+            counter++;
+        }
     }
     return counter;
 }
@@ -1916,7 +1923,7 @@ void writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     unsigned long start = *output_size;
     *output_size += added_size;
 
-    //  std::cout << "calc output size: " << output_size << std::endl;
+    std::cout << "calc output size: " << output_size << std::endl;
     int file = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
 
     // Extend file file.
@@ -1986,22 +1993,22 @@ void writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         {
             for (int k = 0; k < key_number; k++)
             {
-                mapped_count += writeString(&mappedoutputFile[mapped_count], "\"");
-                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.first[k]));
-                mapped_count += writeString(&mappedoutputFile[mapped_count], "\"");
-                mapped_count += writeString(&mappedoutputFile[mapped_count], ",");
+                mapped_count += writeString(&mappedoutputFile[mapped_count], "\"", added_size - mapped_count);
+                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.first[k]), added_size - mapped_count);
+                mapped_count += writeString(&mappedoutputFile[mapped_count], "\"", added_size - mapped_count);
+                mapped_count += writeString(&mappedoutputFile[mapped_count], ",", added_size - mapped_count);
             }
-            mapped_count += writeString(&mappedoutputFile[mapped_count], "\"");
+            mapped_count += writeString(&mappedoutputFile[mapped_count], "\"", added_size - mapped_count);
             if (op != average)
             {
-                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0]));
+                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0]), added_size - mapped_count);
             }
             else
             {
-                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0] / (float)(it.second[1])));
+                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0] / (float)(it.second[1])), added_size - mapped_count);
             }
-            mapped_count += writeString(&mappedoutputFile[mapped_count], "\"");
-            mapped_count += writeString(&mappedoutputFile[mapped_count], "\n");
+            mapped_count += writeString(&mappedoutputFile[mapped_count], "\"", added_size - mapped_count);
+            mapped_count += writeString(&mappedoutputFile[mapped_count], "\n", added_size - mapped_count);
         }
         unsigned long used_space = (mapped_count - head);
         if (used_space >= free_mem && used_space > pagesize)
@@ -3145,7 +3152,6 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                             writeMana(minio_client, mana_worker, false, worker_id);
                         }
                     }
-
                     partitions_set_lock.unlock();
                 }
                 threadLog.sizes["SpillSize"] += temp_spill_size;
@@ -4574,15 +4580,15 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         if (writeRes)
         {
             written_lines += hmap->size();
-            /*  if (deencode)
-             {
-                 //  std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " locked: " << locked << std::endl;
-                 std::cout << "output_file_head: " << *output_file_head << std::endl;
-             }
-             else
-             {
-                 std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
-             } */
+            if (deencode)
+            {
+                std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " locked: " << locked << std::endl;
+                // std::cout << "output_file_head: " << *output_file_head << std::endl;
+            }
+            else
+            {
+                std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head: " << s3spillStart_head << " avg " << *avg << " base_size: " << base_size << std::endl;
+            }
             bool asdf = false;
             /* writing_ouput.lock();
             *output_file_head += calc_outputSize(hmap);
