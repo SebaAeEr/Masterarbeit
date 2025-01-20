@@ -1,0 +1,6 @@
+select
+        l2.partkey, avg(l2.quantity)
+from
+        lineitem l2
+group by
+	l2.partkey;

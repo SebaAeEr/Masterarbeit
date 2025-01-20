@@ -1,0 +1,6 @@
+select
+        l.orderkey
+from
+        lineitem l
+where
+        l.commitdate < l.receiptdate

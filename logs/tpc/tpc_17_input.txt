@@ -1,0 +1,4 @@
+select
+        l2.partkey, l2.quantity
+from
+        lineitem l2;
