@@ -1998,18 +1998,25 @@ void writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
                 mapped_count += writeString(&mappedoutputFile[mapped_count], "\"", added_size - mapped_count);
                 mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.first[k]), added_size - mapped_count);
                 mapped_count += writeString(&mappedoutputFile[mapped_count], "\"", added_size - mapped_count);
+                if (k < key_number - 1)
+                {
+                    mapped_count += writeString(&mappedoutputFile[mapped_count], ",", added_size - mapped_count);
+                }
+            }
+            if (op != exists)
+            {
                 mapped_count += writeString(&mappedoutputFile[mapped_count], ",", added_size - mapped_count);
+                mapped_count += writeString(&mappedoutputFile[mapped_count], "\"", added_size - mapped_count);
+                if (op != average)
+                {
+                    mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0]), added_size - mapped_count);
+                }
+                else
+                {
+                    mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0] / (float)(it.second[1])), added_size - mapped_count);
+                }
+                mapped_count += writeString(&mappedoutputFile[mapped_count], "\"", added_size - mapped_count);
             }
-            mapped_count += writeString(&mappedoutputFile[mapped_count], "\"", added_size - mapped_count);
-            if (op != average)
-            {
-                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0]), added_size - mapped_count);
-            }
-            else
-            {
-                mapped_count += writeString(&mappedoutputFile[mapped_count], std::to_string(it.second[0] / (float)(it.second[1])), added_size - mapped_count);
-            }
-            mapped_count += writeString(&mappedoutputFile[mapped_count], "\"", added_size - mapped_count);
             mapped_count += writeString(&mappedoutputFile[mapped_count], "\n", added_size - mapped_count);
         }
         unsigned long used_space = (mapped_count - head);
