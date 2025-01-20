@@ -294,6 +294,8 @@ int writeString(char *mapping, const std::string &string, size_t output_size = -
         if (output_size != -1 && output_size <= counter)
         {
             std::cout << "wrong output size! " << counter << ">" << output_size << std::endl;
+            perror("Error writing last byte of the file");
+            exit(EXIT_FAILURE);
         }
         else
         {
@@ -1923,7 +1925,7 @@ void writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     unsigned long start = *output_size;
     *output_size += added_size;
 
-    std::cout << "calc output size: " << output_size << std::endl;
+    std::cout << "calc output size: " << output_size << " added_size: " << added_size << std::endl;
     int file = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
 
     // Extend file file.
