@@ -813,25 +813,26 @@ def analyse_1_6_13():
 
 
 def c_size_by_time():
+    # first analyses
     # names = [
-    #     "logfile_0_6_100_4_10-19.json",
-    #     "logfile_4_6_0_4_14-11.json",
-    #     "logfile_4_6_0_4_16-25.json",
-    #     "logfile_4_6_0_4_23-39.json",
-    #     "logfile_4_6_0_4_00-06.json",
-    #     "logfile_4_6_0_4_00-45.json",
-    #     "logfile_4_6_0_4_01-29.json",
+    #     "logfile_0_6_0_4_22-42.json",
+    #     "logfile_4_6_100_4_21-55.json",
+    #     "logfile_4_6_0_4_20-57.json",
     # ]
+    # labels = np.array(["3W", "Local", "S3"])
+
+    # partition analyses
     names = [
-        "logfile_0_6_0_4_22-42.json",
-        "logfile_4_6_100_4_21-55.json",
+        "logfile_4_6_0_4_15-30.json",
+        "logfile_4_6_0_4_16-01.json",
+        "logfile_4_6_0_4_16-20.json",
         "logfile_4_6_0_4_20-57.json",
     ]
-    labels = np.array(["3W", "Local", "S3"])
+    labels = np.array(["108", "72", "54", "22"])
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_4_20-57.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_4_20-57.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_16-20.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_16-20.json"))
     except:
         print("File not found.")
         return
