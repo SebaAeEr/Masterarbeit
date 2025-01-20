@@ -301,6 +301,7 @@ int writeString(char *mapping, const std::string &string, size_t output_size = -
         {
             mapping[counter] = it;
             counter++;
+            std::cout << string;
         }
     }
     return counter;
