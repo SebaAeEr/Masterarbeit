@@ -5494,7 +5494,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                             {
                                 auto thread_it = std::next(merge_threads.begin(), newThread_ind);
                                 thread_it->join();
-                                thread_bitmap.emplace(bitmap_it, 0);
+                                *bitmap_it = 0;
                             }
                             else
                             {
@@ -5531,11 +5531,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     auto multi_it = std::next(multi_spills.begin(), newThread_ind);
 
                     //*multi_it = spills.size() == 1 ? &spills[0] : &spills[m_partition];
-                    multi_spills.emplace(multi_it, spills.size() == 1 ? &spills[0] : &spills[m_partition]);
+                    *multi_it = spills.size() == 1 ? &spills[0] : &spills[m_partition];
 
-                    auto bit_it = thread_bitmap.begin();
-                    std::advance(bit_it, newThread_ind);
-                    thread_bitmap.emplace(bit_it, 1);
+                    auto bit_it = std::next(thread_bitmap.begin(), newThread_ind);
+                    *bit_it = 1;
 
                     auto mult_f_it = std::next(multi_files.begin(), newThread_ind);
 
@@ -5547,13 +5546,13 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
                     auto thread_it = std::next(merge_threads.begin(), newThread_ind);
 
-                                        printProgressBar((float)(counter) / partitions);
+                    printProgressBar((float)(counter) / partitions);
 
                     // getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
                     /* merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], multi_spills[newThread_ind], std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
                                                                &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], m_partition, 0, increase, true); */
-                    merge_threads.emplace(thread_it, std::thread(merge, hmap_it, multi_it, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), mult_f_it,
-                                                                 &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, done_it, max_it, m_partition, 0, increase, true));
+                    *thread_it = std::thread(merge, hmap_it, multi_it, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), mult_f_it,
+                                             &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, done_it, max_it, m_partition, 0, increase, true);
                 }
             }
             else
