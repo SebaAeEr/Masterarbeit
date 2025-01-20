@@ -3510,7 +3510,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 return false;
             }
 
-            firsts3File = file_counter == 1;
+            firsts3File = file_counter == 1 && add;
             int sub_file_counter = 0;
 
             if (firsts3File)
