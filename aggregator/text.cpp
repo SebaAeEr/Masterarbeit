@@ -5421,21 +5421,21 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
     {
-        int merge_threadNumber = threadNumber;
+        int threadNumber = threadNumber;
 
         size_t output_file_head = 0;
         std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
-        std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(merge_threadNumber);
-        std::list<size_t> max_HashSizes(merge_threadNumber, 0);
-        std::list<char> thread_bitmap(merge_threadNumber, 0);
-        std::list<std::vector<std::pair<std::string, size_t>> *> multi_spills(merge_threadNumber);
+        std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(threadNumber);
+        std::list<size_t> max_HashSizes(threadNumber, 0);
+        std::list<char> thread_bitmap(threadNumber, 0);
+        std::list<std::vector<std::pair<std::string, size_t>> *> multi_spills(threadNumber);
         char m_partition = 0;
         int counter = 0;
         char done = 0;
         size_t max_size = 0;
 
-        std::list<std::thread> merge_threads(merge_threadNumber);
-        std::list<char> mergeThreads_done(merge_threadNumber, 1);
+        std::list<std::thread> merge_threads(threadNumber);
+        std::list<char> mergeThreads_done(threadNumber, 1);
         if (spills.size() == 0)
         {
             spills.push_back(std::vector<std::pair<std::string, size_t>>(0));
@@ -5460,6 +5460,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     break;
                 }
             }
+            std::cout << "thread_done: " << thread_done << std::endl;
             if (!thread_done && comb_hash_size * avg + base_size < memLimit * 0.9)
             {
                 multi_files.push_back(std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>());
@@ -5487,6 +5488,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         if (d)
                         {
                             newThread_ind = thread_ind_counter;
+                            std::cout << "newThread_ind: " << newThread_ind << std::endl;
                             auto bitmap_it = std::next(thread_bitmap.begin(), newThread_ind);
                             if (*bitmap_it == 1)
                             {
@@ -5525,6 +5527,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
                 if (m_partition != -1)
                 {
+                    std::cout << "merging partition: " << (int)(m_partition) << std::endl;
                     auto multi_it = std::next(multi_spills.begin(), newThread_ind);
 
                     //*multi_it = spills.size() == 1 ? &spills[0] : &spills[m_partition];
@@ -5544,8 +5547,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
                     auto thread_it = std::next(merge_threads.begin(), newThread_ind);
 
-                    std::cout << "merging partition: " << (int)(m_partition) << std::endl;
-                    printProgressBar((float)(counter) / partitions);
+                                        printProgressBar((float)(counter) / partitions);
 
                     // getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
                     /* merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], multi_spills[newThread_ind], std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
@@ -5605,7 +5607,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         writeMana(&minio_client, mana, true);
         if (multiThread_merge)
         {
-            for (int i = 0; i < merge_threadNumber; i++)
+            for (int i = 0; i < thread_bitmap.size(); i++)
             {
                 auto bitmap_it = thread_bitmap.begin();
                 std::advance(bitmap_it, i);

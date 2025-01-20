@@ -822,13 +822,20 @@ def c_size_by_time():
     # labels = np.array(["3W", "Local", "S3"])
 
     # partition analyses
+    # names = [
+    #     "logfile_4_6_0_4_15-30.json",
+    #     "logfile_4_6_0_4_16-01.json",
+    #     "logfile_4_6_0_4_16-20.json",
+    #     "logfile_4_6_0_4_20-57.json",
+    # ]
+    #labels = np.array(["108", "72", "54", "22"])
+
+    # deencode analyses
     names = [
-        "logfile_4_6_0_4_15-30.json",
-        "logfile_4_6_0_4_16-01.json",
-        "logfile_4_6_0_4_16-20.json",
-        "logfile_4_6_0_4_20-57.json",
+        "logfile_4_6_0_4_19-28.json",
+        "logfile_4_6_0_4_19-47.json",
     ]
-    labels = np.array(["108", "72", "54", "22"])
+    labels = np.array(["deencode", "no deencdoe"])
     try:
         directory = "c++_logs"
         f = open(os.path.join(directory, "times_4_6_0_4_16-20.csv"))
