@@ -174,6 +174,10 @@ bool multiThread_subMerge = true;
 bool use_file_queue = true;
 // Whether the mana file is split to distribute requests
 bool split_mana = false;
+// number of tuples in one spill file in a partition
+float partition_size = 3000000.0;
+// max GiB reserved for file mappings in scan
+size_t mapping_max = 0.2 * (1ul << 30);
 // Key values that are being tracked (debug)
 std::vector<unsigned long> test_values = {};
 // Number of partitions
@@ -1472,7 +1476,7 @@ void setPartitionNumber(size_t comb_hash_size)
 {
     if (set_partitions)
     {
-        partitions = ceil(comb_hash_size / 3000000.0);
+        partitions = ceil(comb_hash_size / partition_size);
         // partitions = 2;
         std::cout << "Set partition number to: " << partitions << std::endl;
     }
@@ -3071,7 +3075,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         // Check if Estimations exceed memlimit
         // if (hashmap.size() * avg + phyMemBase > memLimit * (1ull << 20))
         // std::cout << "maxHmapSize: " << maxHmapSize << std::endl;
-        if (maxHmapSize * avg + base_size / threadNumber >= memLimit * 0.9)
+        if ((maxHmapSize * avg + base_size / threadNumber >= memLimit * 0.9) || i - head > mapping_max)
         {
             // std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + base_size / threadNumber << " size: " << hmap->size() << " avg: " << avg << " base_size / threadNumber: " << base_size / threadNumber << std::endl;
             unsigned long freed_space_temp = (i - head) - ((i - head) % pagesize);
@@ -3097,7 +3101,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
             // compare estimation again to memLimit
             // if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
-            if (hmap->size() >= maxHmapSize * 0.95 && freed_space_temp <= pagesize * 10)
+            if (maxHmapSize * avg + base_size / threadNumber >= memLimit * 0.9 && hmap->size() >= maxHmapSize * 0.95 && freed_space_temp <= pagesize * 10)
             {
                 auto start_spill_time = std::chrono::high_resolution_clock::now();
                 // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;
@@ -5823,6 +5827,9 @@ int main(int argc, char **argv)
     std::vector<bool> multiThread_subMerge_vec(1, multiThread_subMerge);
     std::vector<bool> straggler_removal_vec(1, straggler_removal);
     std::vector<bool> use_file_queue_vec(1, use_file_queue);
+    std::vector<float> partition_size_vec(1, partition_size);
+    std::vector<size_t> mapping_max_vec(1, mapping_max);
+    std::vector<size_t> max_s3_spill_size_vec(1, max_s3_spill_size);
     std::vector<std::string> memLimit_string_vec(1);
     std::vector<std::string> memLimitBack_string_vec(1);
 
@@ -5965,6 +5972,21 @@ int main(int argc, char **argv)
                 use_file_queue_vec[iteration] = value.compare("true") == 0;
                 break;
             }
+            case str2int("partition_size"):
+            {
+                partition_size_vec[iteration] = std::stof(value);
+                break;
+            }
+            case str2int("mapping_max"):
+            {
+                mapping_max_vec[iteration] = std::stof(value) * (1ul << 30);
+                break;
+            }
+            case str2int("max_s3_spill_size"):
+            {
+                max_s3_spill_size_vec[iteration] = std::stof(value);
+                break;
+            }
             case str2int("iteration"):
             {
                 memLimit_vec.push_back(memLimit_vec[0]);
@@ -5979,6 +6001,9 @@ int main(int argc, char **argv)
                 memLimitBack_string_vec.push_back(memLimitBack_string_vec[0]);
                 memLimit_string_vec.push_back(memLimit_string_vec[0]);
                 use_file_queue_vec.push_back(use_file_queue_vec[0]);
+                partition_size_vec.push_back(partition_size_vec[0]);
+                mapping_max_vec.push_back(mapping_max_vec[0]);
+                max_s3_spill_size_vec.push_back(max_s3_spill_size_vec[0]);
                 iteration++;
                 break;
             }
@@ -6069,6 +6094,9 @@ int main(int argc, char **argv)
         multiThread_subMerge = multiThread_subMerge_vec[i];
         straggler_removal = straggler_removal_vec[i];
         use_file_queue = use_file_queue_vec[i];
+        partition_size = partition_size_vec[i];
+        mapping_max = mapping_max_vec[i];
+        max_s3_spill_size = max_s3_spill_size_vec[i];
 
         // setup mana file
         initManagFile(&minio_client);

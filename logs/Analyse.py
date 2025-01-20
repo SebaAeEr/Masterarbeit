@@ -851,28 +851,31 @@ def c_size_by_time():
 
     # Step 3: Create the plot
     plt.figure(1)
-    plt.plot(x, mes_y, label="measured size")
-    plt.plot(x, hmap_y, label="clalc hmap size")
-    plt.plot(x, base_y, label="base size")
-    plt.plot(x, map_y, label="mapping size")
-    plt.plot(x, bit_y, label="bitmap size")
-    plt.plot(
-        x, calc_y, label="calc overall size"
-    )  # Line plot (you can change to scatter plot or others)
+    plt.rcParams.update({"font.size": 30})
+    plt.plot(x, mes_y, label="measured size", linewidth=3)
+    plt.plot(x, hmap_y, label="Hashmap size", linewidth=3)
+    # plt.plot(x, base_y, label="base size")
+    # plt.plot(x, map_y, label="mapping size")
+    # plt.plot(x, bit_y, label="bitmap size")
+    # plt.plot(
+    #     x, calc_y, label="calc overall size"
+    # )  # Line plot (you can change to scatter plot or others)
 
     try:
-        keys = ["scanTime", "mergeHashTime", "mergeTime"]
-        for key in keys:
-            x_value = jf_data[key] / 1000000
-            plt.axvline(x=x_value, color="red", linestyle="--")
-            plt.text(x_value, -0.005, key, color="red", ha="center")
+        # keys = ["scanTime", "mergeHashTime", "mergeTime"]
+        # for key in keys:
+        #     x_value = jf_data[key] / 1000000
+        #     plt.axvline(x=x_value, color="red", linestyle="--", linewidth=2)
+        # plt.text(x_value, -0.005, key, color="red", ha="center")
+
+        plt.axline([0, 6], [x.max(), 6], color="red", linestyle="--", linewidth=2)
     except:
         print("no scan/merge/mergeHash-time")
 
     plt.xlabel("time in s")  # Label for x-axis
     plt.ylabel("size in GiB")  # Label for y-axis
-    plt.title("size over time")  # Title of the plot
-    plt.legend()  # Show the legend
+    # plt.title("size over time")  # Title of the plot
+    plt.legend(loc="upper right")  # Show the legend
 
     plt.figure(2)
     plt.plot(x, avg_y, label="Average")
