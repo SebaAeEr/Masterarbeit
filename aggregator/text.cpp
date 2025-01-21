@@ -1931,7 +1931,7 @@ void writeHashmap(std::list<emhash8::HashMap<std::array<unsigned long, max_size>
     unsigned long start = *output_size;
     *output_size += added_size;
 
-    std::cout << "calc output size: " << output_size << " added_size: " << added_size << std::endl;
+    // std::cout << "calc output size: " << output_size << " added_size: " << added_size << std::endl;
     int file = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
 
     // Extend file file.
@@ -2046,7 +2046,7 @@ void writeHashmap(std::list<emhash8::HashMap<std::array<unsigned long, max_size>
         exit(EXIT_FAILURE);
     } */
     freed_mem += mapped_count - head;
-    std::cout << "Real output file size: " << mapped_count - start_diff << std::endl;
+    // std::cout << "Real output file size: " << mapped_count - start_diff << std::endl;
     log_file.sizes["write_output_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count();
 
     close(file);
@@ -3341,15 +3341,16 @@ void printSize(int &finished, size_t memLimit, std::atomic<unsigned long> &comb_
     // memLimit -= 2ull << 10;
     while (finished == 0 || finished == 1)
     {
-        if (old_finish != finished)
-        {
-            phyMemBase = (getPhyValue()) * 1024 - comb_hash_size.load() * (*avg);
-            old_finish = finished;
-        }
         size_t newsize = getPhyValue() * 1024;
         while (abs(static_cast<long>(size - newsize)) > 5000000000)
         {
             newsize = getPhyValue() * 1024;
+        }
+
+        if (old_finish != finished && newsize * 1024 - comb_hash_size.load() * (*avg) > 0)
+        {
+            phyMemBase = newsize * 1024 - comb_hash_size.load() * (*avg);
+            old_finish = finished;
         }
         reservedMem = diff->load();
         old_comb_hash_size = comb_hash_size.load();
@@ -3547,7 +3548,7 @@ bool subMerge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, st
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = firsts3File && sub_file_k == sub_file_counter;
                 // std::cout << "firsts3subFile: " << firsts3subFile << std::endl;
-                std::cout << "Thread " << t_id;
+                /* std::cout << "Thread " << t_id;
                 if (add)
                 {
                     std::cout << " adding ";
@@ -3556,7 +3557,7 @@ bool subMerge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, st
                 {
                     std::cout << " merging ";
                 }
-                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << *read_lines << std::endl;
+                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << *read_lines << std::endl; */
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
@@ -4478,9 +4479,9 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size, 0, 0);
 
-        std::cout << "Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
-        //  std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
-        //  bit_head_end++;
+        // std::cout << "Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
+        //   std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
+        //   bit_head_end++;
         increase = false;
         if (!finished)
         {
@@ -5455,19 +5456,16 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             bool thread_done = false;
             for (auto &d : mergeThreads_done)
             {
-                std::cout << (int)(d) << ", ";
                 if (d)
                 {
-                    std::cout << "setting to true: " << thread_done;
                     thread_done = true;
-                    std::cout << "->" << thread_done << std::endl;
                     break;
                 }
             }
             std::cout << std::endl;
-            std::cout << "thread_done: " << thread_done << std::endl;
-            if (!thread_done && comb_hash_size * avg + base_size < memLimit * 0.7)
+            if (!thread_done && (comb_hash_size * avg + base_size) / thread_bitmap.size() < memLimit * 0.8 - (comb_hash_size * avg + base_size))
             {
+                std::cout << "Adding new Thread" << std::endl;
                 merge_emHashmaps.push_back(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>());
                 multi_files.push_back(std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>());
                 max_HashSizes.push_back(0);
@@ -5495,7 +5493,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         if (d)
                         {
                             newThread_ind = thread_ind_counter;
-                            std::cout << "newThread_ind: " << newThread_ind << std::endl;
                             auto bitmap_it = std::next(thread_bitmap.begin(), newThread_ind);
                             if (*bitmap_it == 1)
                             {
@@ -5514,7 +5511,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         thread_ind_counter++;
                     }
                 }
-                std::cout << "getting parititon" << std::endl;
                 // multi_files[newThread_ind].clear();
                 if (s3spilled)
                 {
@@ -5544,7 +5540,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
                     auto mult_f_it = std::next(multi_files.begin(), newThread_ind);
                     getAllMergeFileNames(&minio_client, m_partition, &(*mult_f_it));
-                    std::cout << "mult_f size: " << mult_f_it->size();
 
                     auto hmap_it = std::next(merge_emHashmaps.begin(), newThread_ind);
 
@@ -6178,7 +6173,7 @@ int main(int argc, char **argv)
     std::string agg_output = "output_" + test_file;
     // set minio_client
     Aws::S3::S3Client minio_client = init();
-    std::cout << "Iterations: " << iteration << std::endl;
+    std::cout << "Iterations: " << iteration + 1 << std::endl;
     // show Progress Bar only when we have 1 iteration; with more iterations it is expected user reads output in nohup.out file
     showProgressBar = iteration == 0;
 

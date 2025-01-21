@@ -832,14 +832,14 @@ def c_size_by_time():
 
     # deencode analyses
     names = [
-        "logfile_4_6_0_4_19-28.json",
-        "logfile_4_6_0_4_19-47.json",
+        "logfile_13_6_0_4_18-19.json",
+        "logfile_13_6_0_4_18-32.json",
     ]
     labels = np.array(["with compression", "without compression"])
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_13_6_0_4_17-15.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_4_16-20.json"))
+        f = open(os.path.join(directory, "times_13_6_0_4_18-32.csv"))
+        jf = open(os.path.join(directory, "logfile_13_6_0_4_18-32.json"))
     except:
         print("File not found.")
         return
@@ -862,12 +862,12 @@ def c_size_by_time():
     plt.rcParams.update({"font.size": 35})
     plt.plot(x, mes_y, label="measured size", linewidth=3)
     plt.plot(x, hmap_y, label="Hashmap size", linewidth=3)
-    # plt.plot(x, base_y, label="base size")
-    # plt.plot(x, map_y, label="mapping size")
-    # plt.plot(x, bit_y, label="bitmap size")
-    # plt.plot(
-    #     x, calc_y, label="calc overall size"
-    # )  # Line plot (you can change to scatter plot or others)
+    plt.plot(x, base_y, label="base size")
+    plt.plot(x, map_y, label="mapping size")
+    plt.plot(x, bit_y, label="bitmap size")
+    plt.plot(
+        x, calc_y, label="calc overall size"
+    )  # Line plot (you can change to scatter plot or others)
 
     try:
         # keys = ["scanTime", "mergeHashTime", "mergeTime"]
