@@ -4358,11 +4358,13 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
     std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> s3spillNames;
     if (gets3Files)
     {
+        std::cout << "Getting all merge file names" << std::endl;
         getAllMergeFileNames(minio_client, partition, &s3spillNames);
         std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> s3spillNames2_list;
         s3spillNames2_list.push_back(s3spillNames);
         auto s3spillNames2_it = s3spillNames2_list.begin();
         s3spillNames2 = s3spillNames2_it;
+        std::cout << "Got all merge file names" << std::endl;
     }
     auto merge_start_time = std::chrono::high_resolution_clock::now();
     // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
@@ -4390,6 +4392,7 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
     unsigned long overall_s3spillsize = 0;
     std::vector<std::tuple<std::thread, size_t, char>> spillThreads;
     char id_counter = 0;
+    std::cout << "Calc combspill size" << std::endl;
 
     for (auto &it : **spills)
     {
@@ -4397,7 +4400,7 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
         // std::cout << it.second << ", ";
     }
     // std::cout << std::endl;
-
+    std::cout << "calc bitmap sum" << std::endl;
     int counter = 0;
     for (auto &name : *s3spillNames2)
     {
@@ -4448,6 +4451,7 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
      else
      { */
     // not spilling bitmaps
+    std::cout << "creating bitmaps" << std::endl;
     for (auto &name : *s3spillNames2)
     {
         for (auto &s : get<2>(name))
@@ -4470,7 +4474,7 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
 
     while (!finished)
     {
-        // std::cout << "Adding" << std::endl;
+        std::cout << "Adding" << std::endl;
         auto s3spillFile_head_old = s3spillFile_head;
         auto input_head_base_old = input_head_base;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
@@ -5108,7 +5112,6 @@ char getSplitMergePartition(Aws::S3::S3Client *minio_client)
  */
 char getMergePartition(Aws::S3::S3Client *minio_client)
 {
-    std::cout << "Getting partition" << std::endl;
     if (split_mana)
     {
         return getSplitMergePartition(minio_client);
@@ -5118,7 +5121,6 @@ char getMergePartition(Aws::S3::S3Client *minio_client)
     int b_min_fileNumber = 100000;
     char partition = -1;
     char partition_b = -1;
-    std::cout << "Getting partition 2" << std::endl;
     for (auto &w : mana.workers)
     {
         if (worker_id == w.id)
@@ -5168,7 +5170,6 @@ char getMergePartition(Aws::S3::S3Client *minio_client)
             partition = partition_b;
         }
     }
-    std::cout << "Getting partition 3 " << std::endl;
     for (auto &w : mana.workers)
     {
         if (worker_id == w.id)
@@ -5184,7 +5185,6 @@ char getMergePartition(Aws::S3::S3Client *minio_client)
             }
         }
     }
-    std::cout << "got partition" << std::endl;
     return partition;
 }
 
@@ -5536,7 +5536,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     std::cout << "merging partition: " << (int)(m_partition) << std::endl;
                     auto multi_it = std::next(multi_spills.begin(), newThread_ind);
 
-                    //*multi_it = spills.size() == 1 ? &spills[0] : &spills[m_partition];
                     *multi_it = spills.size() == 1 ? &spills[0] : &spills[m_partition];
 
                     auto bit_it = std::next(thread_bitmap.begin(), newThread_ind);
