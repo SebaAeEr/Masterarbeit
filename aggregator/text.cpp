@@ -2078,7 +2078,7 @@ unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], s
     unsigned long i = start;
     while (true)
     {
-        if (i + 1 > limit)
+        if (i + 1 >= limit)
         {
             return ULONG_MAX;
         }
