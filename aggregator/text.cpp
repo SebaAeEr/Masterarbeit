@@ -205,6 +205,8 @@ int getManaThreads_num = 0;
 // Whether a ProgressBar should be shown
 bool showProgressBar;
 
+int mergeThreads_number = 0;
+
 std::mutex partitions_set_lock;
 
 // hash function for an long array
@@ -3120,7 +3122,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
             // compare estimation again to memLimit
             // if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
-            if (maxHmapSize * avg + base_size / threadNumber >= memLimit * 0.9 && hmap->size() >= maxHmapSize * 0.95 && freed_space_temp <= pagesize * 10)
+            if (hmap->size() >= maxHmapSize * 0.95 && freed_space_temp <= mapping_max)
             {
                 auto start_spill_time = std::chrono::high_resolution_clock::now();
                 // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;
@@ -3488,7 +3490,7 @@ bool subMerge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, st
     size_t comb_spill_size = 0;
     size_t increase = 0;
     int file_counter = 0;
-    int conc_threads = multiThread_merge ? threadNumber : 1;
+    int conc_threads = multiThread_merge ? mergeThreads_number : 1;
     conc_threads = 4;
 
     for (auto &it : **spills)
@@ -4362,8 +4364,7 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
         getAllMergeFileNames(minio_client, partition, &s3spillNames);
         std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> s3spillNames2_list;
         s3spillNames2_list.push_back(s3spillNames);
-        auto s3spillNames2_it = s3spillNames2_list.begin();
-        s3spillNames2 = s3spillNames2_it;
+        s3spillNames2 = s3spillNames2_list.begin();
         std::cout << "Got all merge file names" << std::endl;
     }
     auto merge_start_time = std::chrono::high_resolution_clock::now();
@@ -4404,12 +4405,14 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
     int counter = 0;
     for (auto &name : *s3spillNames2)
     {
+        std::cout << get<0>(name) << ", ";
         overall_s3spillsize += get<1>(name);
         for (auto &tuple_num : get<2>(name))
         {
             bitmap_size_sum += std::ceil((float)(tuple_num.second) / 8);
         }
     }
+    std::cout << std::endl;
     /*  if (bitmap_size_sum > memLimit * 0.7)
      {
          // std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
@@ -5467,7 +5470,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             }
             std::cout << std::endl;
             std::cout << "thread_done: " << thread_done << std::endl;
-            if (!thread_done && comb_hash_size * avg + base_size < memLimit * 0.9)
+            if (!thread_done && comb_hash_size * avg + base_size < memLimit * 0.7)
             {
                 multi_files.push_back(std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>());
                 max_HashSizes.push_back(0);
@@ -5479,6 +5482,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
                 merge_threads.push_back(std::thread());
                 mergeThreads_done.push_back(1);
+                mergeThreads_number++;
             }
             bool increase = false;
 
@@ -6193,6 +6197,7 @@ int main(int argc, char **argv)
         memLimit = memLimit_vec[i];
         memLimitBack = memLimitBack_vec[i];
         threadNumber = threadNumber_vec[i];
+        mergeThreads_number = threadNumber;
         deencode = deencode_vec[i];
         set_partitions = set_partitions_vec[i];
         mergePhase = mergePhase_vec[i];
