@@ -3347,9 +3347,9 @@ void printSize(int &finished, size_t memLimit, std::atomic<unsigned long> &comb_
             newsize = getPhyValue() * 1024;
         }
 
-        if (old_finish != finished && newsize * 1024 - comb_hash_size.load() * (*avg) > 0)
+        if (old_finish != finished )
         {
-            phyMemBase = newsize * 1024 - comb_hash_size.load() * (*avg);
+            phyMemBase = newsize ;
             old_finish = finished;
         }
         reservedMem = diff->load();
