@@ -2108,7 +2108,7 @@ unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], s
                 }
                 else
                 {
-                    if (std::find(std::begin(test_values), std::end(test_values), std::stol((*lineObjects)[keys[0]])) != std::end(test_values))
+                    if (std::find(std::begin(test_values), std::end(test_values), std::stol((*lineObjects)[keys[0]])) != std::end(test_values) || i + 1 >= limit)
                     {
                         unsigned long temp = start;
                         std::cout << "CSV line: ";
@@ -5421,8 +5421,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
     {
-        int threadNumber = threadNumber;
-
         size_t output_file_head = 0;
         std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
         std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(threadNumber);
@@ -5454,12 +5452,16 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             bool thread_done = false;
             for (auto &d : mergeThreads_done)
             {
+                std::cout << d << ", ";
                 if (d)
                 {
+                    std::cout << "setting to true: " << thread_done;
                     thread_done = true;
+                    std::cout << "<-" << thread_done << std::endl;
                     break;
                 }
             }
+            std::cout << std::endl;
             std::cout << "thread_done: " << thread_done << std::endl;
             if (!thread_done && comb_hash_size * avg + base_size < memLimit * 0.9)
             {

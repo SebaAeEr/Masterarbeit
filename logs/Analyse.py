@@ -57,10 +57,10 @@ def CollectOPData(i, tabs):
 def makeBarFig(data, xlabels, ylabel, show_bar_label: bool = True):
 
     fig, ax = plt.subplots()
-    x = np.arange(len(xlabels))
-    width = 0.25
+    width = 0.15
     space = 0.05
-    x = np.arange(len(xlabels))
+    big_space = 0.3
+    x = np.arange(0, len(xlabels) * big_space, big_space)
     colors = plt.cm.viridis.colors
     nth = int(len(colors) / len(list(data[0].keys())))
     colors = colors[nth - 1 :: nth]
@@ -78,12 +78,12 @@ def makeBarFig(data, xlabels, ylabel, show_bar_label: bool = True):
             bottom += datum
             counter += 1
             if show_bar_label:
-                ax.bar_label(rects, padding=2, fontsize=20)
+                ax.bar_label(rects, padding=2)
 
     ax.set_xticks(x + (space + width) * (len(data) - 1) * 0.5)
-    ax.set_xticklabels(xlabels, fontsize=20)
-    ax.legend(list(data[0].keys()), loc="upper right", fontsize=20)
-    ax.set_ylabel(ylabel, fontsize=20)
+    ax.set_xticklabels(xlabels)
+    ax.legend(list(data[0].keys()), loc="upper right")
+    ax.set_ylabel(ylabel)
     ax.grid(visible=True, linestyle="dashed")
     ax.set_axisbelow(True)
     plt.show()
@@ -828,14 +828,14 @@ def c_size_by_time():
     #     "logfile_4_6_0_4_16-20.json",
     #     "logfile_4_6_0_4_20-57.json",
     # ]
-    #labels = np.array(["108", "72", "54", "22"])
+    # labels = np.array(["108", "72", "54", "22"])
 
     # deencode analyses
     names = [
         "logfile_4_6_0_4_19-28.json",
         "logfile_4_6_0_4_19-47.json",
     ]
-    labels = np.array(["deencode", "no deencdoe"])
+    labels = np.array(["with compression", "without compression"])
     try:
         directory = "c++_logs"
         f = open(os.path.join(directory, "times_4_6_0_4_16-20.csv"))
@@ -859,7 +859,7 @@ def c_size_by_time():
 
     # Step 3: Create the plot
     plt.figure(1)
-    plt.rcParams.update({"font.size": 30})
+    plt.rcParams.update({"font.size": 35})
     plt.plot(x, mes_y, label="measured size", linewidth=3)
     plt.plot(x, hmap_y, label="Hashmap size", linewidth=3)
     # plt.plot(x, base_y, label="base size")
@@ -891,12 +891,12 @@ def c_size_by_time():
 
     times = [
         {
-            "write_file_sum": np.empty(len(names)),
-            "scan_dur": np.empty(len(names)),
+            "Write time of spill files": np.empty(len(names)),
+            "Scan duration": np.empty(len(names)),
             # "merge_hash_dur": np.empty(),
             # "get_file_sum": np.empty(),
-            "write_output_sum": np.empty(len(names)),
-            "merge_dur": np.empty(len(names)),
+            "Write time of the output": np.empty(len(names)),
+            "Merge duration": np.empty(len(names)),
             # "read_tuple_sum": np.empty(),
             # "Exchange": np.empty(),
         }
@@ -927,17 +927,33 @@ def c_size_by_time():
         average = sum(get_lock_dur) / len(get_lock_dur)
         print("get_lock_dur avg: " + str(average))
 
-        write_file_dur = jf_data["writeCall_s3_file_dur"]
-        write_file_size = jf_data["writeCall_s3_file_size"]
+        write_file_dur = np.array(jf_data["writeCall_s3_file_dur"]) / 2**20
+        write_file_size = np.array(jf_data["writeCall_s3_file_size"]) / 1000000
         write_file_dur.sort()
         write_file_size.sort()
-        # plt.figure(6)
+        plt.figure(4)
+        plt.scatter(write_file_dur, write_file_size, label=labels[counter])
+        plt.legend()
+        plt.xlabel("Time in s")
+        plt.ylabel("Size in MiB")
         # plt.plot(write_file_dur, write_file_size, label="write file duration")
-        # plt.title("write file dur per size")
+        plt.title("write file dur per size")
 
-        # plt.figure(7)
-        # plt.hist(write_file_dur, bins=30, label="write_file_dur")
+        plt.figure(5)
+        plt.hist(write_file_dur, bins=100, label=labels[counter], alpha=1, rwidth=0.4)
+        plt.legend()
+        plt.xlabel("Time in s")
+        plt.ylabel("Size in MiB")
+        plt.title("write file dur")
+
+        plt.figure(6)
+        ecdf_values = np.arange(1, len(write_file_dur) + 1) / len(write_file_dur)
+        plt.step(write_file_dur, ecdf_values, label=labels[counter], linewidth=3)
+        plt.legend()
+        plt.xlabel("Time in s")
+        plt.ylabel("ECDF")
         # plt.title("write file dur")
+        # axs.ecdf(df_reads0.latency+10, label="Lvl 1 - Reads (exp.)")
         if len(write_file_dur) > 0:
             average_1 = sum(write_file_dur) / len(write_file_dur)
             print("write_file_dur avg: " + str(average_1))
@@ -976,10 +992,10 @@ def c_size_by_time():
         scan_dur = jf_data["scanDuration"] - write_file_sum
         merge_hash_dur = jf_data["mergeHashDuration"]
 
-        times[0]["write_file_sum"][counter] = write_file_sum
-        times[0]["scan_dur"][counter] = scan_dur
-        times[0]["write_output_sum"][counter] = write_output_sum
-        times[0]["merge_dur"][counter] = merge_dur
+        times[0]["Write time of spill files"][counter] = write_file_sum
+        times[0]["Scan duration"][counter] = scan_dur
+        times[0]["Write time of the output"][counter] = write_output_sum
+        times[0]["Merge duration"][counter] = merge_dur
         counter += 1
         # times +=   [ {
         # "write_file_sum": np.array([write_file_sum]),
@@ -1008,7 +1024,7 @@ def c_size_by_time():
             #     ]
             # ),
             labels,
-            "Wall time in min",
+            "Wall time in s",
         )
         print(str(times))
     # bottom = 0
