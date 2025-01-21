@@ -3097,7 +3097,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         // if (hashmap.size() * avg + phyMemBase > memLimit * (1ull << 20))
         // std::cout << "maxHmapSize: " << maxHmapSize << std::endl;
         unsigned long freed_space_temp = (i - head) - ((i - head) % pagesize);
-        if ((maxHmapSize * avg + base_size / threadNumber >= memLimit * 0.9) || freed_space_temp > mapping_max)
+        if ((maxHmapSize * avg + base_size / threadNumber >= memLimit) || freed_space_temp > mapping_max)
         {
             // std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + base_size / threadNumber << " size: " << hmap->size() << " avg: " << avg << " base_size / threadNumber: " << base_size / threadNumber << std::endl;
 
@@ -3123,7 +3123,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
             // compare estimation again to memLimit
             // if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
-            if (hmap->size() >= maxHmapSize * 0.95 && freed_space_temp <= mapping_max)
+            if (hmap->size() >= maxHmapSize * 0.98 && freed_space_temp <= mapping_max)
             {
                 auto start_spill_time = std::chrono::high_resolution_clock::now();
                 // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;
@@ -5423,7 +5423,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
     {
-        threadNumber = 1;
+        threadNumber = 4;
         size_t output_file_head = 0;
         std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
         std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(threadNumber);

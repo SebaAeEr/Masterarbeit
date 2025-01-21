@@ -949,6 +949,7 @@ def c_size_by_time():
         plt.figure(6)
         ecdf_values = np.arange(1, len(write_file_dur) + 1) / len(write_file_dur)
         plt.step(write_file_dur, ecdf_values, label=labels[counter], linewidth=3)
+        plt.grid(visible=True, linestyle="dashed")
         plt.legend()
         plt.xlabel("Time in s")
         plt.ylabel("ECDF")
