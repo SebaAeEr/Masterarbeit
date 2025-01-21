@@ -4358,15 +4358,15 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
         output_fd = open(outputfilename.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
     } */
     std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> s3spillNames;
-    if (gets3Files)
-    {
-        std::cout << "Getting all merge file names" << std::endl;
-        getAllMergeFileNames(minio_client, partition, &s3spillNames);
-        std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> s3spillNames2_list;
-        s3spillNames2_list.push_back(s3spillNames);
-        s3spillNames2 = s3spillNames2_list.begin();
-        std::cout << "Got all merge file names" << std::endl;
-    }
+    /*  if (gets3Files)
+     {
+         std::cout << "Getting all merge file names" << std::endl;
+         getAllMergeFileNames(minio_client, partition, &s3spillNames);
+         std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> s3spillNames2_list;
+         s3spillNames2_list.push_back(s3spillNames);
+         s3spillNames2 = s3spillNames2_list.begin();
+         std::cout << "Got all merge file names" << std::endl;
+     } */
     auto merge_start_time = std::chrono::high_resolution_clock::now();
     // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
     unsigned long input_head_base = 0;
@@ -5546,6 +5546,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     *bit_it = 1;
 
                     auto mult_f_it = std::next(multi_files.begin(), newThread_ind);
+                    getAllMergeFileNames(&minio_client, m_partition, &(*mult_f_it));
 
                     auto hmap_it = std::next(merge_emHashmaps.begin(), newThread_ind);
 
