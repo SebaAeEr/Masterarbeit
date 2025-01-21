@@ -3122,7 +3122,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
             // compare estimation again to memLimit
             // if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
-            if (hmap->size() >= maxHmapSize * 0.95 && freed_space_temp <= mapping_max)
+            if (hmap->size() >= maxHmapSize * 0.95 && i - head <= mapping_max)
             {
                 auto start_spill_time = std::chrono::high_resolution_clock::now();
                 // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;
@@ -5547,6 +5547,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
                     auto mult_f_it = std::next(multi_files.begin(), newThread_ind);
                     getAllMergeFileNames(&minio_client, m_partition, &(*mult_f_it));
+                    std::cout << "mult_f size: " << mult_f_it->size();
 
                     auto hmap_it = std::next(merge_emHashmaps.begin(), newThread_ind);
 
