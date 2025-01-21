@@ -838,7 +838,7 @@ def c_size_by_time():
     labels = np.array(["with compression", "without compression"])
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_4_16-20.csv"))
+        f = open(os.path.join(directory, "times_13_6_0_4_17-15.csv"))
         jf = open(os.path.join(directory, "logfile_4_6_0_4_16-20.json"))
     except:
         print("File not found.")
