@@ -5289,7 +5289,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::string empty = "";
     std::vector<std::string> uNames;
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
-    std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>> merge_emHashmaps(threadNumber);
     std::vector<std::vector<std::pair<std::string, size_t>>> local_spill_files_temp(threadNumber, std::vector<std::pair<std::string, size_t>>(partitions, {"", 0}));
 
     for (int i = 0; i < threadNumber; i++)
@@ -5427,6 +5426,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         size_t output_file_head = 0;
         std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
         std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(threadNumber);
+        std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>> merge_emHashmaps(threadNumber);
         std::list<size_t> max_HashSizes(threadNumber, 0);
         std::list<char> thread_bitmap(threadNumber, 0);
         std::list<std::vector<std::pair<std::string, size_t>> *> multi_spills(threadNumber);
@@ -5468,6 +5468,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             std::cout << "thread_done: " << thread_done << std::endl;
             if (!thread_done && comb_hash_size * avg + base_size < memLimit * 0.7)
             {
+                merge_emHashmaps.push_back(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>());
                 multi_files.push_back(std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>());
                 max_HashSizes.push_back(0);
                 thread_bitmap.push_back(0);
