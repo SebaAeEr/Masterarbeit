@@ -3126,7 +3126,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         // compare estimation again to memLimit
         // if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
         // if (hmap->size() >= maxHmapSize * 0.98 && freed_space_temp <= mapping_max)
-        if ((maxHmapSize * avg + base_size / threadNumber >= memLimit - mapping_max))
+        if (maxHmapSize * avg + base_size / threadNumber >= memLimit - mapping_max && hmap->size() >= maxHmapSize * 0.98)
         {
             auto start_spill_time = std::chrono::high_resolution_clock::now();
             // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;
