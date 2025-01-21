@@ -5108,6 +5108,7 @@ char getSplitMergePartition(Aws::S3::S3Client *minio_client)
  */
 char getMergePartition(Aws::S3::S3Client *minio_client)
 {
+    std::cout << "Getting partition" << std::endl;
     if (split_mana)
     {
         return getSplitMergePartition(minio_client);
@@ -5117,6 +5118,7 @@ char getMergePartition(Aws::S3::S3Client *minio_client)
     int b_min_fileNumber = 100000;
     char partition = -1;
     char partition_b = -1;
+    std::cout << "Getting partition 2" << std::endl;
     for (auto &w : mana.workers)
     {
         if (worker_id == w.id)
@@ -5166,6 +5168,7 @@ char getMergePartition(Aws::S3::S3Client *minio_client)
             partition = partition_b;
         }
     }
+    std::cout << "Getting partition 3 " << std::endl;
     for (auto &w : mana.workers)
     {
         if (worker_id == w.id)
@@ -5181,6 +5184,7 @@ char getMergePartition(Aws::S3::S3Client *minio_client)
             }
         }
     }
+    std::cout << "got partition" << std::endl;
     return partition;
 }
 
@@ -5494,7 +5498,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                             auto bitmap_it = std::next(thread_bitmap.begin(), newThread_ind);
                             if (*bitmap_it == 1)
                             {
-                                std::cout << "joining thread" << std::endl;
                                 auto thread_it = std::next(merge_threads.begin(), newThread_ind);
                                 thread_it->join();
                                 *bitmap_it = 0;
@@ -5556,6 +5559,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                                                                &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], m_partition, 0, increase, true); */
                     *thread_it = std::thread(merge, hmap_it, multi_it, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), mult_f_it,
                                              &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, done_it, max_it, m_partition, 0, increase, true);
+                    usleep(1000000);
                 }
             }
             else
