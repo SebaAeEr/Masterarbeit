@@ -2110,7 +2110,7 @@ unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], s
                 }
                 else
                 {
-                    if (std::find(std::begin(test_values), std::end(test_values), std::stol((*lineObjects)[keys[0]])) != std::end(test_values) || i + 1 >= limit)
+                    if (std::find(std::begin(test_values), std::end(test_values), std::stol((*lineObjects)[keys[0]])) != std::end(test_values))
                     {
                         unsigned long temp = start;
                         std::cout << "CSV line: ";
@@ -3098,7 +3098,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         // std::cout << "maxHmapSize: " << maxHmapSize << std::endl;
         unsigned long freed_space_temp = (i - head) - ((i - head) % pagesize);
         // if ((maxHmapSize * avg + base_size / threadNumber >= memLimit) || freed_space_temp > mapping_max)
-        if (freed_space_temp > mapping_max)
+        if (maxHmapSize * avg + base_size / threadNumber >= memLimit * 0.95 || freed_space_temp > mapping_max)
         {
             // std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + base_size / threadNumber << " size: " << hmap->size() << " avg: " << avg << " base_size / threadNumber: " << base_size / threadNumber << std::endl;
 
@@ -3495,7 +3495,6 @@ bool subMerge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, st
     size_t increase = 0;
     int file_counter = 0;
     int conc_threads = multiThread_merge ? mergeThreads_number : 1;
-    conc_threads = 4;
 
     for (auto &it : **spills)
     {
@@ -3763,7 +3762,7 @@ bool subMerge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, st
                         if (spilled_bitmap)
                         {
                             // diff->exchange(index);
-                            if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9)
+                            if ((*max_hash_size) * (*avg) + base_size / conc_threads >= memLimit / conc_threads)
                             {
                                 // std::cout << "spilling: " << head - lower_index << std::endl;
                                 unsigned long freed_space_temp = (index - lower_index) - ((index - lower_index) % pagesize);
@@ -3797,7 +3796,7 @@ bool subMerge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, st
                         }
                         else
                         {
-                            if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99)
+                            if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit * 0.9) / conc_threads && hmap->size() >= *max_hash_size * 0.99)
                             {
                                 if (add && !locked)
                                 {
@@ -4228,7 +4227,7 @@ bool subMerge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, st
                 // std::cout << "hashmap size: " << emHashmap.size() * avg << " freed space: " << freed_space_temp << std::endl;
             }
             // if (!locked && used_space <= pagesize * 40 && hmap->size() * (*avg) + base_size >= memLimit * 0.9)
-            if ((*max_hash_size) * (*avg) + base_size / conc_threads >= (memLimit / conc_threads) * 0.9 && hmap->size() >= *max_hash_size * 0.99 && !locked && add && used_space <= pagesize * 40)
+            if ((*max_hash_size) * (*avg) + base_size / conc_threads >= memLimit / conc_threads && hmap->size() >= *max_hash_size * 0.99 && !locked && add && used_space <= pagesize * 40)
             // if (hmap->size() >= *max_hash_size * 0.95 && !locked && add && used_space <= pagesize * 40)
             // if (!locked && add && used_space <= pagesize * 40)
             {
@@ -5425,8 +5424,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
     {
-        threadNumber = 4;
         size_t output_file_head = 0;
+        bool add_new_thread = false;
+        std::vector<bool> restarted_threads(threadNumber, false);
         std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
         std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(threadNumber);
         std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>> merge_emHashmaps(threadNumber);
@@ -5465,7 +5465,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 }
             }
             std::cout << std::endl;
-            if (!thread_done && (comb_hash_size * avg + base_size) / thread_bitmap.size() < memLimit * 0.8 - (comb_hash_size * avg + base_size))
+            if (!thread_done && add_new_thread && (comb_hash_size * avg + base_size) / thread_bitmap.size() < memLimit - (comb_hash_size * avg + base_size))
             {
                 std::cout << "Adding new Thread" << std::endl;
                 merge_emHashmaps.push_back(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>());
@@ -5476,6 +5476,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 multi_spills.push_back(&temp);
                 char m_partition = 0;
                 int counter = 0;
+                add_new_thread = false;
+                restarted_threads.push_back(false);
 
                 merge_threads.push_back(std::thread());
                 mergeThreads_done.push_back(1);
@@ -5501,6 +5503,17 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                                 auto thread_it = std::next(merge_threads.begin(), newThread_ind);
                                 thread_it->join();
                                 *bitmap_it = 0;
+                                restarted_threads[newThread_ind] = true;
+                                bool temp_bool = true;
+                                for (auto &b : restarted_threads)
+                                {
+                                    if (!b)
+                                    {
+                                        temp_bool = false;
+                                        break;
+                                    }
+                                }
+                                add_new_thread = temp_bool;
                             }
                             else
                             {
@@ -5558,7 +5571,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                                                                &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], m_partition, 0, increase, true); */
                     *thread_it = std::thread(merge, hmap_it, multi_it, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), mult_f_it,
                                              &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, done_it, max_it, m_partition, 0, increase, true);
-                    usleep(100000);
                 }
             }
             else
