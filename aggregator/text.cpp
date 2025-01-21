@@ -2078,7 +2078,7 @@ unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], s
     unsigned long i = start;
     while (true)
     {
-        if (i > limit)
+        if (i + 1 > limit)
         {
             return ULONG_MAX;
         }
@@ -3266,6 +3266,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         numLines.fetch_add(1);
         numLinesLocal++;
     }
+    std::cout << "finishing Thread" << std::endl;
     if (size - head > 0)
     {
         if (munmap(&mappedFile[head], size - head) == -1)
