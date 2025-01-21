@@ -3097,7 +3097,8 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         // if (hashmap.size() * avg + phyMemBase > memLimit * (1ull << 20))
         // std::cout << "maxHmapSize: " << maxHmapSize << std::endl;
         unsigned long freed_space_temp = (i - head) - ((i - head) % pagesize);
-        if ((maxHmapSize * avg + base_size / threadNumber >= memLimit) || freed_space_temp > mapping_max)
+        // if ((maxHmapSize * avg + base_size / threadNumber >= memLimit) || freed_space_temp > mapping_max)
+        if (freed_space_temp > mapping_max)
         {
             // std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + base_size / threadNumber << " size: " << hmap->size() << " avg: " << avg << " base_size / threadNumber: " << base_size / threadNumber << std::endl;
 
@@ -3120,150 +3121,151 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 head += freed_space_temp;
                 shared_diff->fetch_sub(freed_space_temp);
             }
+        }
 
-            // compare estimation again to memLimit
-            // if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
-            if (hmap->size() >= maxHmapSize * 0.98 && freed_space_temp <= mapping_max)
+        // compare estimation again to memLimit
+        // if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
+        // if (hmap->size() >= maxHmapSize * 0.98 && freed_space_temp <= mapping_max)
+        if ((maxHmapSize * avg + base_size / threadNumber >= memLimit - mapping_max))
+        {
+            auto start_spill_time = std::chrono::high_resolution_clock::now();
+            // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;
+            //    Reset freed_space and update numHashRows so that Estimation stay correct
+            if (maxHmapSize < hmap->size())
             {
-                auto start_spill_time = std::chrono::high_resolution_clock::now();
-                // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;
-                //    Reset freed_space and update numHashRows so that Estimation stay correct
-                if (maxHmapSize < hmap->size())
-                {
-                    maxHmapSize = hmap->size();
-                    // std::cout << "new MaxSize: " << maxHmapSize << std::endl;
-                }
-                unsigned long temp_spill_size = hmap->size() * (key_number + value_number) * sizeof(long);
-                spill_size += temp_spill_size;
-                comb_spill_size.fetch_add(temp_spill_size);
+                maxHmapSize = hmap->size();
+                // std::cout << "new MaxSize: " << maxHmapSize << std::endl;
+            }
+            unsigned long temp_spill_size = hmap->size() * (key_number + value_number) * sizeof(long);
+            spill_size += temp_spill_size;
+            comb_spill_size.fetch_add(temp_spill_size);
+            if (partitions == -1)
+            {
+                partitions_set_lock.lock();
                 if (partitions == -1)
                 {
-                    partitions_set_lock.lock();
-                    if (partitions == -1)
+                    setPartitionNumber(comb_hash_size);
+                    if (spill_files->size() == 0)
                     {
-                        setPartitionNumber(comb_hash_size);
-                        if (spill_files->size() == 0)
-                        {
-                            for (int i = 0; i < partitions; i++)
-                            {
-                                spill_files->push_back({});
-                            }
-                        }
-                        if (split_mana)
-                        {
-                            manaFile mana_partition;
-                            manaFile mana_worker;
-                            mana_worker.workers.push_back(manaFileWorker());
-                            mana_partition.workers.push_back(manaFileWorker());
-                            mana_partition.workers[0].partitions.push_back(partition());
-                            for (char p = 0; p < partitions; p++)
-                            {
-                                writeMana(minio_client, mana_partition, false, worker_id, p);
-                                partition part;
-                                part.id = p;
-                                part.lock = false;
-                                mana_worker.workers[0].partitions.push_back(part);
-                            }
-                            writeMana(minio_client, mana_worker, false, worker_id);
-                        }
-                    }
-                    partitions_set_lock.unlock();
-                }
-                threadLog.sizes["SpillSize"] += temp_spill_size;
-
-                threadLog.spillTimes.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count());
-
-                if (memLimitBack > backMem_usage + temp_spill_size - temp_local_spill_size)
-                {
-                    if (memLimitBack < backMem_usage + temp_spill_size * threadNumber)
-                    {
-                        threadLog.sizes["localS3Spill"]++;
-                        threadLog.sizes["s3SpillSize"] += temp_spill_size;
-                        std::cout << "local + s3: " << (int)(id) << std::endl;
-                        backMem_usage += temp_spill_size - temp_local_spill_size;
-                        temp_local_spill_size = temp_spill_size;
-                        auto start_wait_time = std::chrono::high_resolution_clock::now();
-                        if (spillS3Thread)
-                        {
-                            minioSpiller.join();
-                        }
-                        threadLog.sizes["wait_time"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_wait_time).count();
-                        spill_file_name = "";
-                        spill_file_name += worker_id;
-                        spill_file_name += "_";
-                        spill_file_name += std::to_string((int)(id));
-                        spill_file_name += "_";
-                        spill_file_name += "temp_spill";
-                        std::vector<std::pair<std::string, size_t>> spill_file(partitions);
-                        for (int p = 0; p < partitions; p++)
-                        {
-                            spill_file[p] = {spill_file_name + "_" + std::to_string(p), 0};
-                        }
-                        spillToFile(hmap, &spill_file, id, pagesize * 20);
-                        uName = "";
-                        uName += worker_id;
-                        uName += "_";
-                        uName += std::to_string((int)(id));
-                        uName += "_" + std::to_string(spill_number);
-                        // spillToMinio(hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
-                        minioSpiller = std::thread(spillToMinio, hmap, spill_file, uName, minio_client, worker_id, 0, id);
-                        spillS3Thread = true;
-                    }
-                    else
-                    {
-                        threadLog.sizes["localSpill"]++;
-                        threadLog.sizes["localSpillSize"] += temp_spill_size;
-                        std::cout << "local: " << (int)(id) << std::endl;
-                        spill_file_name = "";
-                        spill_file_name += worker_id;
-                        spill_file_name += "_";
-                        spill_file_name += std::to_string((int)(id));
-                        spill_file_name += "_";
-                        spill_file_name += std::to_string(spill_number);
-                        spill_file_name += "_";
-                        spill_file_name += "spill";
-                        backMem_usage += temp_spill_size;
-                        std::vector<std::pair<std::string, size_t>> spill_file(partitions);
-                        for (int p = 0; p < partitions; p++)
-                        {
-                            spill_file[p] = {spill_file_name + "_" + std::to_string(p), 0};
-                        }
-                        spillToFile(hmap, &spill_file, id, pagesize * 20);
                         for (int i = 0; i < partitions; i++)
                         {
-                            (*spill_files)[i].push_back(spill_file[i]);
+                            spill_files->push_back({});
                         }
                     }
+                    if (split_mana)
+                    {
+                        manaFile mana_partition;
+                        manaFile mana_worker;
+                        mana_worker.workers.push_back(manaFileWorker());
+                        mana_partition.workers.push_back(manaFileWorker());
+                        mana_partition.workers[0].partitions.push_back(partition());
+                        for (char p = 0; p < partitions; p++)
+                        {
+                            writeMana(minio_client, mana_partition, false, worker_id, p);
+                            partition part;
+                            part.id = p;
+                            part.lock = false;
+                            mana_worker.workers[0].partitions.push_back(part);
+                        }
+                        writeMana(minio_client, mana_worker, false, worker_id);
+                    }
                 }
-                else
+                partitions_set_lock.unlock();
+            }
+            threadLog.sizes["SpillSize"] += temp_spill_size;
+
+            threadLog.spillTimes.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count());
+
+            if (memLimitBack > backMem_usage + temp_spill_size - temp_local_spill_size)
+            {
+                if (memLimitBack < backMem_usage + temp_spill_size * threadNumber)
                 {
-                    threadLog.sizes["s3Spill"]++;
+                    threadLog.sizes["localS3Spill"]++;
                     threadLog.sizes["s3SpillSize"] += temp_spill_size;
-                    std::cout << "s3: " << (int)(id) << std::endl;
+                    std::cout << "local + s3: " << (int)(id) << std::endl;
+                    backMem_usage += temp_spill_size - temp_local_spill_size;
+                    temp_local_spill_size = temp_spill_size;
+                    auto start_wait_time = std::chrono::high_resolution_clock::now();
+                    if (spillS3Thread)
+                    {
+                        minioSpiller.join();
+                    }
+                    threadLog.sizes["wait_time"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_wait_time).count();
+                    spill_file_name = "";
+                    spill_file_name += worker_id;
+                    spill_file_name += "_";
+                    spill_file_name += std::to_string((int)(id));
+                    spill_file_name += "_";
+                    spill_file_name += "temp_spill";
+                    std::vector<std::pair<std::string, size_t>> spill_file(partitions);
+                    for (int p = 0; p < partitions; p++)
+                    {
+                        spill_file[p] = {spill_file_name + "_" + std::to_string(p), 0};
+                    }
+                    spillToFile(hmap, &spill_file, id, pagesize * 20);
                     uName = "";
                     uName += worker_id;
                     uName += "_";
                     uName += std::to_string((int)(id));
                     uName += "_" + std::to_string(spill_number);
-                    std::string empty = "";
-                    std::vector<std::pair<std::string, size_t>> spill_file(partitions, {"", 0});
-                    spillToMinio(hmap, spill_file, uName, minio_client, worker_id, 0, id);
-
-                    for (auto &test_value : test_values)
+                    // spillToMinio(hmap, std::ref(temp_spill_file_name), std::ref(uName), pagesize * 20, &minio_client, worker_id, 0, id);
+                    minioSpiller = std::thread(spillToMinio, hmap, spill_file, uName, minio_client, worker_id, 0, id);
+                    spillS3Thread = true;
+                }
+                else
+                {
+                    threadLog.sizes["localSpill"]++;
+                    threadLog.sizes["localSpillSize"] += temp_spill_size;
+                    std::cout << "local: " << (int)(id) << std::endl;
+                    spill_file_name = "";
+                    spill_file_name += worker_id;
+                    spill_file_name += "_";
+                    spill_file_name += std::to_string((int)(id));
+                    spill_file_name += "_";
+                    spill_file_name += std::to_string(spill_number);
+                    spill_file_name += "_";
+                    spill_file_name += "spill";
+                    backMem_usage += temp_spill_size;
+                    std::vector<std::pair<std::string, size_t>> spill_file(partitions);
+                    for (int p = 0; p < partitions; p++)
                     {
-                        if (hmap->contains({test_value, 0}))
-                        {
-                            std::cout << "Spilling " << test_value << " to " << uName << " with value " << (*hmap)[{test_value, 0}][0] << ", " << (*hmap)[{test_value, 0}][1] << std::endl;
-                        }
+                        spill_file[p] = {spill_file_name + "_" + std::to_string(p), 0};
+                    }
+                    spillToFile(hmap, &spill_file, id, pagesize * 20);
+                    for (int i = 0; i < partitions; i++)
+                    {
+                        (*spill_files)[i].push_back(spill_file[i]);
                     }
                 }
-                spill_number++;
-                threadLog.sizes["write_file_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_spill_time).count();
-
-                // std::cout << "Spilling ended" << std::endl;
-                threadLog.sizes["outputLines"] += hmap->size();
-                hmap->clear();
             }
+            else
+            {
+                threadLog.sizes["s3Spill"]++;
+                threadLog.sizes["s3SpillSize"] += temp_spill_size;
+                std::cout << "s3: " << (int)(id) << std::endl;
+                uName = "";
+                uName += worker_id;
+                uName += "_";
+                uName += std::to_string((int)(id));
+                uName += "_" + std::to_string(spill_number);
+                std::string empty = "";
+                std::vector<std::pair<std::string, size_t>> spill_file(partitions, {"", 0});
+                spillToMinio(hmap, spill_file, uName, minio_client, worker_id, 0, id);
+
+                for (auto &test_value : test_values)
+                {
+                    if (hmap->contains({test_value, 0}))
+                    {
+                        std::cout << "Spilling " << test_value << " to " << uName << " with value " << (*hmap)[{test_value, 0}][0] << ", " << (*hmap)[{test_value, 0}][1] << std::endl;
+                    }
+                }
+            }
+            spill_number++;
+            threadLog.sizes["write_file_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_spill_time).count();
+
+            // std::cout << "Spilling ended" << std::endl;
+            threadLog.sizes["outputLines"] += hmap->size();
+            hmap->clear();
         }
         numLines.fetch_add(1);
         numLinesLocal++;
@@ -3347,9 +3349,9 @@ void printSize(int &finished, size_t memLimit, std::atomic<unsigned long> &comb_
             newsize = getPhyValue() * 1024;
         }
 
-        if (old_finish != finished )
+        if (old_finish != finished)
         {
-            phyMemBase = newsize ;
+            phyMemBase = newsize;
             old_finish = finished;
         }
         reservedMem = diff->load();
