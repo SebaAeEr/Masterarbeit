@@ -4394,7 +4394,6 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
     unsigned long overall_s3spillsize = 0;
     std::vector<std::tuple<std::thread, size_t, char>> spillThreads;
     char id_counter = 0;
-    std::cout << "Calc combspill size" << std::endl;
 
     for (auto &it : **spills)
     {
@@ -4402,18 +4401,15 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
         // std::cout << it.second << ", ";
     }
     // std::cout << std::endl;
-    std::cout << "calc bitmap sum" << std::endl;
     int counter = 0;
     for (auto &name : *s3spillNames2)
     {
-        std::cout << get<0>(name) << ", ";
         overall_s3spillsize += get<1>(name);
         for (auto &tuple_num : get<2>(name))
         {
             bitmap_size_sum += std::ceil((float)(tuple_num.second) / 8);
         }
     }
-    std::cout << std::endl;
     /*  if (bitmap_size_sum > memLimit * 0.7)
      {
          // std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
@@ -4455,7 +4451,6 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
      else
      { */
     // not spilling bitmaps
-    std::cout << "creating bitmaps" << std::endl;
     for (auto &name : *s3spillNames2)
     {
         for (auto &s : get<2>(name))
@@ -4478,7 +4473,6 @@ int merge(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::a
 
     while (!finished)
     {
-        std::cout << "Adding" << std::endl;
         auto s3spillFile_head_old = s3spillFile_head;
         auto input_head_base_old = input_head_base;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
@@ -5429,6 +5423,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
     {
+        threadNumber = 1;
         size_t output_file_head = 0;
         std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
         std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(threadNumber);
@@ -5565,7 +5560,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                                                                &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], m_partition, 0, increase, true); */
                     *thread_it = std::thread(merge, hmap_it, multi_it, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), mult_f_it,
                                              &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, done_it, max_it, m_partition, 0, increase, true);
-                    usleep(1000000);
+                    usleep(100000);
                 }
             }
             else
