@@ -5452,12 +5452,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             bool thread_done = false;
             for (auto &d : mergeThreads_done)
             {
-                std::cout << d << ", ";
+                std::cout << (int)(d) << ", ";
                 if (d)
                 {
                     std::cout << "setting to true: " << thread_done;
                     thread_done = true;
-                    std::cout << "<-" << thread_done << std::endl;
+                    std::cout << "->" << thread_done << std::endl;
                     break;
                 }
             }
@@ -5494,6 +5494,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                             auto bitmap_it = std::next(thread_bitmap.begin(), newThread_ind);
                             if (*bitmap_it == 1)
                             {
+                                std::cout << "joining thread" << std::endl;
                                 auto thread_it = std::next(merge_threads.begin(), newThread_ind);
                                 thread_it->join();
                                 *bitmap_it = 0;
@@ -5509,7 +5510,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         thread_ind_counter++;
                     }
                 }
-
+                std::cout << "getting parititon" << std::endl;
                 // multi_files[newThread_ind].clear();
                 if (s3spilled)
                 {
