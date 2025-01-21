@@ -2101,14 +2101,10 @@ unsigned long parseCSV(char *mapping, unsigned long start, std::string keys[], s
                     i++;
                     char_temp = mapping[i];
                 }
-                if (i + 1 < limit)
+                if (i + 1 < limit && mapping[i + 1] != '\n')
                 {
-                    char_temp = mapping[i + 1];
-                    if (char_temp != '\n')
-                    {
-                        readingMode++;
-                        i += 3;
-                    }
+                    readingMode++;
+                    i += 3;
                 }
                 else
                 {
