@@ -5433,7 +5433,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         char m_partition = 0;
         int counter = 0;
         char done = 0;
-        size_t max_size = 0;
+        size_t max_hmap_size = 0;
 
         std::list<std::thread> merge_threads(threadNumber);
         std::list<char> mergeThreads_done(threadNumber, 1);
@@ -5596,7 +5596,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     std::cout << std::endl;
                     std::string empty = "";
                     std::cout << "output file head: " << output_file_head << std::endl; */
-                    merge2(&emHashmap, m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, &done, &max_size, m_partition, -1, 0);
+                    merge2(&emHashmap, m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, &done, &max_hmap_size, m_partition, -1, 0);
                 }
             }
             // std::cout << " max_HashSizes[0]: " << max_HashSizes[0] << std::endl;
