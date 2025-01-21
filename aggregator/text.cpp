@@ -5426,7 +5426,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         size_t output_file_head = 0;
         bool add_new_thread = false;
-        std::vector<bool> restarted_threads(threadNumber, false);
+        std::vector<char> restarted_threads(threadNumber, 0);
         std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
         std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(threadNumber);
         std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>> merge_emHashmaps(threadNumber);
@@ -5477,7 +5477,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 char m_partition = 0;
                 int counter = 0;
                 add_new_thread = false;
-                restarted_threads.push_back(false);
+                restarted_threads.push_back(0);
 
                 merge_threads.push_back(std::thread());
                 mergeThreads_done.push_back(1);
@@ -5503,7 +5503,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                                 auto thread_it = std::next(merge_threads.begin(), newThread_ind);
                                 thread_it->join();
                                 *bitmap_it = 0;
-                                restarted_threads[newThread_ind] = true;
+                                restarted_threads[newThread_ind] = 1;
                                 bool temp_bool = true;
                                 for (auto &b : restarted_threads)
                                 {
