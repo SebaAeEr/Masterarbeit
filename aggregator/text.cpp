@@ -6037,7 +6037,7 @@ int main(int argc, char **argv)
         std::string f = argv[1];
         if (f.compare("status") == 0)
         {
-            std::string f2 = argv[1];
+            std::string f2 = argv[2];
             split_mana = f2.compare("dist") == 0;
             Aws::S3::S3Client minio_client_2 = init();
             printMana(&minio_client_2);
