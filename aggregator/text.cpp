@@ -626,7 +626,6 @@ void getDistManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomi
     if (done->compare_exchange_strong(asdf, true))
     {
         // manaFile mana;
-        std::cout << "getting mana" << std::endl;
         auto &out_stream = outcome.GetResult().GetBody();
         return_value->worker_lock = out_stream.get();
         return_value->thread_lock = out_stream.get();
@@ -829,20 +828,16 @@ manaFile getMana(Aws::S3::S3Client *minio_client, char worker_id = -1, char part
     {
         if (split_mana)
         {
-            std::cout << "is dist" << std::endl;
             if (partition_id != -1)
             {
-                std::cout << "getting dist partition" << std::endl;
                 getPartitionCall(minio_client, done, &mana, &donedone, worker_id, partition_id);
             }
             else if (worker_id != -1)
             {
-                std::cout << "getting dist worker" << std::endl;
                 getWorkerCall(minio_client, done, &mana, &donedone, worker_id);
             }
             else
             {
-                std::cout << "getting dist mana" << std::endl;
                 getDistManaCall(minio_client, done, &mana, &donedone);
             }
         }
@@ -864,7 +859,6 @@ manaFile getMana(Aws::S3::S3Client *minio_client, char worker_id = -1, char part
 bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, char worker_id, char partition_id)
 {
     auto write_start_time = std::chrono::high_resolution_clock::now();
-    std::cout << "Writing partition file: " << (int)(partition_id) << std::endl;
 
     while (true)
     {
@@ -889,7 +883,6 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
                 {
                     if (p.id == partition_id)
                     {
-                        std::cout << "Partition found" << std::endl;
                         partition = p;
                         break;
                     }
@@ -898,14 +891,12 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
             }
         }
 
-        std::cout << "num of files: " << partition.files.size() << std::endl;
         *in_stream << partition.id;
         char locked = partition.lock ? 1 : 0;
         *in_stream << locked;
 
         for (auto &file : partition.files)
         {
-            std::cout << "adding file: " << file.name << std::endl;
             in_mem_size += file.name.length() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * file.subfiles.size() * 2;
             char int_buf[sizeof(int)];
             *in_stream << file.name;
@@ -989,7 +980,6 @@ bool writeManaWorker(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLo
         {
             if (w.id == worker_id)
             {
-                std::cout << "Worker found" << std::endl;
                 worker = w;
                 break;
             }
@@ -1062,7 +1052,6 @@ bool writeDistMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
         // in_request.SetWriteOffsetBytes(1000);
-        std::cout << "writing mana size: " << in_mem_size << std::endl;
         auto in_outcome = minio_client->PutObject(in_request);
         if (!in_outcome.IsSuccess())
         {
