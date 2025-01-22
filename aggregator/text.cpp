@@ -473,7 +473,7 @@ void getPartitionCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atom
     std::string key = manag_file_name;
     key += "_";
     key += worker_id;
-    key += std::to_string((int)(partition));
+    key += std::to_string((int)(partition_id));
     request.SetKey(key);
     Aws::S3::Model::GetObjectOutcome outcome;
 
@@ -552,8 +552,8 @@ void getWorkerCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<
     Aws::S3::Model::GetObjectRequest request;
     request.SetBucket(bucketName);
     std::string key = manag_file_name;
-        key += "_";
-        key += worker_id;
+    key += "_";
+    key += worker_id;
     request.SetKey(key);
     Aws::S3::Model::GetObjectOutcome outcome;
 
@@ -875,7 +875,7 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
         std::string key = manag_file_name;
         key += "_";
         key += worker_id;
-        key += std::to_string((int)(partition));
+        key += std::to_string((int)(partition_id));
         std::cout << "key: " << key << std::endl;
         in_request.SetKey(key);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
