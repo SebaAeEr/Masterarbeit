@@ -486,7 +486,7 @@ void getPartitionCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atom
         // outcome.GetResult().SetObjectLockMode();
         if (!outcome.IsSuccess())
         {
-            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
+            std::cout << "Error opening partition manag_file: " << outcome.GetError().GetMessage() << std::endl;
         }
         else
         {
@@ -566,7 +566,7 @@ void getWorkerCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<
         // outcome.GetResult().SetObjectLockMode();
         if (!outcome.IsSuccess())
         {
-            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
+            std::cout << "Error opening worker manag_file: " << outcome.GetError().GetMessage() << std::endl;
         }
         else
         {
@@ -588,10 +588,6 @@ void getWorkerCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<
             partition part;
             part.id = out_stream.get();
             part.lock = out_stream.get() == 1;
-            manaFile mana_temp;
-            getPartitionCall(minio_client, p_done, &mana_temp, &p_donedone, worker_id, part.id);
-            part.files = mana_temp.workers[0].partitions[0].files;
-            worker.partitions.push_back(part);
         }
         return_value->workers.push_back(worker);
         *donedone = true;
@@ -641,10 +637,6 @@ void getDistManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomi
             char workerid = out_stream.get();
             worker.id = workerid;
             worker.locked = out_stream.get() == 1;
-            manaFile mana_temp;
-            getWorkerCall(minio_client, w_done, &mana_temp, &w_donedone, worker_id);
-            worker.partitions = mana_temp.workers[0].partitions;
-            return_value->workers.push_back(worker);
         }
         *donedone = true;
     }
