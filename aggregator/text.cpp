@@ -836,16 +836,20 @@ manaFile getMana(Aws::S3::S3Client *minio_client, char worker_id = -1, char part
     {
         if (split_mana)
         {
+            std::cout << "is dist" << std::endl;
             if (partition_id != -1)
             {
+                std::cout << "getting dist partition" << std::endl;
                 getPartitionCall(minio_client, done, &mana, &donedone, worker_id, partition_id);
             }
             else if (worker_id != -1)
             {
+                std::cout << "getting dist worker" << std::endl;
                 getWorkerCall(minio_client, done, &mana, &donedone, worker_id);
             }
             else
             {
+                std::cout << "getting dist mana" << std::endl;
                 getDistManaCall(minio_client, done, &mana, &donedone);
             }
         }
