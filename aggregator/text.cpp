@@ -887,7 +887,8 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
 
         std::cout << "num of files: " << partition.files.size() << std::endl;
         *in_stream << partition.id;
-        *in_stream << partition.lock;
+        char locked = partition.lock ? 1 : 0;
+        *in_stream << locked;
 
         for (auto &file : partition.files)
         {
