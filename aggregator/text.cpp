@@ -6005,7 +6005,7 @@ int main(int argc, char **argv)
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
-    Aws::S3::S3Client minio_client_3 = init();
+    /* Aws::S3::S3Client minio_client_3 = init();
     worker_id = '1';
     manaFile mana_worker;
     mana_worker.workers.push_back(manaFileWorker());
@@ -6022,7 +6022,7 @@ int main(int argc, char **argv)
     }
     std::cout << "Writing worker file" << std::endl;
     writeMana(&minio_client_3, mana_worker, false, worker_id);
-    return 1;
+    return 1; */
 
     // Status request of Mana file
     if (argc == 3)
