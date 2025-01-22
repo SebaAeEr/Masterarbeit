@@ -3198,7 +3198,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                             part.id = p;
                             part.lock = false;
                             mana_worker.workers[0].partitions.push_back(part);
-                            
+
                             writeMana(minio_client, mana_worker, false, worker_id, p);
                         }
                         writeMana(minio_client, mana_worker, false, worker_id);
@@ -5985,6 +5985,22 @@ int main(int argc, char **argv)
     Aws::SDKOptions options;
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
+
+    Aws::S3::S3Client minio_client_3 = init();
+    manaFile mana_worker;
+    mana_worker.workers.push_back(manaFileWorker());
+    std::cout << "Adding partition file" << std::endl;
+    for (char p = 0; p < 5; p++)
+    {
+        partition part;
+        part.id = p;
+        part.lock = false;
+        mana_worker.workers[0].partitions.push_back(part);
+
+        writeMana(&minio_client_3, mana_worker, false, worker_id, p);
+    }
+    writeMana(&minio_client_3, mana_worker, false, worker_id);
+    return 1;
 
     // Status request of Mana file
     if (argc == 3)
