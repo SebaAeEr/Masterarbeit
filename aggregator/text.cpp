@@ -5342,7 +5342,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         }
         comb_hash_size.fetch_sub(emHashmaps[0].size());
         emHashmap = emHashmaps[0];
-        emHashmaps[0] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
+        // emHashmaps[0] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
     }
     else
     {
