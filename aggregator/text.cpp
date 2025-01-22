@@ -493,6 +493,8 @@ void getPartitionCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atom
     {
         auto &out_stream = outcome.GetResult().GetBody();
         partition partition;
+        partition.id = out_stream.get();
+        partition.lock = out_stream.get();
         while (out_stream.peek() != EOF)
         {
             file file;
@@ -857,13 +859,14 @@ manaFile getMana(Aws::S3::S3Client *minio_client, char worker_id = -1, char part
 bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, char worker_id, char partition_id)
 {
     auto write_start_time = std::chrono::high_resolution_clock::now();
+    std::cout << "Writing partition file: " << partition_id << std::endl;
     while (true)
     {
         Aws::S3::Model::PutObjectRequest in_request;
         in_request.SetBucket(bucketName);
         in_request.SetKey(manag_file_name + "_" + worker_id + "_" + partition_id);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-        size_t in_mem_size = 0;
+        size_t in_mem_size = 2;
         partition partition;
 
         for (auto &w : mana.workers)
@@ -881,6 +884,10 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
                 break;
             }
         }
+
+        std::cout << "num of files: " << partition.files << std::endl;
+        *in_stream << partition.id;
+        *in_stream << partition.lock;
 
         for (auto &file : partition.files)
         {
@@ -3186,6 +3193,8 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                         mana_partition.workers[0].partitions.push_back(partition());
                         for (char p = 0; p < partitions; p++)
                         {
+                            mana_partition.workers[0].partitions[0].id = p;
+                            mana_partition.workers[0].partitions[0].lock = false;
                             writeMana(minio_client, mana_partition, false, worker_id, p);
                             partition part;
                             part.id = p;
@@ -5978,11 +5987,13 @@ int main(int argc, char **argv)
     Aws::InitAPI(options);
 
     // Status request of Mana file
-    if (argc == 2)
+    if (argc == 3)
     {
         std::string f = argv[1];
         if (f.compare("status") == 0)
         {
+            std::string f2 = argv[1];
+            split_mana = f2.compare("dist") == 0;
             Aws::S3::S3Client minio_client_2 = init();
             printMana(&minio_client_2);
             Aws::ShutdownAPI(options);
