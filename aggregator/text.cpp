@@ -877,7 +877,7 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
         key += worker_id;
         key += std::to_string((int)(partition_id));
         std::cout << "key: " << key << std::endl;
-        in_request.SetKey(key);
+        in_request.SetKey("test");
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         size_t in_mem_size = 2;
         partition partition;
