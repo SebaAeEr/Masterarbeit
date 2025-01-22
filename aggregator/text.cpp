@@ -470,7 +470,11 @@ void getPartitionCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atom
 {
     Aws::S3::Model::GetObjectRequest request;
     request.SetBucket(bucketName);
-    request.SetKey(manag_file_name + "_" + worker_id + "_" + partition_id);
+    std::string key = manag_file_name;
+    key += "_";
+    key += worker_id;
+    key += std::to_string((int)(partition));
+    request.SetKey(key);
     Aws::S3::Model::GetObjectOutcome outcome;
 
     while (true)
@@ -547,7 +551,10 @@ void getWorkerCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<
 {
     Aws::S3::Model::GetObjectRequest request;
     request.SetBucket(bucketName);
-    request.SetKey(manag_file_name + "_" + worker_id);
+    std::string key = manag_file_name;
+        key += "_";
+        key += worker_id;
+    request.SetKey(key);
     Aws::S3::Model::GetObjectOutcome outcome;
 
     while (true)
@@ -861,31 +868,18 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
     auto write_start_time = std::chrono::high_resolution_clock::now();
     std::cout << "Writing partition file: " << (int)(partition_id) << std::endl;
 
-    Aws::S3::Model::PutObjectRequest request;
-    request.SetBucket(bucketName);
-    request.SetKey(manag_file_name + "_" + worker_id + "_" + std::to_string((int)(partition_id)));
-    // Calc spill size
-    const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-    *in_stream << "locked";
-    request.SetContentLength(6);
-    request.SetBody(in_stream);
-    auto outcome = minio_client->PutObject(request);
-    if (!outcome.IsSuccess())
-    {
-        std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-    /* while (true)
+    while (true)
     {
         Aws::S3::Model::PutObjectRequest in_request;
         in_request.SetBucket(bucketName);
-        in_request.SetKey(manag_file_name + "_" + worker_id + "_" + partition_id);
+        std::string key = manag_file_name;
+        key += "_";
+        key += worker_id;
+        key += std::to_string((int)(partition));
+        std::cout << "key: " << key << std::endl;
+        in_request.SetKey(key);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-        size_t in_mem_size = 6;
+        size_t in_mem_size = 2;
         partition partition;
 
         for (auto &w : mana.workers)
@@ -906,13 +900,9 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
         }
 
         std::cout << "num of files: " << partition.files.size() << std::endl;
-        *in_stream << "locked";
-        //*in_stream << partition.id;
-        /* *in_stream << partition.id;
-        std::cout << partition.id;
+        *in_stream << partition.id;
         char locked = partition.lock ? 1 : 0;
         *in_stream << locked;
-        std::cout << locked;
 
         for (auto &file : partition.files)
         {
@@ -979,7 +969,7 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
             log_file.write_mana_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - write_start_time).count());
             return 1;
         }
-    } */
+    }
 }
 
 bool writeManaWorker(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, char worker_id)
@@ -989,7 +979,10 @@ bool writeManaWorker(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLo
     {
         Aws::S3::Model::PutObjectRequest in_request;
         in_request.SetBucket(bucketName);
-        in_request.SetKey(manag_file_name + "_" + worker_id);
+        std::string key = manag_file_name;
+        key += "_";
+        key += worker_id;
+        in_request.SetKey(key);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         manaFileWorker worker;
         size_t in_mem_size = 0;
