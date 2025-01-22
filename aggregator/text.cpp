@@ -5319,7 +5319,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::vector<std::vector<std::pair<std::string, size_t>>> local_spill_files_temp(threadNumber, std::vector<std::pair<std::string, size_t>>(partitions, {"", 0}));
 
     bool keep_hashmaps = partitions == 1 || (float)(comb_spill_size.load()) / size > 0.1;
-    std::cout << "keep hashmaps: " << keep_hashmaps << ": " << partitions << " == 1 || " << comb_spill_size / size << " > 0.1" << std::endl;
+    std::cout << "keep hashmaps: " << keep_hashmaps << ": " << partitions << " == 1 || " << (float)(comb_spill_size.load()) / size << " > 0.1" << std::endl;
     if (keep_hashmaps)
     {
         for (int i = 1; i < threadNumber; i++)
