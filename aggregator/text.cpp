@@ -863,16 +863,18 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
 
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket(bucketName);
-    request.SetKey(manag_file_name + "_" + worker_id + "_" + std::to_string((int)(partition_id)));
+    request.SetKey(lock_file_name);
+    // Calc spill size
     const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
     *in_stream << "locked";
     request.SetContentLength(6);
     request.SetBody(in_stream);
+    request.SetIfNoneMatch("*");
 
     auto outcome = minio_client->PutObject(request);
     if (!outcome.IsSuccess())
     {
-        std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
+        // std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
         return false;
     }
     else
