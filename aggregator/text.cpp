@@ -209,6 +209,10 @@ int mergeThreads_number = 0;
 
 std::mutex partitions_set_lock;
 
+bool dynamic_extension = true;
+
+int static_partition_number = -1;
+
 // hash function for an long array
 auto hash = [](const std::array<unsigned long, max_size> a)
 {
@@ -1487,7 +1491,14 @@ void setPartitionNumber(size_t comb_hash_size)
 {
     if (set_partitions)
     {
-        partitions = ceil(comb_hash_size / partition_size);
+        if (static_partition_number == -1)
+        {
+            partitions = ceil(comb_hash_size / partition_size);
+        }
+        else
+        {
+            partitions = static_partition_number;
+        }
         // partitions = 2;
         std::cout << "Set partition number to: " << partitions << std::endl;
     }
@@ -5424,22 +5435,45 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
     {
+
+        if (!dynamic_extension)
+        {
+            size_t p_size = 0;
+            size_t file_size = 0;
+            size_t available_mem = memLimit - base_size;
+            manaFile mana = getMana(&minio_client, worker_id, 0);
+            for (auto &w : mana.workers)
+            {
+                if (w.id == worker_id)
+                {
+                    for (auto &f : w.partitions[0].files)
+                    {
+                        for (auto &sub_f : f.subfiles)
+                        {
+                            file_size = std::max(file_size, get<0>(sub_f));
+                            p_size += get<1>(sub_f);
+                        }
+                    }
+                }
+            }
+        }
+
         size_t output_file_head = 0;
         bool add_new_thread = false;
-        std::vector<char> restarted_threads(threadNumber, 0);
+        std::vector<char> restarted_threads(mergeThreads_number, 0);
         std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
-        std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(threadNumber);
-        std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>> merge_emHashmaps(threadNumber);
-        std::list<size_t> max_HashSizes(threadNumber, 0);
-        std::list<char> thread_bitmap(threadNumber, 0);
-        std::list<std::vector<std::pair<std::string, size_t>> *> multi_spills(threadNumber);
+        std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(mergeThreads_number);
+        std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>> merge_emHashmaps(mergeThreads_number);
+        std::list<size_t> max_HashSizes(mergeThreads_number, 0);
+        std::list<char> thread_bitmap(mergeThreads_number, 0);
+        std::list<std::vector<std::pair<std::string, size_t>> *> multi_spills(mergeThreads_number);
         char m_partition = 0;
         int counter = 0;
         char done = 0;
         size_t max_hmap_size = 0;
 
-        std::list<std::thread> merge_threads(threadNumber);
-        std::list<char> mergeThreads_done(threadNumber, 1);
+        std::list<std::thread> merge_threads(mergeThreads_number);
+        std::list<char> mergeThreads_done(mergeThreads_number, 1);
         if (spills.size() == 0)
         {
             spills.push_back(std::vector<std::pair<std::string, size_t>>(0));
@@ -5465,7 +5499,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 }
             }
             std::cout << std::endl;
-            if (!thread_done && add_new_thread && (comb_hash_size * avg + base_size) / thread_bitmap.size() < memLimit - (comb_hash_size * avg + base_size))
+            if (dynamic_extension && !thread_done && add_new_thread && (comb_hash_size * avg + base_size) / thread_bitmap.size() < memLimit - (comb_hash_size * avg + base_size))
             {
                 std::cout << "Adding new Thread" << std::endl;
                 merge_emHashmaps.push_back(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>());
@@ -5950,6 +5984,9 @@ int main(int argc, char **argv)
     std::vector<size_t> max_s3_spill_size_vec(1, max_s3_spill_size);
     std::vector<std::string> memLimit_string_vec(1);
     std::vector<std::string> memLimitBack_string_vec(1);
+    std::vector<bool> dynamic_extension_vec(1, dynamic_extension);
+    std::vector<int> static_partition_number_vec(1, static_partition_number);
+    std::vector<int> mergeThreads_number_vec(1, mergeThreads_number);
 
     // If no conf file is used configuration can be obtained directly from command (legacy)
     if (argc == 10)
@@ -6105,6 +6142,21 @@ int main(int argc, char **argv)
                 max_s3_spill_size_vec[iteration] = std::stof(value);
                 break;
             }
+            case str2int("dynamic_extension"):
+            {
+                dynamic_extension_vec[iteration] = value.compare("true") == 0;
+                break;
+            }
+            case str2int("static_partition_number"):
+            {
+                static_partition_number_vec[iteration] = std::stoi(value);
+                break;
+            }
+            case str2int("merge_thread_number"):
+            {
+                mergeThreads_number_vec[iteration] = std::stoi(value);
+                break;
+            }
             case str2int("iteration"):
             {
                 memLimit_vec.push_back(memLimit_vec[0]);
@@ -6122,6 +6174,9 @@ int main(int argc, char **argv)
                 partition_size_vec.push_back(partition_size_vec[0]);
                 mapping_max_vec.push_back(mapping_max_vec[0]);
                 max_s3_spill_size_vec.push_back(max_s3_spill_size_vec[0]);
+                dynamic_extension_vec.push_back(dynamic_extension_vec[0]);
+                static_partition_number_vec.push_back(static_partition_number_vec[0]);
+                mergeThreads_number_vec.push_back(mergeThreads_number_vec[0]);
                 iteration++;
                 break;
             }
@@ -6216,6 +6271,9 @@ int main(int argc, char **argv)
         partition_size = partition_size_vec[i];
         mapping_max = mapping_max_vec[i];
         max_s3_spill_size = max_s3_spill_size_vec[i];
+        dynamic_extension = dynamic_extension_vec[i];
+        static_partition_number = static_partition_number_vec[i];
+        mergeThreads_number = mergeThreads_number_vec[i];
 
         // setup mana file
         initManagFile(&minio_client);
