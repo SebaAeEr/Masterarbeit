@@ -1088,7 +1088,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
     {
         if (partition_id != -1)
         {
-            std::cout "Writing mana partition" << std::endl;
+            std::cout << "Writing mana partition" << std::endl;
             return writeManaPartition(minio_client, mana, freeLock, worker_id, partition_id);
         }
         else if (worker_id != -1)
