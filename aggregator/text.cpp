@@ -6032,6 +6032,7 @@ int main(int argc, char **argv)
         split_mana = true;
         initManagFile(&minio_client_3);
         manaFile mana_worker;
+        mana_worker.id = worker_id;
         mana_worker.workers.push_back(manaFileWorker());
 
         for (char p = 0; p < 5; p++)
