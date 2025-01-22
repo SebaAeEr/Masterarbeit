@@ -473,6 +473,7 @@ void getPartitionCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atom
     std::string key = manag_file_name;
     key += "_";
     key += worker_id;
+    key += "_";
     key += std::to_string((int)(partition_id));
     request.SetKey(key);
     Aws::S3::Model::GetObjectOutcome outcome;
@@ -878,7 +879,7 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
         key += "_";
         key += std::to_string((int)(partition_id));
         std::cout << "key: " << key << std::endl;
-        in_request.SetKey("test");
+        in_request.SetKey(key);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         size_t in_mem_size = 2;
         partition partition;
