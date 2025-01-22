@@ -626,7 +626,7 @@ void getDistManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomi
     if (done->compare_exchange_strong(asdf, true))
     {
         // manaFile mana;
-
+        std::cout << "getting mana" << std::endl;
         auto &out_stream = outcome.GetResult().GetBody();
         return_value->worker_lock = out_stream.get();
         return_value->thread_lock = out_stream.get();
@@ -637,6 +637,7 @@ void getDistManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomi
             char workerid = out_stream.get();
             worker.id = workerid;
             worker.locked = out_stream.get() == 1;
+            return_value->workers.push_back(worker);
         }
         *donedone = true;
     }
