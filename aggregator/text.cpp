@@ -1368,7 +1368,7 @@ void printMana(Aws::S3::S3Client *minio_client)
             {
                 std::cout << "getting partition mana" << std::endl;
                 manaFile mana_partition = getMana(minio_client, w.id, p.id);
-                std::cout << "got partition mana: " << mana_partition.workers[0].partitions[0].size() << std::endl;
+                std::cout << "got partition mana: " << mana_partition.workers[0].partitions[0].files.size() << std::endl;
                 p.files = mana_partition.workers[0].partitions[0].files;
             }
         }
