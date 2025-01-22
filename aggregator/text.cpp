@@ -6013,27 +6013,6 @@ int main(int argc, char **argv)
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
-    Aws::S3::S3Client minio_client_3 = init();
-    worker_id = '1';
-    split_mana = true;
-    initManagFile(&minio_client_3);
-    manaFile mana_worker;
-    mana_worker.workers.push_back(manaFileWorker());
-
-    for (char p = 0; p < 5; p++)
-    {
-        std::cout << "Adding partition file: " << (int)(p) << std::endl;
-        partition part;
-        part.id = p;
-        part.lock = false;
-        mana_worker.workers[0].partitions.push_back(part);
-
-        writeMana(&minio_client_3, mana_worker, false, worker_id, p);
-    }
-    std::cout << "Writing worker file" << std::endl;
-    writeMana(&minio_client_3, mana_worker, false, worker_id);
-    return 1;
-
     // Status request of Mana file
     if (argc == 3 || argc == 2)
     {
@@ -6047,6 +6026,29 @@ int main(int argc, char **argv)
             Aws::ShutdownAPI(options);
             return 1;
         }
+    }
+    else
+    {
+        Aws::S3::S3Client minio_client_3 = init();
+        worker_id = '1';
+        split_mana = true;
+        initManagFile(&minio_client_3);
+        manaFile mana_worker;
+        mana_worker.workers.push_back(manaFileWorker());
+
+        for (char p = 0; p < 5; p++)
+        {
+            std::cout << "Adding partition file: " << (int)(p) << std::endl;
+            partition part;
+            part.id = p;
+            part.lock = false;
+            mana_worker.workers[0].partitions.push_back(part);
+
+            writeMana(&minio_client_3, mana_worker, false, worker_id, p);
+        }
+        std::cout << "Writing worker file" << std::endl;
+        writeMana(&minio_client_3, mana_worker, false, worker_id);
+        return 1;
     }
 
     // set pagesize with system pagesize
