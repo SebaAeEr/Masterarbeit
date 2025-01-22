@@ -877,6 +877,7 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
                 {
                     if (p.id == partition_id)
                     {
+                        std::cout << "Partition found" << std::endl;
                         partition = p;
                         break;
                     }
@@ -892,6 +893,7 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
 
         for (auto &file : partition.files)
         {
+            std::cout << "adding file: " << file.name << std::endl;
             in_mem_size += file.name.length() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * file.subfiles.size();
             char int_buf[sizeof(int)];
             *in_stream << file.name;
@@ -1044,7 +1046,7 @@ bool writeDistMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock
         in_request.SetBody(in_stream);
         in_request.SetContentLength(in_mem_size);
         // in_request.SetWriteOffsetBytes(1000);
-        // std::cout << "writing mana" << std::endl;
+        std::cout << "writing mana size: " << in_mem_size << std::endl;
         auto in_outcome = minio_client->PutObject(in_request);
         if (!in_outcome.IsSuccess())
         {
@@ -3187,20 +3189,17 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     }
                     if (split_mana)
                     {
-                        manaFile mana_partition;
                         manaFile mana_worker;
                         mana_worker.workers.push_back(manaFileWorker());
-                        mana_partition.workers.push_back(manaFileWorker());
-                        mana_partition.workers[0].partitions.push_back(partition());
+                        std::cout << "Adding partition file" << std::endl;
                         for (char p = 0; p < partitions; p++)
                         {
-                            mana_partition.workers[0].partitions[0].id = p;
-                            mana_partition.workers[0].partitions[0].lock = false;
-                            writeMana(minio_client, mana_partition, false, worker_id, p);
                             partition part;
                             part.id = p;
                             part.lock = false;
                             mana_worker.workers[0].partitions.push_back(part);
+                            
+                            writeMana(minio_client, mana_worker, false, worker_id, p);
                         }
                         writeMana(minio_client, mana_worker, false, worker_id);
                     }
