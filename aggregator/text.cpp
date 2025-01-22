@@ -616,7 +616,7 @@ void getDistManaCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomi
         // outcome.GetResult().SetObjectLockMode();
         if (!outcome.IsSuccess())
         {
-            std::cout << "Error opening manag_file: " << outcome.GetError().GetMessage() << std::endl;
+            std::cout << "Error opening dist manag_file: " << outcome.GetError().GetMessage() << std::endl;
         }
         else
         {
@@ -6012,11 +6012,13 @@ int main(int argc, char **argv)
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
-    /* Aws::S3::S3Client minio_client_3 = init();
+    Aws::S3::S3Client minio_client_3 = init();
     worker_id = '1';
+    split_mana = true;
+    initManagFile(&minio_client_3);
     manaFile mana_worker;
     mana_worker.workers.push_back(manaFileWorker());
-    split_mana = true;
+
     for (char p = 0; p < 5; p++)
     {
         std::cout << "Adding partition file: " << (int)(p) << std::endl;
@@ -6029,15 +6031,15 @@ int main(int argc, char **argv)
     }
     std::cout << "Writing worker file" << std::endl;
     writeMana(&minio_client_3, mana_worker, false, worker_id);
-    return 1; */
+    return 1;
 
     // Status request of Mana file
-    if (argc == 3)
+    if (argc == 3 || argc == 2)
     {
         std::string f = argv[1];
         if (f.compare("status") == 0)
         {
-            std::string f2 = argv[2];
+            std::string f2 = argc == 3 ? argv[2] : "nope";
             split_mana = f2.compare("dist") == 0;
             Aws::S3::S3Client minio_client_2 = init();
             printMana(&minio_client_2);
