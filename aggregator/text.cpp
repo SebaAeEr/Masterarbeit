@@ -1358,6 +1358,7 @@ void printMana(Aws::S3::S3Client *minio_client)
     std::cout << "got mana: " << mana.workers.size() << std::endl;
     if (split_mana)
     {
+        std::cout << "split mana" << std::endl;
         for (auto &w : mana.workers)
         {
             std::cout << "getting worker mana" << std::endl;
