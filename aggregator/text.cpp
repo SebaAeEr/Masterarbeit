@@ -5991,7 +5991,7 @@ int main(int argc, char **argv)
     Aws::S3::S3Client minio_client_3 = init();
     manaFile mana_worker;
     mana_worker.workers.push_back(manaFileWorker());
-
+    split_mana = true;
     for (char p = 0; p < 5; p++)
     {
         std::cout << "Adding partition file: " << (int)(p) << std::endl;
