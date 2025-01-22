@@ -874,7 +874,7 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
     auto outcome = minio_client->PutObject(request);
     if (!outcome.IsSuccess())
     {
-        // std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
+        std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
         return false;
     }
     else
