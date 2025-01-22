@@ -906,7 +906,7 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
         for (auto &file : partition.files)
         {
             std::cout << "adding file: " << file.name << std::endl;
-            in_mem_size += file.name.length() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * file.subfiles.size();
+            in_mem_size += file.name.length() + 2 + sizeof(int) + sizeof(size_t) + sizeof(size_t) * file.subfiles.size() * 2;
             char int_buf[sizeof(int)];
             *in_stream << file.name;
             *in_stream << ',';
