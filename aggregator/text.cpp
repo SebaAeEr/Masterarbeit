@@ -869,8 +869,6 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
     *in_stream << "locked";
     request.SetContentLength(6);
     request.SetBody(in_stream);
-    request.SetIfNoneMatch("*");
-
     auto outcome = minio_client->PutObject(request);
     if (!outcome.IsSuccess())
     {
