@@ -974,6 +974,7 @@ bool writeManaWorker(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLo
         {
             if (w.id == worker_id)
             {
+                std::cout << "Worker found" << std::endl;
                 worker = w;
                 break;
             }
@@ -1087,6 +1088,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
     {
         if (partition_id != -1)
         {
+            std::cout "Writing mana partition" << std::endl;
             return writeManaPartition(minio_client, mana, freeLock, worker_id, partition_id);
         }
         else if (worker_id != -1)
@@ -5989,9 +5991,10 @@ int main(int argc, char **argv)
     Aws::S3::S3Client minio_client_3 = init();
     manaFile mana_worker;
     mana_worker.workers.push_back(manaFileWorker());
-    std::cout << "Adding partition file" << std::endl;
+
     for (char p = 0; p < 5; p++)
     {
+        std::cout << "Adding partition file: " << (int)(p) << std::endl;
         partition part;
         part.id = p;
         part.lock = false;
@@ -5999,6 +6002,7 @@ int main(int argc, char **argv)
 
         writeMana(&minio_client_3, mana_worker, false, worker_id, p);
     }
+    std::cout << "Writing worker file" << std::endl;
     writeMana(&minio_client_3, mana_worker, false, worker_id);
     return 1;
 
