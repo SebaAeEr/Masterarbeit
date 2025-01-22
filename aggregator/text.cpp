@@ -5440,6 +5440,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
         std::list<std::thread> merge_threads(threadNumber);
         std::list<char> mergeThreads_done(threadNumber, 1);
+        
         if (spills.size() == 0)
         {
             spills.push_back(std::vector<std::pair<std::string, size_t>>(0));
