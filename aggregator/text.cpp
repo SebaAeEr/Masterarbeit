@@ -875,6 +875,7 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
         std::string key = manag_file_name;
         key += "_";
         key += worker_id;
+        key += "_";
         key += std::to_string((int)(partition_id));
         std::cout << "key: " << key << std::endl;
         in_request.SetKey("test");
@@ -6005,6 +6006,7 @@ int main(int argc, char **argv)
     Aws::InitAPI(options);
 
     Aws::S3::S3Client minio_client_3 = init();
+    worker_id = '1';
     manaFile mana_worker;
     mana_worker.workers.push_back(manaFileWorker());
     split_mana = true;
