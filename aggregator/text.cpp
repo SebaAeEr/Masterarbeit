@@ -6282,7 +6282,7 @@ int main(int argc, char **argv)
     std::string agg_output = "output_" + test_file;
     // set minio_client
     Aws::S3::S3Client minio_client = init();
-    std::cout << "Iterations: " << iteration + 1 << std::endl;
+    std::cout << "Iterations: " << memLimit_vec.size() << std::endl;
     // show Progress Bar only when we have 1 iteration; with more iterations it is expected user reads output in nohup.out file
     showProgressBar = iteration == 0;
 
