@@ -165,7 +165,7 @@ bool mergePhase = false;
 // Whether more than 1 partitions should be set
 bool set_partitions = true;
 // Whether multiple get requests for the Mana file should be send after a timelimit
-bool straggler_removal = true;
+bool straggler_removal = false;
 // Whether multiple partitions should be merged in parallel
 bool multiThread_merge = true;
 // Whether given files should be merged in parallel
