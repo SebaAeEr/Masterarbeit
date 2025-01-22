@@ -579,7 +579,7 @@ void getWorkerCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<
     if (done->compare_exchange_strong(asdf, true))
     {
         // manaFile mana;
-
+        std::cout << "Getting worker" << std::endl;
         auto &out_stream = outcome.GetResult().GetBody();
         manaFileWorker worker;
 
@@ -588,6 +588,7 @@ void getWorkerCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<
             partition part;
             part.id = out_stream.get();
             part.lock = out_stream.get() == 1;
+            worker.partitions.push_back(part);
         }
         return_value->workers.push_back(worker);
         *donedone = true;
