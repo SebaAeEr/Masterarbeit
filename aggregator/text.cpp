@@ -5318,7 +5318,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
     std::vector<std::vector<std::pair<std::string, size_t>>> local_spill_files_temp(threadNumber, std::vector<std::pair<std::string, size_t>>(partitions, {"", 0}));
 
-    bool keep_hashmaps = partitions == 1 || (float) (comb_spill_size.load()) / size > 0.1;
+    bool keep_hashmaps = partitions == 1 || (float)(comb_spill_size.load()) / size > 0.1;
     std::cout << "keep hashmaps: " << keep_hashmaps << ": " << partitions << " == 1 || " << comb_spill_size / size << " > 0.1" << std::endl;
     if (keep_hashmaps)
     {
@@ -5458,7 +5458,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         if (!dynamic_extension && !keep_hashmaps)
         {
-            size_t p_size = 0;
+            /* size_t p_size = 0;
             size_t file_size = 0;
             size_t available_mem = memLimit - base_size;
             manaFile mana = getMana(&minio_client, worker_id, 0);
@@ -5475,7 +5475,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         }
                     }
                 }
-            }
+            } */
+            mergeThreads_number = threadNumber;
         }
         size_t output_file_head = 0;
         bool add_new_thread = false;
