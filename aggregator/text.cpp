@@ -5318,8 +5318,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
     std::vector<std::vector<std::pair<std::string, size_t>>> local_spill_files_temp(threadNumber, std::vector<std::pair<std::string, size_t>>(partitions, {"", 0}));
 
-    bool keep_hashmaps = partitions == 1 || (float)(comb_spill_size.load()) / size > 0.1;
-    std::cout << "keep hashmaps: " << keep_hashmaps << ": " << partitions << " == 1 || " << (float)(comb_spill_size.load()) / size << " > 0.1" << std::endl;
+    bool keep_hashmaps = partitions == 1 || (float)(comb_spill_size.load()) / size < 0.1;
+    std::cout << "keep hashmaps: " << keep_hashmaps << ": " << partitions << " == 1 || " << (float)(comb_spill_size.load()) / size << " < 0.1" << std::endl;
     if (keep_hashmaps)
     {
         for (int i = 1; i < threadNumber; i++)
@@ -6019,6 +6019,7 @@ int main(int argc, char **argv)
     std::vector<bool> multiThread_subMerge_vec(1, multiThread_subMerge);
     std::vector<bool> straggler_removal_vec(1, straggler_removal);
     std::vector<bool> use_file_queue_vec(1, use_file_queue);
+    std::vector<bool> split_mana_vec(1, split_mana);
     std::vector<float> partition_size_vec(1, partition_size);
     std::vector<size_t> mapping_max_vec(1, mapping_max);
     std::vector<size_t> max_s3_spill_size_vec(1, max_s3_spill_size);
@@ -6197,6 +6198,11 @@ int main(int argc, char **argv)
                 mergeThreads_number_vec[iteration] = std::stoi(value);
                 break;
             }
+            case str2int("split_mana"):
+            {
+                split_mana_vec[iteration] = value.compare("true") == 0;
+                break;
+            }
             case str2int("iteration"):
             {
                 memLimit_vec.push_back(memLimit_vec[0]);
@@ -6217,6 +6223,7 @@ int main(int argc, char **argv)
                 dynamic_extension_vec.push_back(dynamic_extension_vec[0]);
                 static_partition_number_vec.push_back(static_partition_number_vec[0]);
                 mergeThreads_number_vec.push_back(mergeThreads_number_vec[0]);
+                split_mana_vec.push_back(split_mana_vec[0]);
                 iteration++;
                 break;
             }
@@ -6314,6 +6321,7 @@ int main(int argc, char **argv)
         dynamic_extension = dynamic_extension_vec[i];
         static_partition_number = static_partition_number_vec[i];
         mergeThreads_number = mergeThreads_number_vec[i];
+        split_mana = split_mana_vec[i];
 
         // setup mana file
         initManagFile(&minio_client);
