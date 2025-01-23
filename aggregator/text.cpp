@@ -1907,7 +1907,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
     return;
 }
 
-size_t calc_outputSize(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>>::iterator hmap)
+size_t calc_outputSize(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap)
 {
     size_t output_size = 0;
     // Calc the output size for hmap.
@@ -1967,7 +1967,7 @@ size_t calc_outputSize(std::list<emhash8::HashMap<std::array<unsigned long, max_
  *
  * @return new size of output file
  */
-void writeHashmap(std::list<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>>::iterator hmap, unsigned long *output_size, unsigned long free_mem, std::string &outputfilename)
+void writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, unsigned long *output_size, unsigned long free_mem, std::string &outputfilename)
 {
     auto write_start_time = std::chrono::high_resolution_clock::now();
     size_t added_size = calc_outputSize(hmap);
