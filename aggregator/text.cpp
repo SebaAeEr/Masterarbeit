@@ -1957,10 +1957,6 @@ size_t calc_outputSize(std::list<emhash8::HashMap<std::array<unsigned long, max_
     return output_size;
 }
 
-void writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap, unsigned long *output_size, unsigned long free_mem, std::string &outputfilename)
-{
-}
-
 /**
  * @brief Write hashmap hmap into output file.
  *
