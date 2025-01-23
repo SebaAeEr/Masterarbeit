@@ -4616,7 +4616,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     //  std::cout << " to " << input_head_base << " by: " << (s3spillNames2->size() - s3spillFile_head) % merge_file_num << std::endl;
                 }
                 counter = 0;
-                while (input_head_base < comb_spill_size)
+                while ((deencode && input_head_base < comb_spill_size) || (!deencode && input_head_base * sizeof(long) < comb_spill_size))
                 {
                     start_heads_local[counter] = input_head_base;
                     std::cout << "counter: " << counter << " merging local input_head_base: " << input_head_base;
