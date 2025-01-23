@@ -3931,7 +3931,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         if ((!deencode && i >= sum / sizeof(long)) || (deencode && i >= sum))
         {
             // std::cout << t_id << ": new mapping" << std::endl;
-            if (i != sum && i != *input_head_base)
+            if ((!deencode && i != sum / sizeof(long)) || (deencode && i != sum) && i != *input_head_base)
             {
                 std::cout << "i!=sum! i: " << i << " sum: " << sum << std::endl;
             }
@@ -4161,8 +4161,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         }
         else
         {
-            diff->fetch_add((newi - ognewi) * sizeof(long));
-            diff_diff += (newi - ognewi) * sizeof(long);
+            diff->fetch_add((newi - ognewi + 1) * sizeof(long));
+            diff_diff += (newi - ognewi + 1) * sizeof(long);
         }
 
         // log_file.sizes["get_tuple_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - read_tuple_start).count();
