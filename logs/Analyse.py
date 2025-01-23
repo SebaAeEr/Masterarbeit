@@ -836,10 +836,7 @@ def c_size_by_time():
     #     "logfile_13_6_0_4_18-32.json",
     # ]
     # labels = np.array(["with compression", "without compression"])
-    names = [
-        "logfile_4_6_0_4_08-17.json",
-        "logfile_4_6_0_4_09-30.json"
-    ]
+    names = ["logfile_4_6_0_4_08-17.json", "logfile_4_6_0_4_09-30.json"]
     labels = np.array(["cold", "warm"])
     try:
         directory = "c++_logs"
@@ -864,7 +861,7 @@ def c_size_by_time():
 
     # Step 3: Create the plot
     plt.figure(1)
-    #plt.rcParams.update({"font.size": 35})
+    # plt.rcParams.update({"font.size": 35})
     plt.plot(x, mes_y, label="measured size", linewidth=3)
     plt.plot(x, hmap_y, label="Hashmap size", linewidth=3)
     plt.plot(x, base_y, label="base size")
