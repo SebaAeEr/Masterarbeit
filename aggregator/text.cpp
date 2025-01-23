@@ -3525,11 +3525,11 @@ void printSize(int &finished, size_t memLimit, std::atomic<unsigned long> &comb_
  * @return whether memory limit was reached
  */
 bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap,
-              std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>>::iterator s3spillNames2,
-              std::vector<std::pair<int, std::vector<char>>> *s3spillBitmaps, std::list<std::vector<std::pair<std::string, size_t>> *>::iterator spills, bool add, int *s3spillFile_head,
+              std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2,
+              std::vector<std::pair<int, std::vector<char>>> *s3spillBitmaps, std::vector<std::pair<std::string, size_t>> *spills, bool add, int *s3spillFile_head,
               int *bit_head, int *subfile_head, size_t *s3spillStart_head, size_t *s3spillStart_head_chars, size_t *input_head_base, size_t size_after_init, std::atomic<size_t> *read_lines,
               Aws::S3::S3Client *minio_client, std::shared_mutex *writeLock, float *avg, float memLimit, std::atomic<unsigned long> &comb_hash_size,
-              std::atomic<unsigned long> *diff, bool increase_size, std::list<size_t>::iterator max_hash_size, int t_id, int merge_file_num)
+              std::atomic<unsigned long> *diff, bool increase_size, size_t *max_hash_size, int t_id, int merge_file_num)
 {
     // input_head_base;
     unsigned long num_entries = 0;
@@ -3543,7 +3543,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     int file_counter = 0;
     int conc_threads = multiThread_merge ? mergeThreads_number : 1;
 
-    for (auto &it : **spills)
+    for (auto &it : *spills)
     {
         comb_spill_size += it.second;
         // std::cout << it.second << ", ";
@@ -3941,7 +3941,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             }
             sum = 0;
             int c = 0;
-            for (auto &it : **spills)
+            for (auto &it : *spills)
             {
                 //  std::cout << "opening new mapping" << std::endl;
                 sum += it.second;
@@ -4347,10 +4347,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
  * @param spill_head current spill_head
  * @param x number of files to add
  */
-void addXtoLocalSpillHead(std::list<std::vector<std::pair<std::string, size_t>> *>::iterator spills, unsigned long *spill_head, int x)
+void addXtoLocalSpillHead(std::vector<std::pair<std::string, size_t>> *spills, unsigned long *spill_head, int x)
 {
     size_t sum = 0;
-    for (auto &s : (**spills))
+    for (auto &s : (*spills))
     {
         sum += s.second;
         if (deencode && *spill_head < sum)
@@ -4397,31 +4397,29 @@ void addXtoLocalSpillHead(std::list<std::vector<std::pair<std::string, size_t>> 
  * @param increase whether the first input stream buffer should be added to the memory consumption
  * @param gets3Files whether the function should get all available files of the given partition to merge
  *  */
-int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap_in, std::list<std::vector<std::pair<std::string, size_t>> *>::iterator spills,
+int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap_in, std::vector<std::pair<std::string, size_t>> *spills,
           std::atomic<unsigned long> &comb_hash_size, float *avg, float memLimit, std::atomic<unsigned long> *diff, std::string &outputfilename,
-          std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>>::iterator s3spillNames2, Aws::S3::S3Client *minio_client,
-          bool writeRes, std::string &uName, size_t backMemLimit, size_t *output_file_head, std::list<char>::iterator done, std::list<size_t>::iterator max_hash_size, char partition = -1, char beggarWorker = 0, bool increase = false, bool gets3Files = false)
+          std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client,
+          bool writeRes, std::string &uName, size_t backMemLimit, size_t *output_file_head, std::list<char>::iterator done, std::list<size_t>::iterator max_hash_size_list, char partition = -1, char beggarWorker = 0, bool increase = false, bool gets3Files = false)
 {
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *hmap;
     // Open the outputfile to write results
-    if (writeRes)
+    if (writeRes && multiThread_merge)
     {
-        *hmap = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
+        hmap = new emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
     }
     else
     {
         hmap = hmap_in;
     }
+
+    size_t max_hash_size = *max_hash_size_list;
     std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> s3spillNames;
-    /*  if (gets3Files)
-     {
-         std::cout << "Getting all merge file names" << std::endl;
-         getAllMergeFileNames(minio_client, partition, &s3spillNames);
-         std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> s3spillNames2_list;
-         s3spillNames2_list.push_back(s3spillNames);
-         s3spillNames2 = s3spillNames2_list.begin();
-         std::cout << "Got all merge file names" << std::endl;
-     } */
+    if (gets3Files)
+    {
+        getAllMergeFileNames(minio_client, partition, &s3spillNames);
+        s3spillNames2 = &s3spillNames;
+    }
     auto merge_start_time = std::chrono::high_resolution_clock::now();
     // Until all spills are written: merge hashmap with all spill files and fill it up until memLimit is reached, than write hashmap and clear it, repeat
     unsigned long input_head_base = 0;
@@ -4449,7 +4447,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     std::vector<std::tuple<std::thread, size_t, char>> spillThreads;
     char id_counter = 0;
 
-    for (auto &it : **spills)
+    for (auto &it : *spills)
     {
         comb_spill_size += it.second;
         // std::cout << it.second << ", ";
@@ -4530,7 +4528,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         auto s3spillFile_head_old = s3spillFile_head;
         auto input_head_base_old = input_head_base;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
-                            size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, max_hash_size, 0, 0);
+                            size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, &max_hash_size, 0, 0);
 
         // std::cout << "Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
         //   std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
@@ -4566,17 +4564,17 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 int mergefile_num_temp = std::max(0, (int)(s3spillNames2->size() - s3spillFile_head));
                 size_t sum = 0;
                 int counter = 0;
-                for (auto &s : (**spills))
+                for (auto &s : (*spills))
                 {
                     sum += s.second;
                     if (deencode && input_head_base < sum)
                     {
-                        mergefile_num_temp += (*spills)->size() - counter;
+                        mergefile_num_temp += spills->size() - counter;
                         break;
                     }
                     else if (!deencode && input_head_base < sum / sizeof(long))
                     {
-                        mergefile_num_temp += (*spills)->size() - counter;
+                        mergefile_num_temp += spills->size() - counter;
                         break;
                     }
                     counter++;
@@ -4587,7 +4585,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 std::vector<std::thread> threads;
                 std::vector<int> start_heads(s3spillNames2->size());
                 std::vector<int> start_bits(s3spillNames2->size());
-                std::vector<unsigned long> start_heads_local((*spills)->size());
+                std::vector<unsigned long> start_heads_local(spills->size());
                 int s3_start_head = s3spillFile_head;
                 int start_bit_head = start_bit_merge;
                 counter = 0;
@@ -4599,7 +4597,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     start_bits[counter] = start_bit_head;
                     // std::cout << "merging s3 from start_head: " << s3_start_head << " bit_start_head: " << start_bit_head;
                     threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &start_heads[counter], &start_bits[counter], &int_n, &n, &n, &input_head_base,
-                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size, t_c, merge_file_num));
+                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, &max_hash_size, t_c, merge_file_num));
                     counter++;
                     t_c++;
                     if (s3_start_head + merge_file_num < s3spillNames2->size())
@@ -4627,7 +4625,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                     start_heads_local[counter] = input_head_base;
                     //     std::cout << "counter: " << counter << " merging local input_head_base: " << input_head_base;
                     threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &int_n, &n, &n, &start_heads_local[counter],
-                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, max_hash_size, t_c, merge_file_num));
+                                                  size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, &max_hash_size, t_c, merge_file_num));
                     counter++;
                     t_c++;
                     addXtoLocalSpillHead(spills, &input_head_base, merge_file_num);
@@ -4643,7 +4641,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             else
             {
                 subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3spillFile_head, &start_bit_merge, &int_n, &n, &n, &input_head_base,
-                         size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, false, max_hash_size, 0, 0);
+                         size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, false, &max_hash_size, 0, 0);
             }
 
             s3spillFile_head--;
@@ -4774,8 +4772,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
         }
     }
-    std::cout << "spills size: " << (*spills)->size();
-    for (auto &it : **spills)
+    std::cout << "spills size: " << spills->size();
+    for (auto &it : *spills)
     {
         remove(it.first.c_str());
     }
@@ -4800,6 +4798,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     log_file.sizes["linesWritten"] += written_lines;
     *done = 1;
     extra_mem -= bitmap_size_sum;
+    *max_hash_size_list = max_hash_size;
+    if (writeRes && multiThread_merge)
+    {
+        delete hmap;
+    }
     return 1;
 }
 
@@ -4808,15 +4811,11 @@ int merge2(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
            std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> *s3spillNames2, Aws::S3::S3Client *minio_client,
            bool writeRes, std::string &uName, size_t backMemLimit, size_t *output_file_head, char *done, size_t *max_hash_size, char partition = -1, char beggarWorker = 0, bool increase = false, bool gets3Files = false)
 {
-    std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files;
-    multi_files.push_back(*s3spillNames2);
     std::list<size_t> max_HashSizes;
     max_HashSizes.push_back(*max_hash_size);
-    std::list<std::vector<std::pair<std::string, size_t>> *> multi_spills;
-    multi_spills.push_back(spills);
     std::list<char> mergeThreads_done;
     mergeThreads_done.push_back(*done);
-    return merge(hmap, multi_spills.begin(), comb_hash_size, avg, memLimit, diff, outputfilename, multi_files.begin(), minio_client, writeRes,
+    return merge(hmap, spills, comb_hash_size, avg, memLimit, diff, outputfilename, s3spillNames2, minio_client, writeRes,
                  uName, backMemLimit, output_file_head, mergeThreads_done.begin(), max_HashSizes.begin(), partition, beggarWorker, increase, gets3Files);
 }
 
@@ -5507,7 +5506,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         bool add_new_thread = false;
         std::vector<char> restarted_threads(mergeThreads_number, 0);
         std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond> files;
-        std::list<std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>> multi_files(mergeThreads_number);
         std::list<size_t> max_HashSizes(mergeThreads_number, 0);
         std::list<char> thread_bitmap(mergeThreads_number, 0);
         std::list<std::vector<std::pair<std::string, size_t>> *> multi_spills(mergeThreads_number);
@@ -5568,7 +5566,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     if (dynamic_extension && !thread_done && add_new_thread && (comb_hash_size * avg + base_size) / thread_bitmap.size() < memLimit - (comb_hash_size * avg + base_size))
                     {
                         std::cout << "Adding new Thread" << std::endl;
-                        multi_files.push_back(std::set<std::tuple<std::string, size_t, std::vector<std::pair<size_t, size_t>>>, CompareBySecond>());
                         max_HashSizes.push_back(0);
                         thread_bitmap.push_back(0);
                         std::vector<std::pair<std::string, size_t>> temp;
@@ -5648,9 +5645,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         auto bit_it = std::next(thread_bitmap.begin(), newThread_ind);
                         *bit_it = 1;
 
-                        auto mult_f_it = std::next(multi_files.begin(), newThread_ind);
-                        getAllMergeFileNames(&minio_client, m_partition, &(*mult_f_it));
-
                         auto done_it = std::next(mergeThreads_done.begin(), newThread_ind);
 
                         auto max_it = std::next(max_HashSizes.begin(), newThread_ind);
@@ -5662,7 +5656,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         // getAllMergeFileNames(&minio_client, m_partition, &multi_files[newThread_ind]);
                         /* merge_threads[newThread_ind] = std::thread(merge, &merge_emHashmaps[newThread_ind], multi_spills[newThread_ind], std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &multi_files[newThread_ind],
                                                                    &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, &mergeThreads_done[newThread_ind], &max_HashSizes[newThread_ind], m_partition, 0, increase, true); */
-                        *thread_it = std::thread(merge, &emHashmap, multi_it, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), mult_f_it,
+                        *thread_it = std::thread(merge, &emHashmap, *multi_it, std::ref(comb_hash_size), &avg, memLimit, &diff, std::ref(outputfilename), &files,
                                                  &minio_client, true, std::ref(empty), memLimitBack, &output_file_head, done_it, max_it, m_partition, 0, increase, true);
                     }
                 }
