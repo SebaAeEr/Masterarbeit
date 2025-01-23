@@ -3910,12 +3910,12 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     if (add)
     {
         *s3spillFile_head = s3spillNames2->size();
-        // std::cout << "adding local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
+        std::cout << "adding local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
     }
-    /* else
+    else
     {
         std::cout << "Merging local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size << std::endl;
-    } */
+    }
 
     // std::cout << "New round" << std::endl;
     // Go through entire mapping
@@ -3931,9 +3931,9 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
         if ((!deencode && i >= sum / sizeof(long)) || (deencode && i >= sum))
         {
             // std::cout << t_id << ": new mapping" << std::endl;
-            if ((!deencode && i != sum / sizeof(long)) || (deencode && i != sum) && i != *input_head_base)
+            if (((!deencode && i != sum / sizeof(long)) || (deencode && i != sum)) && i != *input_head_base)
             {
-                std::cout << "i!=sum! i: " << i << " sum: " << sum << std::endl;
+                std::cout << "i!=sum! i: " << i << " sum: " << sum << " Input head base: " << *input_head_base << std::endl;
             }
             sum = 0;
             int c = 0;
