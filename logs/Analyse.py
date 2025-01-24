@@ -848,8 +848,8 @@ def c_size_by_time():
 
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_100_4_12-12.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_100_4_12-12.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_08-51.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_08-51.json"))
     except:
         print("File not found.")
         return
@@ -916,26 +916,27 @@ def c_size_by_time():
         jf = open(os.path.join(directory, name))
         jf_data = json.load(jf)
         print(name + ":")
+        tabs = 1
         # plt.figure(3)
         # plt.hist(get_mana_dur, bins=30, label="get_mana_dur")
         # plt.title("get_mana_dur")
         get_mana_dur = jf_data["get_mana_dur"]
         average = sum(get_mana_dur) / len(get_mana_dur)
-        print("get_mana_dur avg: " + str(average))
+        printEingerückt("get_mana_dur avg: " + str(average), tabs)
 
         write_mana_dur = jf_data["write_mana_dur"]
         # plt.figure(4)
         # plt.hist(write_mana_dur, bins=30, label="write_mana_dur")
         # plt.title("write_mana_dur")
         average = sum(write_mana_dur) / len(write_mana_dur)
-        print("write_mana_dur avg: " + str(average))
+        printEingerückt("write_mana_dur avg: " + str(average), tabs)
 
         get_lock_dur = jf_data["get_lock_dur"]
         plt.figure(3)
         plt.hist(get_lock_dur, bins=30, label="get_lock_dur")
         plt.title("get_lock_dur")
         average = sum(get_lock_dur) / len(get_lock_dur)
-        print("get_lock_dur avg: " + str(average))
+        printEingerückt("get_lock_dur avg: " + str(average), tabs)
 
         write_file_dur = np.array(jf_data["writeCall_s3_file_dur"]) / 2**20
         write_file_size = np.array(jf_data["writeCall_s3_file_size"]) / 1000000
@@ -967,11 +968,11 @@ def c_size_by_time():
         # axs.ecdf(df_reads0.latency+10, label="Lvl 1 - Reads (exp.)")
         if len(write_file_dur) > 0:
             average_1 = sum(write_file_dur) / len(write_file_dur)
-            print("write_file_dur avg: " + str(average_1))
+            printEingerückt("write_file_dur avg: " + str(average_1), tabs)
             average_2 = sum(write_file_size) / len(write_file_size)
-            print("write_file_size avg: " + str(average_2))
-            print(
-                "write_file_size / write_file_dur  avg: " + str(average_2 / average_1)
+            printEingerückt("write_file_size avg: " + str(average_2), tabs)
+            printEingerückt(
+                "write_file_size / write_file_dur  avg: " + str(average_2 / average_1), tabs
             )
 
         # plt.figure(8)
@@ -980,7 +981,7 @@ def c_size_by_time():
         # plt.title("get_file_dur")
         if len(get_file_dur) > 0:
             average = sum(get_file_dur) / len(get_file_dur)
-            print("write_mana_dur avg: " + str(average))
+            printEingerückt("write_mana_dur avg: " + str(average), tabs)
 
         # plt.figure(9)
         # plt.plot(x, hmap_y * scale / avg_y, label="hmap_size")
@@ -994,7 +995,7 @@ def c_size_by_time():
         get_file_sum = sum(jf_data["getCall_s3_file_dur"]) / (
             jf_data["threadNumber"] * 1000000
         )
-        print("get_file_sum: " + str(get_file_sum))
+        printEingerückt("get_file_sum: " + str(get_file_sum), tabs)
         # read_tuple_sum = jf_data["get_tuple_dur"] / 1000000
         write_output_sum = jf_data["write_output_dur"] / 1000000
         merge_dur = (
