@@ -112,6 +112,8 @@ struct logFile
     std::vector<size_t> write_mana_durs;
     std::vector<size_t> write_spill_durs;
     std::vector<size_t> merge_durs;
+    std::vector<size_t> merge_readLines;
+    std::vector<size_t> merge_writtenLines;
     std::vector<std::pair<size_t, size_t>> writeCall_s3_file_durs;
     std::vector<std::pair<size_t, size_t>> getCall_s3_file_durs;
     std::vector<std::pair<size_t, size_t>> mergeHelp_merge_tuple_num;
@@ -397,6 +399,12 @@ void writeLogFile(logFile log_t)
 
     output << "],\n\"merge_durs\":[";
     writeSubLogFile(log_t.merge_durs, output);
+
+    output << "],\n\"merge_readLines\":[";
+    writeSubLogFile(log_t.merge_readLines, output);
+
+    output << "],\n\"merge_writtenLines\":[";
+    writeSubLogFile(log_t.merge_writtenLines, output);
 
     output << "],\n\"writeCall_s3_file_dur\":[";
     t_counter = 0;
@@ -4849,6 +4857,8 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     log_file.sizes["linesRead"] += read_lines;
     log_file.sizes["linesWritten"] += written_lines;
     log_file.merge_durs.push_back(duration);
+    log_file.merge_readLines.push_back(read_lines);
+    log_file.merge_writtenLines.push_back(written_lines);
     write_log_file_lock.unlock();
     *done = 1;
     extra_mem -= bitmap_size_sum;
