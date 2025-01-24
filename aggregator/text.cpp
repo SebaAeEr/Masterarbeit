@@ -5533,7 +5533,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             size_t p_size = (spillTuple_number.load() / partitions) * avg + max_s3_spill_size;
             size_t available_mem = memLimit - base_size;
 
-            mergeThreads_number = std::ceil(available_mem / (p_size * thread_efficiency));
+            mergeThreads_number = std::floor(available_mem / (p_size * thread_efficiency));
             std::cout << "calc thread number: " << mergeThreads_number << ": ceil(" << available_mem << " / (" << p_size << " * " << thread_efficiency << "))" << std::endl;
         }
         size_t output_file_head = 0;
