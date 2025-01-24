@@ -6303,6 +6303,11 @@ int main(int argc, char **argv)
                 thread_efficiency_vec[iteration] = std::stof(value);
                 break;
             }
+            case str2int("bucket"):
+            {
+                bucketName = value;
+                break;
+            }
             case str2int("iteration"):
             {
                 memLimit_vec.push_back(memLimit_vec[0]);
