@@ -6132,7 +6132,7 @@ int main(int argc, char **argv)
     std::vector<bool> dynamic_extension_vec(1, dynamic_extension);
     std::vector<int> static_partition_number_vec(1, static_partition_number);
     std::vector<int> mergeThreads_number_vec(1, mergeThreads_number);
-    std::vector<float> thread_efficiency_vec(thread_efficiency);
+    std::vector<float> thread_efficiency_vec(1, thread_efficiency);
 
     // If no conf file is used configuration can be obtained directly from command (legacy)
     if (argc == 10)
