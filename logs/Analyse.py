@@ -54,7 +54,9 @@ def CollectOPData(i, tabs):
     return wall_time, cpu_time, spilltemp
 
 
-def makeBarFig(data, xlabels, ylabel, show_bar_label: bool = True):
+def makeBarFig(
+    data, xlabels, ylabel, show_bar_label: bool = True, xaxis_label: str = ""
+):
 
     fig, ax = plt.subplots()
     width = 0.15
@@ -84,6 +86,7 @@ def makeBarFig(data, xlabels, ylabel, show_bar_label: bool = True):
     ax.set_xticklabels(xlabels)
     ax.legend(list(data[0].keys()), loc="upper right")
     ax.set_ylabel(ylabel)
+    ax.set_xlabel(xaxis_label)
     ax.grid(visible=True, linestyle="dashed")
     ax.set_axisbelow(True)
     plt.show()
@@ -821,35 +824,43 @@ def c_size_by_time():
     # ]
     # labels = np.array(["3W", "Local", "S3"])
 
-    # partition analyses
+    # partition analyses dyn
     # names = [
-    #     "logfile_4_6_0_4_15-30.json",
-    #     "logfile_4_6_0_4_16-01.json",
-    #     "logfile_4_6_0_4_16-20.json",
-    #     "logfile_4_6_0_4_20-57.json",
+    #     "logfile_4_6_0_4_13-07.json",
+    #     "logfile_4_6_0_4_13-29.json",
+    #     "logfile_4_6_0_4_13-50.json",
+    #     "logfile_4_6_0_4_14-18.json",
     # ]
-    # labels = np.array(["108", "72", "54", "22"])
+    # labels = np.array(["25; 1T", "50; 3T", "75; 6T", "100; 6T"])
+
+    names = [
+        "logfile_4_6_0_4_15-22.json",
+        "logfile_4_6_0_4_15-46.json",
+        "logfile_4_6_0_4_16-09.json",
+        "logfile_4_6_0_4_16-34.json",
+    ]
+    labels = np.array(["25; 2T", "50; 2T", "75; 2T", "100; 2T"])
 
     # deencode analyses
-    names = [
-        "logfile_4_6_0_4_11-20.json",
-        "logfile_4_6_0_4_11-46.json",
-        "logfile_4_6_100_4_12-12.json",
-        "logfile_4_6_100_4_19-32.json",
-    ]
-    labels = np.array(
-        [
-            "compression 0BM",
-            "no compression 0BM",
-            "compression 100BM",
-            "no compression 100BM",
-        ]
-    )
+    # names = [
+    #     # "logfile_4_6_0_4_11-20.json",
+    #     # "logfile_4_6_0_4_11-46.json",
+    #     "logfile_4_6_100_4_12-12.json",
+    #     "logfile_4_6_100_4_19-32.json",
+    # ]
+    # labels = np.array(
+    #     [
+    #         "compression 0BM",
+    #         "no compression 0BM",
+    #         "compression 100BM",
+    #         "no compression 100BM",
+    #     ]
+    # )
 
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_4_12-12.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_4_08-51.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_16-34.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_16-34.json"))
     except:
         print("File not found.")
         return
@@ -869,22 +880,36 @@ def c_size_by_time():
 
     # Step 3: Create the plot
     plt.figure(1)
-    # plt.rcParams.update({"font.size": 35})
+    plt.rcParams.update({"font.size": 35})
     plt.plot(x, mes_y, label="measured size", linewidth=3)
     plt.plot(x, hmap_y, label="Hashmap size", linewidth=3)
-    plt.plot(x, base_y, label="base size")
-    plt.plot(x, map_y, label="mapping size")
-    plt.plot(x, bit_y, label="bitmap size")
-    plt.plot(
-        x, calc_y, label="calc overall size"
-    )  # Line plot (you can change to scatter plot or others)
+    # plt.plot(x, base_y, label="base size")
+    # plt.plot(x, map_y, label="mapping size")
+    # plt.plot(x, bit_y, label="bitmap size")
+    # plt.plot(
+    #     x, calc_y, label="calc overall size"
+    # )  # Line plot (you can change to scatter plot or others)
 
     try:
-        # keys = ["scanTime", "mergeHashTime", "mergeTime"]
-        # for key in keys:
-        #     x_value = jf_data[key] / 1000000
-        #     plt.axvline(x=x_value, color="red", linestyle="--", linewidth=2)
-        # plt.text(x_value, -0.005, key, color="red", ha="center")
+        keys = ["scanTime", "mergeHashTime", "mergeTime"]
+        phase_labels = ["Scan", "", "Merge"]
+        colors = ["blue", "white", "blue"]
+        old_value = 0
+        counter = 0
+        for key in keys:
+            x_value = jf_data[key] / 1000000
+            plt.axvline(x=x_value, color="blue", linestyle="--", linewidth=2)
+            plt.axvspan(old_value, x_value, color=colors[counter], alpha=0.15)
+            plt.text(
+                old_value + (x_value - old_value) / 2,
+                -0.005,
+                phase_labels[counter],
+                color="blue",
+                ha="center",
+                # bbox=dict(facecolor="white", edgecolor="none", alpha=1.0),
+            )
+            counter += 1
+            old_value = x_value
 
         plt.axline([0, 6], [x.max(), 6], color="red", linestyle="--", linewidth=2)
     except:
@@ -911,6 +936,7 @@ def c_size_by_time():
             # "Exchange": np.empty(),
         }
     ]
+    merge_thread_num = []
 
     for name in names:
         jf = open(os.path.join(directory, name))
@@ -972,7 +998,8 @@ def c_size_by_time():
             average_2 = sum(write_file_size) / len(write_file_size)
             printEingerückt("write_file_size avg: " + str(average_2), tabs)
             printEingerückt(
-                "write_file_size / write_file_dur  avg: " + str(average_2 / average_1), tabs
+                "write_file_size / write_file_dur  avg: " + str(average_2 / average_1),
+                tabs,
             )
 
         # plt.figure(8)
@@ -993,7 +1020,9 @@ def c_size_by_time():
         write_file_sum /= jf_data["threadNumber"] * 1000000
 
         get_file_sum = sum(jf_data["getCall_s3_file_dur"]) / (
-            jf_data["threadNumber"] * 1000000
+            # jf_data["mergeThread_number"] * 1000000
+            jf_data["threadNumber"]
+            * 1000000
         )
         printEingerückt("get_file_sum: " + str(get_file_sum), tabs)
         # read_tuple_sum = jf_data["get_tuple_dur"] / 1000000
@@ -1020,6 +1049,15 @@ def c_size_by_time():
         #   "Exchange": np.array(wall_time_exc[k][0]),
         #     }
         # ]
+        # merge_thread_num.append(jf_data["mergeThread_number"])
+
+    # plt.figure(7)
+
+    # x = np.arange(len(names))
+    # plt.bar(x, merge_thread_num)
+    # plt.legend()
+    # plt.xlabel("Time in s")
+    # plt.ylabel("ECDF")
 
     if len(names) > 0:
         makeBarFig(
@@ -1037,6 +1075,8 @@ def c_size_by_time():
             # ),
             labels,
             "Wall time in s",
+            True,
+            "Number of partitions",
         )
         print(str(times))
     # bottom = 0
