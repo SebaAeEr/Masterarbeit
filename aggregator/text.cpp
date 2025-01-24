@@ -5393,15 +5393,15 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::cout << "keep hashmaps: " << keep_hashmaps << ": " << partitions << " == 1 || " << (float)(comb_spill_size.load()) / size << " < 0.1" << std::endl;
     if (keep_hashmaps)
     {
-        for (int i = 1; i < threadNumber; i++)
+        for (int i = 0; i < threadNumber; i++)
         {
             for (auto &tuple : emHashmaps[i])
             {
-                if (emHashmaps[0].contains(tuple.first))
+                if (emHashmap.contains(tuple.first))
                 {
                     for (int k = 0; k < value_number; k++)
                     {
-                        emHashmaps[0][tuple.first][k] += tuple.second[k];
+                        emHashmap[tuple.first][k] += tuple.second[k];
                     }
                 }
                 else
@@ -5412,8 +5412,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             comb_hash_size.fetch_sub(emHashmaps[i].size());
             emHashmaps[i] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
         }
-        comb_hash_size.exchange(emHashmaps[0].size());
-        emHashmap = emHashmaps[0];
+        comb_hash_size.exchange(emHashmap.size());
         // emHashmaps[0] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
     }
     else
@@ -5573,7 +5572,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 }
             }
             getAllMergeFileNames(&minio_client, -1, &files);
-            merge2(&emHashmap, &m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, &done, &max_hmap_size, m_partition, -1, 0);
+            merge2(&emHashmap, &m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, &done, &max_hmap_size, -1, -1, 0);
         }
         else
         {
