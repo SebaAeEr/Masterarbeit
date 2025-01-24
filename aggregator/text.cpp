@@ -5398,9 +5398,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     emHashmap.insert_unique(tuple);
                 }
             }
+            comb_hash_size.fetch_sub(emHashmaps[i].size());
             emHashmaps[i] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
         }
-        comb_hash_size.fetch_sub(emHashmaps[0].size());
+        comb_hash_size.exchange(emHashmaps[0].size());
         emHashmap = emHashmaps[0];
         // emHashmaps[0] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
     }
@@ -5518,9 +5519,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         if (!dynamic_extension && !keep_hashmaps)
         {
-            size_t p_size = 0;
+            size_t p_size = comb_spill_size.load() / partitions;
             size_t available_mem = memLimit - base_size;
-            if (s3spilled)
+            /* if (s3spilled)
             {
                 p_size += max_s3_spill_size;
                 manaFile mana = getMana(&minio_client, worker_id, 0);
@@ -5541,7 +5542,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             for (auto &s : spills[0])
             {
                 p_size += s.second;
-            }
+            } */
             mergeThreads_number = std::ceil(available_mem / (p_size * thread_efficiency));
             std::cout << "calc thread number: " << mergeThreads_number << ": ceil(" << available_mem << " / (" << p_size << " * " << thread_efficiency << "))" << std::endl;
         }
