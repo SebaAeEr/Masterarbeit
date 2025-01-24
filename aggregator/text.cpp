@@ -111,7 +111,6 @@ struct logFile
     std::vector<size_t> get_mana_durs;
     std::vector<size_t> write_mana_durs;
     std::vector<size_t> write_spill_durs;
-    std::vector<size_t> get_s3spill_durs;
     std::vector<std::pair<size_t, size_t>> writeCall_s3_file_durs;
     std::vector<std::pair<size_t, size_t>> getCall_s3_file_durs;
     std::vector<std::pair<size_t, size_t>> mergeHelp_merge_tuple_num;
@@ -317,6 +316,18 @@ int writeString(char *mapping, const std::string &string, size_t output_size = -
     return counter;
 }
 
+void writeSubLogFile(std::vector<size_t> vec, std::ofstream &output)
+{
+    int t_counter = 0;
+    for (auto &it : vec)
+    {
+        t_counter++;
+        output << it;
+        if (t_counter < vec.size())
+            output << ",";
+    }
+}
+
 /**
  * @brief Write logFile struct to log file in JSON format
  *
@@ -369,34 +380,16 @@ void writeLogFile(logFile log_t)
     }
 
     output << "],\n\"get_lock_dur\":[";
-    t_counter = 0;
-    for (auto &it : log_t.get_lock_durs)
-    {
-        t_counter++;
-        output << it;
-        if (t_counter < log_t.get_lock_durs.size())
-            output << ",";
-    }
+    writeSubLogFile(log_t.get_lock_durs, output);
 
     output << "],\n\"write_mana_dur\":[";
-    t_counter = 0;
-    for (auto &it : log_t.write_mana_durs)
-    {
-        t_counter++;
-        output << it;
-        if (t_counter < log_t.write_mana_durs.size())
-            output << ",";
-    }
+    writeSubLogFile(log_t.write_mana_durs, output);
 
     output << "],\n\"get_mana_dur\":[";
-    t_counter = 0;
-    for (auto &it : log_t.get_mana_durs)
-    {
-        t_counter++;
-        output << it;
-        if (t_counter < log_t.get_mana_durs.size())
-            output << ",";
-    }
+    writeSubLogFile(log_t.get_mana_durs, output);
+
+    output << "],\n\"write_spill_durs\":[";
+    writeSubLogFile(log_t.write_spill_durs, output);
 
     output << "],\n\"writeCall_s3_file_dur\":[";
     t_counter = 0;
@@ -3328,8 +3321,8 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             spill_number++;
             write_log_file_lock.lock();
             log_file.write_spill_durs.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_spill_time).count());
-            write_log_file_lock.unlock()
-                threadLog.sizes["write_file_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_spill_time).count();
+            write_log_file_lock.unlock();
+            threadLog.sizes["write_file_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_spill_time).count();
 
             // std::cout << "Spilling ended" << std::endl;
             threadLog.sizes["outputLines"] += hmap->size();
@@ -5074,10 +5067,11 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         std::cout << std::to_string((int)(thread_id)) << ": merging" << std::endl;
         merge2(hmap, &empty, comb_hash_size, avg, memLimit, &diff, empty_string, &spills, &minio_client, false, uName, backMemLimit, &zero, &temp, &max_hashSize, partition_id, beggarWorker);
         std::cout << std::to_string((int)(thread_id)) << ": merged" << std::endl;
-        write_log_file_lock.lock()
-            log_file.sizes["mergeHelp_merging_Duration"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - spill_start_time).count() - (log_file.sizes["mergeHelp_spilling_Duration"] - spill_time_old);
+        write_log_file_lock.lock();
+        log_file.sizes["mergeHelp_merging_Duration"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - spill_start_time).count() - (log_file.sizes["mergeHelp_spilling_Duration"] - spill_time_old);
         // std::cout << "Merge finished" << std::endl;
-        write_log_file_lock.unlock() if (hmap->size() == 0)
+        write_log_file_lock.unlock();
+        if (hmap->size() == 0)
         {
             std::cout << std::to_string((int)(thread_id)) << ": setting stati" << std::endl;
             std::unordered_map<std::string, char> file_stati;
