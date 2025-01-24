@@ -831,17 +831,25 @@ def c_size_by_time():
     # labels = np.array(["108", "72", "54", "22"])
 
     # deencode analyses
-    # names = [
-    #     "logfile_13_6_0_4_18-19.json",
-    #     "logfile_13_6_0_4_18-32.json",
-    # ]
-    # labels = np.array(["with compression", "without compression"])
-    names = ["logfile_4_6_0_4_08-17.json", "logfile_4_6_0_4_09-30.json"]
-    labels = np.array(["cold", "warm"])
+    names = [
+        "logfile_4_6_0_4_11-20.json",
+        "logfile_4_6_0_4_11-46.json",
+        "logfile_4_6_100_4_12-12.json",
+        "logfile_4_6_100_4_19-32.json",
+    ]
+    labels = np.array(
+        [
+            "compression 0BM",
+            "no compression 0BM",
+            "compression 100BM",
+            "no compression 100BM",
+        ]
+    )
+
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_13_6_0_4_22-07.csv"))
-        jf = open(os.path.join(directory, "logfile_13_6_0_4_18-32.json"))
+        f = open(os.path.join(directory, "times_4_6_100_4_12-12.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_100_4_12-12.json"))
     except:
         print("File not found.")
         return
