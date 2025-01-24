@@ -5737,6 +5737,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     log_file.sizes["mergeDuration"] = duration;
     log_file.sizes["mergeTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
     log_file.sizes["selectivity"] = (log_file.sizes["linesWritten"] * 1000) / log_file.sizes["inputLines"];
+    log_file.sizes["mergeThread_number"] = mergeThreads_number;
 
     finished++;
     sizePrinter.join();
