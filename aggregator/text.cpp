@@ -1820,7 +1820,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
         get<1>(*res) = 0;
         return;
     }
-    std::cout << "Got beggar Worker: " << beggarWorker << " Getting files" << std::endl;
+    std::cout << "Got beggar Worker: " << beggarWorker << " partition: " << partition_id << " Getting files" << std::endl;
 
     // std::cout << "finding files" << std::endl;
     char file_num = threadNumber * 2;
@@ -1891,7 +1891,12 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
         // std::cout << "setting beggar to 0" << std::endl;
         return;
     }
-    std::cout << "setting file stati" << std::endl;
+    std::cout << "setting file stati : ";
+    for (auto &f : res_files)
+    {
+        std::cout << f.name << ", " << std::endl;
+    }
+    std::cout << std::endl;
     /* std::cout << "res_files: ";
     for (auto temp : res_files)
     {
