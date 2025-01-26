@@ -4709,7 +4709,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             written_lines += hmap->size();
             if (deencode)
             {
-                std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " locked: " << locked << std::endl;
+                std::cout << "Writing hmap with size: " << hmap->size() << " s3spillFile_head: " << s3spillFile_head << " s3spillStart_head_chars: " << s3spillStart_head_chars << " avg " << *avg << " base_size: " << base_size << " finished: " << finished << std::endl;
                 // std::cout << "output_file_head: " << *output_file_head << std::endl;
             }
             else
@@ -5415,8 +5415,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
     std::vector<std::vector<std::pair<std::string, size_t>>> local_spill_files_temp(threadNumber, std::vector<std::pair<std::string, size_t>>(partitions, {"", 0}));
 
-    bool keep_hashmaps = partitions == 1 || spillTuple_number.load() / (float)(numLines.load()) < 0.1;
-    std::cout << "keep hashmaps: " << keep_hashmaps << ": " << partitions << " == 1 || " << (float)(numLines.load()) / spillTuple_number << " < 0.1" << std::endl;
+    bool keep_hashmaps = partitions == 1 || spillTuple_number.load() / (float)(numLines.load()) < 0.05;
+    std::cout << "keep hashmaps: " << keep_hashmaps << ": " << partitions << " == 1 || " << spillTuple_number.load() / (float)(numLines.load()) << " < 0.05" << std::endl;
     if (keep_hashmaps)
     {
         for (int i = 0; i < threadNumber; i++)
