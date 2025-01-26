@@ -884,7 +884,7 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
         key += worker_id;
         key += "_";
         key += std::to_string((int)(partition_id));
-        std::cout << "key: " << key << std::endl;
+        //std::cout << "key: " << key << std::endl;
         in_request.SetKey(key);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         size_t in_mem_size = 2;
@@ -1113,7 +1113,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
     {
         if (partition_id != -1)
         {
-            std::cout << "Writing mana partition" << std::endl;
+            //std::cout << "Writing mana partition" << std::endl;
             return writeManaPartition(minio_client, mana, freeLock, worker_id, partition_id);
         }
         else if (worker_id != -1)
@@ -3230,7 +3230,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             }
             unsigned long temp_spill_size = hmap->size() * (key_number + value_number) * sizeof(long);
             spill_size += temp_spill_size;
-            comb_spill_size.fetch_add(temp_spill_size);
+            // comb_spill_size.fetch_add(temp_spill_size);
             spillTuple_number.fetch_add(hmap->size());
             if (partitions == -1)
             {
@@ -4679,14 +4679,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 while ((deencode && input_head_base < comb_spill_size_temp) || (!deencode && input_head_base * sizeof(long) < comb_spill_size_temp))
                 {
                     start_heads_local[counter] = input_head_base;
-                    //std::cout << "counter: " << counter << " merging local input_head_base: " << input_head_base;
+                    // std::cout << "counter: " << counter << " merging local input_head_base: " << input_head_base;
                     threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &s3_start_head, &start_bit_head, &int_n, &n, &n, &start_heads_local[counter],
                                                   size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, &max_hash_size, t_c, merge_file_num));
                     counter++;
                     t_c++;
                     addXtoLocalSpillHead(spills, &input_head_base, merge_file_num);
-                    //std::cout << " to: " << input_head_base << std::endl;
-                    // std::cout << "add local spill: " << merge_file_num << " to: " << input_head_base << std::endl;
+                    // std::cout << " to: " << input_head_base << std::endl;
+                    //  std::cout << "add local spill: " << merge_file_num << " to: " << input_head_base << std::endl;
                 }
                 // std::cout << "Waiting for threads" << std::endl;
                 for (auto &thread : threads)
@@ -5400,8 +5400,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     std::cout << "Scanning finished with time: " << duration << "s. Scanned Lines: " << numLines << ". macroseconds/line: " << duration * 1000000 / numLines << " Overall spill: " << comb_spill_size << " Tuples spilled: " << spillTuple_number << "B. Spill to Background Memory: " << temp_loc_spills << "B. Spill to S3: " << comb_spill_size - temp_loc_spills << std::endl;
     log_file.sizes["scanTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
     log_file.sizes["scanDuration"] = duration;
-    log_file.sizes["colS3Spill"] = comb_spill_size - temp_loc_spills;
-    log_file.sizes["colBackSpill"] = temp_loc_spills;
     log_file.sizes["inputLines"] = numLines;
     size_t w_lines = 0;
     for (auto &thread : log_file.threads)
@@ -5489,10 +5487,20 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     }
     diff.exchange(0);
     // delete[] emHashmaps;
+    temp_loc_spills = 0;
+    for (auto &it : spills)
+    {
+        for (auto &itt : it)
+        {
+            temp_loc_spills += itt.second;
+        }
+    }
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - mergeH_start_time).count()) / 1000000;
     std::cout << "Merging of hastables finished with time: " << duration << "s." << std::endl;
     log_file.sizes["mergeHashTime"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
     log_file.sizes["mergeHashDuration"] = duration;
+    log_file.sizes["colS3Spill"] = comb_spill_size - temp_loc_spills;
+    log_file.sizes["colBackSpill"] = temp_loc_spills;
     finished++;
 
     /* if (mergePhase)
