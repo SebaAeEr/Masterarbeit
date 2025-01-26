@@ -5599,14 +5599,14 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     }
                 }
             }
-            manaFile mana = getLockdMana(&minio_client, 0, worker_id);
+            manaFile mana = getLockedMana(&minio_client, 0, worker_id);
             for (auto &w : mana.workers)
             {
                 if (w.id == worker_id)
                 {
                     for (auto &p : w.partitions)
                     {
-                        p.locked = true;
+                        p.lock = true;
                     }
                 }
             }
