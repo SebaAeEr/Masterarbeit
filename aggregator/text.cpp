@@ -5599,6 +5599,18 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     }
                 }
             }
+            manaFile mana = getLockdMana(&minio_client, 0, worker_id);
+            for (auto &w : mana.workers)
+            {
+                if (w.id == worker_id)
+                {
+                    for (auto &p : w.partitions)
+                    {
+                        p.locked = true;
+                    }
+                }
+            }
+            writeMana(&minio_client, mana, true, worker_id);
             getAllMergeFileNames(&minio_client, -1, &files);
             max_hmap_size = emHashmap.size();
             merge2(&emHashmap, &m_spill, comb_hash_size, &avg, memLimit, &diff, outputfilename, &files, &minio_client, true, empty, memLimitBack, &output_file_head, &done, &max_hmap_size, -1, -1, 0);
