@@ -884,7 +884,7 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
         key += worker_id;
         key += "_";
         key += std::to_string((int)(partition_id));
-        //std::cout << "key: " << key << std::endl;
+        // std::cout << "key: " << key << std::endl;
         in_request.SetKey(key);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         size_t in_mem_size = 2;
@@ -1113,7 +1113,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
     {
         if (partition_id != -1)
         {
-            //std::cout << "Writing mana partition" << std::endl;
+            // std::cout << "Writing mana partition" << std::endl;
             return writeManaPartition(minio_client, mana, freeLock, worker_id, partition_id);
         }
         else if (worker_id != -1)
@@ -5415,7 +5415,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
     std::vector<std::vector<std::pair<std::string, size_t>>> local_spill_files_temp(threadNumber, std::vector<std::pair<std::string, size_t>>(partitions, {"", 0}));
 
-    bool keep_hashmaps = partitions == 1 || (float)(numLines.load()) / spillTuple_number < 0.1;
+    bool keep_hashmaps = partitions == 1 || spillTuple_number.load() / (float)(numLines.load()) < 0.1;
     std::cout << "keep hashmaps: " << keep_hashmaps << ": " << partitions << " == 1 || " << (float)(numLines.load()) / spillTuple_number << " < 0.1" << std::endl;
     if (keep_hashmaps)
     {
@@ -5445,7 +5445,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         for (int i = 0; i < threadNumber; i++)
         {
-
+            spillTuple_number.fetch_add(emHashmaps[i].size());
             size_t s_size = emHashmaps[i].size() * sizeof(long) * (key_number + value_number);
             std::string uName = "spill_" + std::to_string(i);
             if (backMem_usage + size < memLimitBack)
@@ -5458,6 +5458,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             }
             else
             {
+                std::cout << "spilling rest hashmap to minio" << std::endl;
                 std::vector<std::pair<std::string, size_t>> local_files(partitions, {"", 0});
                 spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], local_files, uName, &minio_client, worker_id, 0, i));
             }
@@ -5569,7 +5570,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             std::cout << "p_size: " << p_size << ": (" << spillTuple_number.load() << " / " << partitions << ") * " << avg << "+" << max_s3_spill_size << std::endl;
             size_t available_mem = memLimit - base_size;
 
-            mergeThreads_number = std::floor(available_mem / (p_size * thread_efficiency));
+            mergeThreads_number = std::ceil(available_mem / (p_size * thread_efficiency));
             std::cout << "calc thread number: " << mergeThreads_number << ": ceil(" << available_mem << " / (" << p_size << " * " << thread_efficiency << "))" << std::endl;
         }
         size_t output_file_head = 0;
@@ -6479,6 +6480,8 @@ int main(int argc, char **argv)
         mergeThreads_number = mergeThreads_number_vec[i];
         split_mana = split_mana_vec[i];
         thread_efficiency = thread_efficiency_vec[i];
+
+        use_file_queue = split_mana ? false : use_file_queue;
 
         // setup mana file
         initManagFile(&minio_client);
