@@ -1684,7 +1684,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
         }
     }
     mana_writeThread_num.fetch_sub(1);
-    std::cout << (int)(thread_id) << ": sub mana_writeThread_num to: " << mana_writeThread_num.load() << std::cout;
+    std::cout << (int)(thread_id) << ": sub mana_writeThread_num to: " << mana_writeThread_num.load() << std::endl;
     //  std::cout << "finished Adding file" << std::endl;
     return;
 }
@@ -2975,7 +2975,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     std::thread thread(addFileToManag, minio_client, files, write_to_id, fileStatus);
     // addFileToManag(minio_client, files, write_to_id, fileStatus);
     mana_writeThread_num.fetch_add(1);
-    std::cout << (int)(thread_id) << ": inc mana_writeThread_num to: " << mana_writeThread_num.load() << std::cout;
+    std::cout << (int)(thread_id) << ": inc mana_writeThread_num to: " << mana_writeThread_num.load() << std::endl;
     thread.detach();
 }
 /**
@@ -5487,7 +5487,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
         comb_hash_size.exchange(0);
     }
-    std::cout << "waiting for mana_writeThread_num: " << mana_writeThread_num.load() << std::cout;
+    std::cout << "waiting for mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
     while (mana_writeThread_num.load() != 0)
     {
     }

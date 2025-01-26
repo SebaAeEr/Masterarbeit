@@ -859,7 +859,7 @@ def c_size_by_time():
 
     # with/out part
     names = [
-        "logfile_4_6_0_8_14-16.json",
+        "logfile_4_6_0_8_17-14.json",
         "logfile_4_6_0_8_14-43.json",
     ]
     labels = np.array(
@@ -873,8 +873,8 @@ def c_size_by_time():
 
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_8_14-43.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_8_14-43.json"))
+        f = open(os.path.join(directory, "times_4_6_0_8_17-14.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_8_17-14.json"))
     except:
         print("File not found.")
         return
