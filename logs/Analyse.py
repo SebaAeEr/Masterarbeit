@@ -833,34 +833,48 @@ def c_size_by_time():
     # ]
     # labels = np.array(["25; 1T", "50; 3T", "75; 6T", "100; 6T"])
 
-    names = [
-        "logfile_4_6_0_4_15-22.json",
-        "logfile_4_6_0_4_15-46.json",
-        "logfile_4_6_0_4_16-09.json",
-        "logfile_4_6_0_4_16-34.json",
-    ]
-    labels = np.array(["25; 2T", "50; 2T", "75; 2T", "100; 2T"])
+    # names = [
+    #     "logfile_4_6_0_4_15-22.json",
+    #     "logfile_4_6_0_4_15-46.json",
+    #     "logfile_4_6_0_4_16-09.json",
+    #     "logfile_4_6_0_4_16-34.json",
+    # ]
+    # labels = np.array(["25; 2T", "50; 2T", "75; 2T", "100; 2T"])
 
     # deencode analyses
     # names = [
-    #     # "logfile_4_6_0_4_11-20.json",
-    #     # "logfile_4_6_0_4_11-46.json",
-    #     "logfile_4_6_100_4_12-12.json",
-    #     "logfile_4_6_100_4_19-32.json",
+    #     "logfile_4_6_0_4_12-50.json",
+    #     "logfile_4_6_0_4_12-22.json",
+    #     # "logfile_4_6_100_4_12-12.json",
+    #     # "logfile_4_6_100_4_19-32.json",
     # ]
     # labels = np.array(
     #     [
     #         "compression 0BM",
     #         "no compression 0BM",
-    #         "compression 100BM",
-    #         "no compression 100BM",
+    #         #   "compression 100BM",
+    #         # "no compression 100BM",
     #     ]
     # )
 
+    # with/out part
+    names = [
+        "logfile_4_6_0_8_14-16.json",
+        "logfile_4_6_0_8_14-43.json",
+    ]
+    labels = np.array(
+        [
+            "1 partition",
+            "30 partitions",
+            #   "compression 100BM",
+            # "no compression 100BM",
+        ]
+    )
+
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_4_13-29.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_4_13-29.json"))
+        f = open(os.path.join(directory, "times_4_6_0_8_14-43.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_8_14-43.json"))
     except:
         print("File not found.")
         return
@@ -985,7 +999,9 @@ def c_size_by_time():
 
         plt.figure(6)
         ecdf_values = np.arange(1, len(write_file_dur) + 1) / len(write_file_dur)
-        plt.step(write_file_dur, ecdf_values, label=labels[counter], linewidth=3)
+        plt.step(
+            write_file_dur, ecdf_values, label=labels[counter], linewidth=3, alpha=0.3
+        )
         plt.grid(visible=True, linestyle="dashed")
         plt.legend()
         plt.xlabel("Time in s")
@@ -1076,7 +1092,7 @@ def c_size_by_time():
             labels,
             "Wall time in s",
             True,
-            "Number of partitions",
+            # "Number of partitions",
         )
         print(str(times))
     # bottom = 0
