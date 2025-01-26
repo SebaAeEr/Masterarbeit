@@ -3644,13 +3644,13 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
             {
                 sub_file_counter = *subfile_head;
             }
-            for (int sub_file_k = sub_file_counter; sub_file_k < get<2>(*set_it).size(); sub_file_k++)
+            for (int sub_file_k = *subfile_head; sub_file_k < get<2>(*set_it).size(); sub_file_k++)
             {
 
                 auto read_file_start = std::chrono::high_resolution_clock::now();
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
-                firsts3subFile = firsts3File && sub_file_k == sub_file_counter;
-                // std::cout << "firsts3subFile: " << firsts3subFile << std::endl;
+                firsts3subFile = firsts3File && sub_file_k == *subfile_head;
+                std::cout << "firsts3subFile: " << firsts3subFile << " firsts3File: " << firsts3File << ": " << sub_file_k << " == " << *subfile_head << std::endl;
                 std::cout << "Thread " << t_id;
 
                 Aws::S3::Model::GetObjectRequest request;
@@ -4587,11 +4587,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     {
         auto s3spillFile_head_old = s3spillFile_head;
         auto input_head_base_old = input_head_base;
-        std::cout << "Hmap size: " << hmap->size() << std::endl;
+        auto old_hmap_size = hmap->size();
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, &max_hash_size, 0, 0);
 
-        std::cout << "Hmap size: " << hmap->size() << " Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
+        std::cout << "Hmap size: " << old_hmap_size << " -> " << hmap->size() << " Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
         //   std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
         //   bit_head_end++;
         increase = false;
