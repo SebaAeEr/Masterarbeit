@@ -1684,8 +1684,8 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
         }
     }
     mana_writeThread_num.fetch_sub(1);
-    std::cout << (int)(thread_id) << ": sub mana_writeThread_num to: " << mana_writeThread_num.load() << std::endl;
-    //  std::cout << "finished Adding file" << std::endl;
+    // std::cout << (int)(thread_id) << ": sub mana_writeThread_num to: " << mana_writeThread_num.load() << std::endl;
+    //   std::cout << "finished Adding file" << std::endl;
     return;
 }
 /**
@@ -2975,7 +2975,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     std::thread thread(addFileToManag, minio_client, files, write_to_id, fileStatus);
     // addFileToManag(minio_client, files, write_to_id, fileStatus);
     mana_writeThread_num.fetch_add(1);
-    std::cout << (int)(thread_id) << ": inc mana_writeThread_num to: " << mana_writeThread_num.load() << std::endl;
+    // std::cout << (int)(thread_id) << ": inc mana_writeThread_num to: " << mana_writeThread_num.load() << std::endl;
     thread.detach();
 }
 /**
@@ -3651,16 +3651,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = firsts3File && sub_file_k == sub_file_counter;
                 // std::cout << "firsts3subFile: " << firsts3subFile << std::endl;
-                /* std::cout << "Thread " << t_id;
-                if (add)
-                {
-                    std::cout << " adding ";
-                }
-                else
-                {
-                    std::cout << " merging ";
-                }
-                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " bitmap: " << bit_i << " Read lines: " << *read_lines << std::endl; */
+                std::cout << "Thread " << t_id;
+
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
@@ -3740,6 +3732,16 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     // std::cout << "extra_mem " << extra_mem << std::endl;
                     increase_size = false;
                 }
+
+                if (add)
+                {
+                    std::cout << " adding ";
+                }
+                else
+                {
+                    std::cout << " merging ";
+                }
+                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " head: " << head << " max bit: " << bitmap_vector->size() * 8 << " s3spillStart_head_chars_counter: " << s3spillStart_head_chars_counter << std::endl;
                 while (spill.peek() != EOF)
                 {
                     char *bit;
