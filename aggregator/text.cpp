@@ -5205,6 +5205,7 @@ char getSplitMergePartition(Aws::S3::S3Client *minio_client)
         bool b_part = false;
         if (!p.lock)
         {
+            std::cout << "scanning partition: " << (int)(p.id) << std::endl;
             manaFile mana_partition = getMana(minio_client, worker_id, p.id);
             for (auto &p_file : mana_partition.workers[0].partitions[0].files)
             {
@@ -5218,6 +5219,7 @@ char getSplitMergePartition(Aws::S3::S3Client *minio_client)
                     temp_fileNumber++;
                 }
             }
+            std::cout << "file number: " << temp_fileNumber << std::endl;
             if (!b_part && min_fileNumber > temp_fileNumber)
             {
                 partition = p.id;
@@ -5241,6 +5243,7 @@ char getSplitMergePartition(Aws::S3::S3Client *minio_client)
             partition = partition_b;
         }
     }
+    std::cout << "found partition: " << (int)(partition) << std::endl;
     manaFile mana = getLockedMana(minio_client, 0, worker_id);
     for (auto &p : mana.workers[0].partitions)
     {
@@ -5741,6 +5744,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     if (s3spilled)
                     {
                         m_partition = getMergePartition(&minio_client);
+                        std::cout << "got partition: " << (int)(m_partition) << std::endl;
                     }
                     else if (!spills.empty())
                     {
