@@ -6132,6 +6132,7 @@ int main(int argc, char **argv)
 
     manaFile mana_worker;
     mana_worker.workers.push_back(manaFileWorker());
+    mana_worker.workers[0].id = worker_id;
     std::cout << "Adding partition file" << std::endl;
     for (char p = 0; p < 10; p++)
     {
