@@ -601,6 +601,7 @@ void getWorkerCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<
             part.id = out_stream.get();
             part.lock = out_stream.get() == 1;
             worker.partitions.push_back(part);
+            std::cout << "Added part: " << (int)(part.id) << std::endl;
         }
         return_value->workers.push_back(worker);
         *donedone = true;
@@ -5199,6 +5200,7 @@ char getSplitMergePartition(Aws::S3::S3Client *minio_client)
     int b_min_fileNumber = 100000;
     char partition = -1;
     char partition_b = -1;
+    std::cout << mana_worker.workers[0].partitions.size() << std::endl;
     for (auto &p : mana_worker.workers[0].partitions)
     {
         int temp_fileNumber = 0;
@@ -6117,14 +6119,12 @@ int main(int argc, char **argv)
     }
     return 0; */
 
-    
-
     // Init awssdk; optionally logging
     Aws::SDKOptions options;
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
-    bucketName="trinobucket";
-    split_mana=true;
+    bucketName = "trinobucket";
+    split_mana = true;
     worker_id = '1';
     Aws::S3::S3Client minio_client_2 = init();
     auto part = getMergePartition(&minio_client_2);
