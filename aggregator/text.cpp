@@ -889,9 +889,9 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
         in_request.SetKey(key);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
         size_t in_mem_size = 2;
-        partition partition;
+        partition partition = mana.workers[0].partitions[0];
 
-        for (auto &w : mana.workers)
+        /* for (auto &w : mana.workers)
         {
             if (w.id == worker_id)
             {
@@ -905,7 +905,7 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
                 }
                 break;
             }
-        }
+        } */
 
         *in_stream << partition.id;
         char locked = partition.lock ? 1 : 0;
@@ -997,16 +997,16 @@ bool writeManaWorker(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLo
         key += worker_id;
         in_request.SetKey(key);
         const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
-        manaFileWorker worker;
+        manaFileWorker worker = mana.workers[0];
         size_t in_mem_size = 0;
-        for (auto &w : mana.workers)
+        /* for (auto &w : mana.workers)
         {
             if (w.id == worker_id)
             {
                 worker = w;
                 break;
             }
-        }
+        } */
         for (auto &partition : worker.partitions)
         {
             in_mem_size += 2;
@@ -1695,7 +1695,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
 
             for (auto &file : *files_temp)
             {
-                // std::cout << "Adding files to: " << (int)(file.first) << std::endl;
+                std::cout << "Adding files to: " << (int)(file.first) << std::endl;
                 manaFile mana_partition = getLockedMana(minio_client, thread_id, write_to_id, file.first);
                 for (auto &f : file.second)
                 {
@@ -6125,7 +6125,7 @@ int main(int argc, char **argv)
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
-    /* bucketName = "trinobucket";
+    bucketName = "trinobucket";
     split_mana = true;
     worker_id = '1';
     Aws::S3::S3Client minio_client_2 = init();
@@ -6139,7 +6139,7 @@ int main(int argc, char **argv)
     addFileToManag(&minio_client_2, files, worker_id, 0);
     auto part = getMergePartition(&minio_client_2);
     std::cout << (int)(part) << std::endl;
-    return 0; */
+    return 0;
 
     // Status request of Mana file
     if (argc == 3 || argc == 2)
