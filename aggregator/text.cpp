@@ -1829,12 +1829,13 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
         else
         {
             std::cout << "finding partition: " << (int)(partition_id) << std::endl;
-            manaFile manaLockedPartition = getLockedMana(minio_client, thread_id, beggarWorker, partition_id);
+            manaLockedPartition = getLockedMana(minio_client, thread_id, beggarWorker, partition_id);
             size_t partition_size_temp = 0;
             int file_number = 0;
             size_t b_file = 0;
             for (auto &file : manaLockedPartition.workers[0].partitions[0].files)
             {
+                std::cout << "file in partition: " << file.name << std::endl;
                 if (file.status == 0)
                 {
                     file_number++;
