@@ -1586,7 +1586,7 @@ void setPartitionNumber(size_t comb_hash_size)
  */
 void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
 {
-    std::cout << "Adding files" << std::endl;
+    // std::cout << "Adding files" << std::endl;
     std::unordered_map<char, std::vector<file>> *files_temp;
     std::unordered_map<char, std::vector<file>> local_files_temp;
     if (use_file_queue)
@@ -1694,7 +1694,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
 
             for (auto &file : *files_temp)
             {
-                std::cout << "Adding files to: " << (int)(file.first) << std::endl;
+                // std::cout << "Adding files to: " << (int)(file.first) << std::endl;
                 manaFile mana_partition = getLockedMana(minio_client, thread_id, write_to_id, file.first);
                 for (auto &f : file.second)
                 {
@@ -1706,8 +1706,8 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
         }
     }
     mana_writeThread_num.fetch_sub(1);
-    std::cout << (int)(thread_id) << ": sub mana_writeThread_num to: " << mana_writeThread_num.load() << std::endl;
-    //   std::cout << "finished Adding file" << std::endl;
+    // std::cout << (int)(thread_id) << ": sub mana_writeThread_num to: " << mana_writeThread_num.load() << std::endl;
+    //    std::cout << "finished Adding file" << std::endl;
     return;
 }
 /**
@@ -2997,7 +2997,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     std::thread thread(addFileToManag, minio_client, files, write_to_id, fileStatus);
     // addFileToManag(minio_client, files, write_to_id, fileStatus);
     mana_writeThread_num.fetch_add(1);
-    std::cout << (int)(thread_id) << ": inc mana_writeThread_num to: " << mana_writeThread_num.load() << std::endl;
+    //  std::cout << (int)(thread_id) << ": inc mana_writeThread_num to: " << mana_writeThread_num.load() << std::endl;
     thread.detach();
 }
 /**
@@ -3215,7 +3215,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         // std::cout << "maxHmapSize: " << maxHmapSize << std::endl;
         unsigned long freed_space_temp = (i - head) - ((i - head) % pagesize);
         // if ((maxHmapSize * avg + base_size / threadNumber >= memLimit) || freed_space_temp > mapping_max)
-        if (maxHmapSize * avg + base_size / threadNumber >= memLimit * 0.95 || freed_space_temp > mapping_max)
+        if (maxHmapSize * avg + base_size / threadNumber >= memLimit * 0.95 || freed_space_temp > mapping_max / threadNumber)
         {
             // std::cout << "memLimit broken. Estimated mem used: " << hmap->size() * avg + base_size / threadNumber << " size: " << hmap->size() << " avg: " << avg << " base_size / threadNumber: " << base_size / threadNumber << std::endl;
 
@@ -3243,7 +3243,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         // compare estimation again to memLimit
         // if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
         // if (hmap->size() >= maxHmapSize * 0.98 && freed_space_temp <= mapping_max)
-        if (maxHmapSize * avg + base_size / threadNumber >= memLimit - mapping_max && hmap->size() >= maxHmapSize * 0.98)
+        if (maxHmapSize * avg + base_size / threadNumber >= memLimit - mapping_max / threadNumber && hmap->size() >= maxHmapSize * 0.98)
         {
             auto start_spill_time = std::chrono::high_resolution_clock::now();
             // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;

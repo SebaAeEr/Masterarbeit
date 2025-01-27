@@ -55,7 +55,13 @@ def CollectOPData(i, tabs):
 
 
 def makeBarFig(
-    data, xlabels, ylabel, show_bar_label: bool = True, xaxis_label: str = ""
+    data,
+    xlabels,
+    ylabel,
+    show_bar_label: bool = True,
+    xaxis_label: str = "",
+    markings: bool = False,
+    marking_labels: list = [],
 ):
 
     fig, ax = plt.subplots()
@@ -81,10 +87,29 @@ def makeBarFig(
             counter += 1
             if show_bar_label:
                 ax.bar_label(rects, padding=2)
+    ax.legend(list(data[0].keys()), loc="upper right")
+    if markings:
+        diff = (x[1] - x[0]) / 2
+        counter = 0
+        for xth in x:
+            if counter % 2 == 0:
+                color = "blue"
+            else:
+                color = "red"
+            ax.axvspan(xth - diff, xth + diff, color=color, alpha=0.15)
+            plt.text(
+                xth,
+                max(bottom) * 1.2,
+                marking_labels[counter],
+                color=color,
+                ha="center",
+                # bbox=dict(facecolor="white", edgecolor="none", alpha=1.0),
+            )
+            counter += 1
 
     ax.set_xticks(x + (space + width) * (len(data) - 1) * 0.5)
     ax.set_xticklabels(xlabels)
-    ax.legend(list(data[0].keys()), loc="upper right")
+
     ax.set_ylabel(ylabel)
     ax.set_xlabel(xaxis_label)
     ax.grid(visible=True, linestyle="dashed")
@@ -834,12 +859,27 @@ def c_size_by_time():
     # labels = np.array(["25; 1T", "50; 3T", "75; 6T", "100; 6T"])
 
     names = [
-        "logfile_4_6_0_4_07-09.json",
-        "logfile_4_6_0_4_07-31.json",
-        "logfile_4_6_0_4_07-50.json",
-        "logfile_4_6_0_4_08-10.json",
+        "logfile_4_6_0_4_09-02.json",
+        "logfile_4_6_0_4_13-07.json",
+        "logfile_4_6_0_4_09-20.json",
+        "logfile_4_6_0_4_13-29.json",
+        "logfile_4_6_0_4_09-39.json",
+        "logfile_4_6_0_4_13-50.json",
+        "logfile_4_6_0_4_10-01.json",
+        "logfile_4_6_0_4_14-18.json",
     ]
-    labels = np.array(["25; 2T", "50; 2T", "75; 2T", "100; 2T"])
+    labels = np.array(
+        [
+            "25; 3T",
+            "25; 1T",
+            "50; 6T",
+            "50; 3T",
+            "75; 9T",
+            "75; 6T",
+            "100; 12T",
+            "100; 6T",
+        ]
+    )
 
     # deencode analyses
     # names = [
@@ -875,8 +915,8 @@ def c_size_by_time():
 
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_4_08-10.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_4_08-10.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_09-20.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_09-20.json"))
     except:
         print("File not found.")
         return
@@ -1078,6 +1118,15 @@ def c_size_by_time():
     # plt.ylabel("ECDF")
 
     if len(names) > 0:
+        s1 = "dynamic"
+        s2 = "static"
+        marking_labels = []
+        for n in range(len(names)):
+            if n % 2 == 0:
+                s = s2
+            else:
+                s = s1
+            marking_labels.append(s)
         makeBarFig(
             times,
             # np.array(
@@ -1095,6 +1144,8 @@ def c_size_by_time():
             "Wall time in s",
             True,
             # "Number of partitions",
+            markings=True,
+            marking_labels=marking_labels,
         )
         print(str(times))
     # bottom = 0
