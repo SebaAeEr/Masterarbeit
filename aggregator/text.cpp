@@ -3275,6 +3275,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     {
                         manaFile mana_worker;
                         mana_worker.workers.push_back(manaFileWorker());
+                        mana_worker.workers[0].id = worker_id;
                         std::cout << "Adding partition file" << std::endl;
                         for (char p = 0; p < partitions; p++)
                         {
@@ -6124,7 +6125,7 @@ int main(int argc, char **argv)
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
-    /* bucketName = "trinobucket";
+    bucketName = "trinobucket";
     split_mana = true;
     worker_id = '1';
     Aws::S3::S3Client minio_client_2 = init();
@@ -6143,7 +6144,7 @@ int main(int argc, char **argv)
 
     auto part = getMergePartition(&minio_client_2);
     std::cout << (int)(part) << std::endl;
-    return 0; */
+    return 0;
 
     // Status request of Mana file
     if (argc == 3 || argc == 2)
