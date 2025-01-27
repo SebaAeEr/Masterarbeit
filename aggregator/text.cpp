@@ -3508,6 +3508,10 @@ void printSize(int &finished, size_t memLimit, std::atomic<unsigned long> &comb_
             if (comb_hash_size.load() > 0 && size > memLimit * 0.5)
             {
                 float temp_avg = (size - base_size) / (float)(comb_hash_size.load());
+                if (size < memLimit * 0.8)
+                {
+                    temp_avg *= 1.2;
+                }
 
                 // std::cout << "avg: " << *avg << " avg diff: " << std::abs(temp_avg - (*avg)) << std::endl;
                 // if (std::abs(temp_avg - (*avg)) < 10 || (*avg < 10 && std::abs(temp_avg - (*avg)) < 100))
