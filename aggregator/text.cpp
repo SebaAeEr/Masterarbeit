@@ -1828,14 +1828,12 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
         }
         else
         {
-            std::cout << "finding partition: " << (int)(partition_id) << std::endl;
             manaLockedPartition = getLockedMana(minio_client, thread_id, beggarWorker, partition_id);
             size_t partition_size_temp = 0;
             int file_number = 0;
             size_t b_file = 0;
             for (auto &file : manaLockedPartition.workers[0].partitions[0].files)
             {
-                std::cout << "file in partition: " << file.name << std::endl;
                 if (file.status == 0)
                 {
                     file_number++;
@@ -1851,7 +1849,6 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
             }
             if (!manaLockedPartition.workers[0].partitions[0].lock && partition_max == partition_size_temp && b_file == biggest_file && file_number >= minFileNumMergeHelper)
             {
-                std::cout << "found partition: " << (int)(partition_id) << std::endl;
                 break;
             }
             else
@@ -1862,9 +1859,6 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
         }
     }
 
-    std::cout << "finding files: " << manaLockedPartition.workers.size();
-    std::cout << ", " << manaLockedPartition.workers[0].partitions.size();
-    std::cout << ", " << manaLockedPartition.workers[0].partitions[0].files.size() << std::endl;
     char file_num = threadNumber * 2;
     std::vector<file> res_files(0);
     while (res_files.size() < file_num)
@@ -1873,7 +1867,6 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
         file biggest_file;
         for (auto &file : manaLockedPartition.workers[0].partitions[0].files)
         {
-            std::cout << "File status: " << (int)(file.status) << " size: " << file.size << " name: " << file.name << std::endl;
             if (file.status == 0 && !std::count(blacklist->begin(), blacklist->end(), file.name))
             {
                 bool found = false;
@@ -1894,7 +1887,6 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
         }
         if (max > 0)
         {
-            std::cout << "found file name: " << biggest_file.name << std::endl;
             res_files.push_back(biggest_file);
         }
         else
@@ -1909,12 +1901,12 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
         // std::cout << "setting beggar to 0" << std::endl;
         return;
     }
-    std::cout << "res_files: ";
+    /* std::cout << "res_files: ";
     for (auto temp : res_files)
     {
         std::cout << temp.name << ", ";
     }
-    std::cout << std::endl;
+    std::cout << std::endl; */
     // std::cout << "writing status" << std::endl;
 
     for (auto &file : manaLockedPartition.workers[0].partitions[0].files)
@@ -4706,18 +4698,19 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     for (auto &it : *spills)
     {
         comb_spill_size_temp += it.second;
-        // std::cout << it.second << ", ";
     }
-    // std::cout << std::endl;
+
     int counter = 0;
     for (auto &name : *s3spillNames2)
     {
+        std::cout << get<0>(name) << ", ";
         overall_s3spillsize += get<1>(name);
         for (auto &tuple_num : get<2>(name))
         {
             bitmap_size_sum += std::ceil((float)(tuple_num.second) / 8);
         }
     }
+    std::cout << std::endl;
     /*  if (bitmap_size_sum > memLimit * 0.7)
      {
          // std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
@@ -4759,6 +4752,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
      else
      { */
     // not spilling bitmaps
+
     for (auto &name : *s3spillNames2)
     {
         for (auto &s : get<2>(name))
@@ -4767,6 +4761,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             s3spillBitmaps.push_back({-1, bitmap});
         }
     }
+    std::cout << "created bitmaps" << std::endl;
     // std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() << std::endl;
     // }
     extra_mem += bitmap_size_sum;
@@ -4784,10 +4779,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         auto s3spillFile_head_old = s3spillFile_head;
         auto input_head_base_old = input_head_base;
         auto old_hmap_size = hmap->size();
+        std::cout << "adding" << std::endl;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, &max_hash_size, 0, 0);
 
-        // std::cout << "Hmap size: " << old_hmap_size << " -> " << hmap->size() << " Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
+        / std::cout << "Hmap size: " << old_hmap_size << " -> " << hmap->size() << " Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
         //   std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
         //   bit_head_end++;
         increase = false;
