@@ -963,7 +963,12 @@ bool writeManaPartition(Aws::S3::S3Client *minio_client, manaFile mana, bool fre
             if (freeLock)
             {
                 Aws::S3::Model::DeleteObjectRequest delete_request;
-                delete_request.WithKey(lock_file_name + "_" + worker_id + "_" + partition_id).WithBucket(bucketName);
+                std::string key = lock_file_name;
+                key += "_";
+                key += worker_id;
+                key += "_";
+                key += std::to_string((int)(partition_id));
+                delete_request.WithKey(key).WithBucket(bucketName);
                 auto outcome = minio_client->DeleteObject(delete_request);
                 if (!outcome.IsSuccess())
                 {
@@ -1024,7 +1029,10 @@ bool writeManaWorker(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLo
             if (freeLock)
             {
                 Aws::S3::Model::DeleteObjectRequest delete_request;
-                delete_request.WithKey(lock_file_name + "_" + worker_id).WithBucket(bucketName);
+                std::string key = lock_file_name;
+                key += "_";
+                key += worker_id;
+                delete_request.WithKey(key).WithBucket(bucketName);
                 auto outcome = minio_client->DeleteObject(delete_request);
                 if (!outcome.IsSuccess())
                 {
@@ -1263,11 +1271,19 @@ bool writeLock(Aws::S3::S3Client *minio_client, char worker_id = -1, char partit
     {
         if (partition_id != -1)
         {
-            request.SetKey(lock_file_name + "_" + worker_id + "_" + partition_id);
+            std::string key = lock_file_name;
+            key += "_";
+            key += worker_id;
+            key += "_";
+            key += std::to_string((int)(partition_id));
+            request.SetKey(key);
         }
         else if (worker_id != -1)
         {
-            request.SetKey(lock_file_name + "_" + worker_id);
+            std::string key = lock_file_name;
+            key += "_";
+            key += worker_id;
+            request.SetKey(key);
         }
         else
         {
