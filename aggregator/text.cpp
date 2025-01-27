@@ -6329,14 +6329,15 @@ int main(int argc, char **argv)
     Aws::InitAPI(options);
 
     // Status request of Mana file
-    if (argc == 3 || argc == 2)
+    if (argc == 3 || argc == 2 || argc == 4)
     {
         std::string f = argv[1];
         if (f.compare("status") == 0)
         {
-            std::string f2 = argc == 3 ? argv[2] : "nope";
-            std::cout << f2 << std::endl;
+            std::string f2 = argc >= 3 ? argv[2] : "nope";
+            std::string f3 = argc >= 4 ? argv[3] : bucketName;
             split_mana = f2.compare("dist") == 0;
+            bucketName = f3;
             Aws::S3::S3Client minio_client_2 = init();
             printMana(&minio_client_2);
             Aws::ShutdownAPI(options);
