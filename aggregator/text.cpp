@@ -601,7 +601,7 @@ void getWorkerCall(Aws::S3::S3Client *minio_client, std::shared_ptr<std::atomic<
             part.id = out_stream.get();
             part.lock = out_stream.get() == 1;
             worker.partitions.push_back(part);
-            std::cout << "Added part: " << (int)(part.id) << std::endl;
+            //  std::cout << "Added part: " << (int)(part.id) << std::endl;
         }
         return_value->workers.push_back(worker);
         *donedone = true;
@@ -1836,6 +1836,7 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
         }
         else
         {
+            std::cout << "finding partition: " << (int)(partition_id) << std::endl;
             manaFile manaLockedPartition = getLockedMana(minio_client, thread_id, beggarWorker, partition_id);
             size_t partition_size_temp = 0;
             int file_number = 0;
@@ -1857,6 +1858,7 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
             }
             if (!manaLockedPartition.workers[0].partitions[0].lock && partition_max == partition_size_temp && b_file == biggest_file && file_number >= minFileNumMergeHelper)
             {
+                std::cout << "found partition: " << (int)(partition_id) << std::endl;
                 break;
             }
             else
@@ -1867,7 +1869,7 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
         }
     }
 
-    // std::cout << "finding files" << std::endl;
+    std::cout << "finding files" << std::endl;
     char file_num = threadNumber * 2;
     std::vector<file> res_files(0);
     while (res_files.size() < file_num)
@@ -1876,7 +1878,7 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
         file biggest_file;
         for (auto &file : manaLockedPartition.workers[0].partitions[0].files)
         {
-            // std::cout << "File status: " << (int)(file.status) << " size: " << file.size << " name: " << file.name << std::endl;
+            std::cout << "File status: " << (int)(file.status) << " size: " << file.size << " name: " << file.name << std::endl;
             if (file.status == 0 && !std::count(blacklist->begin(), blacklist->end(), file.name))
             {
                 bool found = false;
@@ -1897,7 +1899,7 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
         }
         if (max > 0)
         {
-            // std::cout << "found file name: " << biggest_file.name << std::endl;
+            std::cout << "found file name: " << biggest_file.name << std::endl;
             res_files.push_back(biggest_file);
         }
         else
@@ -1912,12 +1914,12 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
         // std::cout << "setting beggar to 0" << std::endl;
         return;
     }
-    /* std::cout << "res_files: ";
+    std::cout << "res_files: ";
     for (auto temp : res_files)
     {
         std::cout << temp.name << ", ";
     }
-    std::cout << std::endl; */
+    std::cout << std::endl;
     // std::cout << "writing status" << std::endl;
 
     for (auto &file : manaLockedPartition.workers[0].partitions[0].files)
