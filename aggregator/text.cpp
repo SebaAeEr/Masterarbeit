@@ -3244,7 +3244,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         // compare estimation again to memLimit
         // if (freed_space_temp <= pagesize * 10 && hmap->size() * (key_number + value_number) * sizeof(long) > pagesize && hmap->size() * avg + base_size / threadNumber >= memLimit * 0.9)
         // if (hmap->size() >= maxHmapSize * 0.98 && freed_space_temp <= mapping_max)
-        if (maxHmapSize * avg + base_size / threadNumber >= memLimit * 0.95 - mapping_max / threadNumber && hmap->size() >= maxHmapSize * 0.98)
+        if (maxHmapSize * avg + base_size / threadNumber >= (memLimit - mapping_max / threadNumber) * 0.9 && hmap->size() >= maxHmapSize * 0.98)
         {
             auto start_spill_time = std::chrono::high_resolution_clock::now();
             // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;
@@ -6124,7 +6124,7 @@ int main(int argc, char **argv)
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
-    bucketName = "trinobucket";
+    /* bucketName = "trinobucket";
     split_mana = true;
     worker_id = '1';
     Aws::S3::S3Client minio_client_2 = init();
@@ -6143,7 +6143,7 @@ int main(int argc, char **argv)
 
     auto part = getMergePartition(&minio_client_2);
     std::cout << (int)(part) << std::endl;
-    return 0;
+    return 0; */
 
     // Status request of Mana file
     if (argc == 3 || argc == 2)
