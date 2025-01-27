@@ -68,7 +68,8 @@ def makeBarFig(
     width = 0.15
     space = 0.05
     big_space = 0.3
-    x = np.arange(0, len(xlabels) * big_space, big_space)
+    x = np.arange(len(xlabels))
+    x = x * big_space
     colors = plt.cm.viridis.colors
     nth = int(len(colors) / len(list(data[0].keys())))
     colors = colors[nth - 1 :: nth]
@@ -858,28 +859,28 @@ def c_size_by_time():
     # ]
     # labels = np.array(["25; 1T", "50; 3T", "75; 6T", "100; 6T"])
 
-    names = [
-        "logfile_4_6_0_4_09-02.json",
-        "logfile_4_6_0_4_13-07.json",
-        "logfile_4_6_0_4_09-20.json",
-        "logfile_4_6_0_4_13-29.json",
-        "logfile_4_6_0_4_09-39.json",
-        "logfile_4_6_0_4_13-50.json",
-        "logfile_4_6_0_4_10-01.json",
-        "logfile_4_6_0_4_14-18.json",
-    ]
-    labels = np.array(
-        [
-            "25; 3T",
-            "25; 1T",
-            "50; 6T",
-            "50; 3T",
-            "75; 9T",
-            "75; 6T",
-            "100; 12T",
-            "100; 6T",
-        ]
-    )
+    # names = [
+    #     "logfile_4_6_0_4_09-02.json",
+    #     "logfile_4_6_0_4_13-07.json",
+    #     "logfile_4_6_0_4_09-20.json",
+    #     "logfile_4_6_0_4_13-29.json",
+    #     "logfile_4_6_0_4_09-39.json",
+    #     "logfile_4_6_0_4_13-50.json",
+    #     "logfile_4_6_0_4_10-01.json",
+    #     "logfile_4_6_0_4_14-18.json",
+    # ]
+    # labels = np.array(
+    #     [
+    #         "25; 3T",
+    #         "25; 1T",
+    #         "50; 6T",
+    #         "50; 3T",
+    #         "75; 9T",
+    #         "75; 6T",
+    #         "100; 12T",
+    #         "100; 6T",
+    #     ]
+    # )
 
     # deencode analyses
     # names = [
@@ -898,40 +899,36 @@ def c_size_by_time():
     # )
 
     # with/out part
-    # names = [
-    #     "logfile_4_6_0_8_17-14.json",
-    #     "logfile_4_6_0_8_14-43.json",
-    #     "logfile_4_6_0_8_19-27.json"
-    # ]
-    # labels = np.array(
-    #     [
-    #         "1 partition",
-    #         "30 partitions",
-    #         "30 partitions 2W"
-    #         #   "compression 100BM",
-    #         # "no compression 100BM",
-    #     ]
-    # )
-
-    # Mapping size
     names = [
-        "logfile_4_6_0_4_15-59.json",
-        "logfile_4_6_0_4_16-25.json",
-        "logfile_4_6_0_4_16-51.json",
-        "logfile_4_6_0_4_17-16.json",
+        "logfile_4_6_0_8_17-14.json",
+        "logfile_4_6_0_8_14-43.json",
+        "logfile_4_6_0_8_20-52.json",
     ]
     labels = np.array(
         [
-            "0.05",
-            "0.1",
-            "0.2",
-            "0.3"
+            "1 partition",
+            "30 partitions",
+            "30 partitions 2W",
+            #   "compression 100BM",
+            # "no compression 100BM",
         ]
     )
+
+    # Mapping size
+    # names = [
+    #     "logfile_4_6_0_4_15-59.json",
+    #     "logfile_4_6_0_4_16-25.json",
+    #     "logfile_4_6_0_4_16-51.json",
+    #     "logfile_4_6_0_4_17-16.json",
+    #     "logfile_4_6_0_4_17-56.json",
+    #     "logfile_4_6_0_4_18-22.json",
+    #     "logfile_4_6_0_4_18-50.json",
+    # ]
+    # labels = np.array(["0.05", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6"])
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_4_17-16.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_4_17-16.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_18-22.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_18-22.json"))
     except:
         print("File not found.")
         return
@@ -1158,7 +1155,7 @@ def c_size_by_time():
             labels,
             "Wall time in s",
             True,
-            # "Number of partitions",
+            "Size of mapping in GiB",
             # markings=True,
             # marking_labels=marking_labels,
         )
