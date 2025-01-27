@@ -6125,6 +6125,7 @@ int main(int argc, char **argv)
     Aws::InitAPI(options);
     bucketName="trinobucket";
     split_mana=true;
+    worker_id = '1';
     Aws::S3::S3Client minio_client_2 = init();
     auto part = getMergePartition(&minio_client_2);
     std::cout << (int)(part) << std::endl;
