@@ -3650,8 +3650,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 auto read_file_start = std::chrono::high_resolution_clock::now();
                 auto sub_file = get<2>(*set_it)[sub_file_k].second;
                 firsts3subFile = firsts3File && sub_file_k == *subfile_head;
-                std::cout << "firsts3subFile: " << firsts3subFile << " firsts3File: " << firsts3File << ": " << sub_file_k << " == " << *subfile_head << std::endl;
-                std::cout << "Thread " << t_id;
+                // std::cout << "firsts3subFile: " << firsts3subFile << " firsts3File: " << firsts3File << ": " << sub_file_k << " == " << *subfile_head << std::endl;
+                // std::cout << "Thread " << t_id;
 
                 Aws::S3::Model::GetObjectRequest request;
                 request.SetBucket(bucketName);
@@ -3733,7 +3733,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     increase_size = false;
                 }
 
-                if (add)
+                /* if (add)
                 {
                     std::cout << " adding ";
                 }
@@ -3741,7 +3741,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 {
                     std::cout << " merging ";
                 }
-                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " head: " << head << " max bit: " << bitmap_vector->size() * 8 << " s3spillStart_head_chars_counter: " << s3spillStart_head_chars_counter << std::endl;
+                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " head: " << head << " max bit: " << bitmap_vector->size() * 8 << " s3spillStart_head_chars_counter: " << s3spillStart_head_chars_counter << std::endl; */
                 while (spill.peek() != EOF)
                 {
                     char *bit;
@@ -6465,6 +6465,8 @@ int main(int argc, char **argv)
         partitions = -1;
         log_file = logFile();
         backMem_usage = 0;
+        spillTuple_number.exchange(0);
+        comb_spill_size.exchange(0);
 
         // set configuration for specific iteration
 

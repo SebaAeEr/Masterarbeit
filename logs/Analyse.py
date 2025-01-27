@@ -833,13 +833,13 @@ def c_size_by_time():
     # ]
     # labels = np.array(["25; 1T", "50; 3T", "75; 6T", "100; 6T"])
 
-    # names = [
-    #     "logfile_4_6_0_4_15-22.json",
-    #     "logfile_4_6_0_4_15-46.json",
-    #     "logfile_4_6_0_4_16-09.json",
-    #     "logfile_4_6_0_4_16-34.json",
-    # ]
-    # labels = np.array(["25; 2T", "50; 2T", "75; 2T", "100; 2T"])
+    names = [
+        "logfile_4_6_0_4_07-09.json",
+        "logfile_4_6_0_4_07-31.json",
+        "logfile_4_6_0_4_07-50.json",
+        "logfile_4_6_0_4_08-10.json",
+    ]
+    labels = np.array(["25; 2T", "50; 2T", "75; 2T", "100; 2T"])
 
     # deencode analyses
     # names = [
@@ -858,23 +858,25 @@ def c_size_by_time():
     # )
 
     # with/out part
-    names = [
-        "logfile_4_6_0_8_17-14.json",
-        "logfile_4_6_0_8_14-43.json",
-    ]
-    labels = np.array(
-        [
-            "1 partition",
-            "30 partitions",
-            #   "compression 100BM",
-            # "no compression 100BM",
-        ]
-    )
+    # names = [
+    #     "logfile_4_6_0_8_17-14.json",
+    #     "logfile_4_6_0_8_14-43.json",
+    #     "logfile_4_6_0_8_19-27.json"
+    # ]
+    # labels = np.array(
+    #     [
+    #         "1 partition",
+    #         "30 partitions",
+    #         "30 partitions 2W"
+    #         #   "compression 100BM",
+    #         # "no compression 100BM",
+    #     ]
+    # )
 
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_8_17-14.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_8_17-14.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_08-10.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_08-10.json"))
     except:
         print("File not found.")
         return
