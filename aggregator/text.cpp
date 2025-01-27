@@ -1772,6 +1772,178 @@ void getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id, st
         }
     }
 }
+
+void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char partition_id, std::vector<std::string> *blacklist, std::tuple<std::vector<file>, char, char> *res, char thread_id, char min_file_num)
+{
+    // std::cout << "getting file name" << std::endl;
+    char given_beggarWorker = beggarWorker;
+    file m_file;
+    get<0>(*res).clear();
+    manaFile manaLockedPartition;
+    // printMana(minio_client);
+    //  If no beggarWorker is yet selected choose the worker with the largest spill
+    while (beggarWorker == 0)
+    {
+        manaFile mana = getMana(minio_client);
+        // std::cout << "finding partition" << std::endl;
+        size_t partition_max = 0;
+        size_t biggest_file = 0;
+        for (auto &worker : mana.workers)
+        {
+            if (!worker.locked)
+            {
+                manaFile manaWorker = getMana(minio_client, worker.id);
+                for (auto &partition : manaWorker.workers[0].partitions)
+                {
+                    if (!partition.lock)
+                    {
+                        manaFile manaPartition = getMana(minio_client, worker.id, partition.id);
+                        size_t partition_size_temp = 0;
+                        int file_number = 0;
+                        size_t b_file = 0;
+                        for (auto &file : manaPartition.workers[0].partitions[0].files)
+                        {
+                            if (file.status == 0)
+                            {
+                                file_number++;
+                                if (!std::count(blacklist->begin(), blacklist->end(), file.name))
+                                {
+                                    partition_size_temp += file.size;
+                                    if (b_file < file.size)
+                                    {
+                                        b_file = file.size;
+                                    }
+                                }
+                            }
+                        }
+                        // if (partition_max < partition_size_temp && file_number > 3)
+                        if (b_file > biggest_file && file_number >= minFileNumMergeHelper)
+                        {
+                            partition_max = partition_size_temp;
+                            partition_id = partition.id;
+                            beggarWorker = worker.id;
+                            biggest_file = b_file;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (beggarWorker == 0)
+        {
+            get<1>(*res) = 0;
+            return;
+        }
+        else
+        {
+            manaFile manaLockedPartition = getLockedMana(minio_client, thread_id, beggarWorker, partition_id);
+            size_t partition_size_temp = 0;
+            int file_number = 0;
+            size_t b_file = 0;
+            for (auto &file : manaLockedPartition.workers[0].partitions[0].files)
+            {
+                if (file.status == 0)
+                {
+                    file_number++;
+                    if (!std::count(blacklist->begin(), blacklist->end(), file.name))
+                    {
+                        partition_size_temp += file.size;
+                        if (b_file < file.size)
+                        {
+                            b_file = file.size;
+                        }
+                    }
+                }
+            }
+            if (!manaLockedPartition.workers[0].partitions[0].lock && partition_max == partition_size_temp && b_file == biggest_file && file_number >= minFileNumMergeHelper)
+            {
+                break;
+            }
+            else
+            {
+                writeMana(minio_client, manaLockedPartition, true, beggarWorker, partition_id);
+                beggarWorker = 0;
+            }
+        }
+    }
+
+    // std::cout << "finding files" << std::endl;
+    char file_num = threadNumber * 2;
+    std::vector<file> res_files(0);
+    while (res_files.size() < file_num)
+    {
+        size_t max = 0;
+        file biggest_file;
+        for (auto &file : manaLockedPartition.workers[0].partitions[0].files)
+        {
+            // std::cout << "File status: " << (int)(file.status) << " size: " << file.size << " name: " << file.name << std::endl;
+            if (file.status == 0 && !std::count(blacklist->begin(), blacklist->end(), file.name))
+            {
+                bool found = false;
+                for (auto &f : res_files)
+                {
+                    if (f.name == file.name)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found && file.size > max)
+                {
+                    max = file.size;
+                    biggest_file = file;
+                }
+            }
+        }
+        if (max > 0)
+        {
+            // std::cout << "found file name: " << biggest_file.name << std::endl;
+            res_files.push_back(biggest_file);
+        }
+        else
+        {
+            break;
+        }
+    }
+    if (res_files.size() < min_file_num)
+    {
+        writeMana(minio_client, manaLockedPartition, true, beggarWorker, partition_id);
+        get<1>(*res) = 0;
+        // std::cout << "setting beggar to 0" << std::endl;
+        return;
+    }
+    /* std::cout << "res_files: ";
+    for (auto temp : res_files)
+    {
+        std::cout << temp.name << ", ";
+    }
+    std::cout << std::endl; */
+    // std::cout << "writing status" << std::endl;
+
+    for (auto &file : manaLockedPartition.workers[0].partitions[0].files)
+    {
+        for (auto &b_file : res_files)
+        {
+            if (file.name == b_file.name)
+            {
+                file.status = worker_id;
+                break;
+            }
+        }
+    }
+    get<1>(*res) = beggarWorker;
+    get<2>(*res) = partition_id;
+    // get<0>(*res) = res_files;
+    for (auto &f : res_files)
+    {
+        get<0>(*res).push_back(f);
+    }
+
+    // std::cout << "unlocking Mana" << std::endl;
+    writeMana(minio_client, manaLockedPartition, true, beggarWorker, partition_id);
+    return;
+}
+
 /**
  * @brief Get file structs (if not given worker_id and partition_id) of files that worker can merge (only called from mergeHelper)
  *
@@ -1785,12 +1957,15 @@ void getAllMergeFileNames(Aws::S3::S3Client *minio_client, char partition_id, st
  */
 void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char partition_id, std::vector<std::string> *blacklist, std::tuple<std::vector<file>, char, char> *res, char thread_id, char min_file_num)
 {
+    if (split_mana)
+    {
+        return getDistMergeFileName(minio_client, beggarWorker, partition_id, blacklist, res, thread_id, min_file_num);
+    }
     // std::cout << "getting file name" << std::endl;
     char given_beggarWorker = beggarWorker;
     file m_file;
     get<0>(*res).clear();
     manaFile mana = getLockedMana(minio_client, thread_id);
-    std::cout << "Getting beggar Worker: " << beggarWorker << std::endl;
     // printMana(minio_client);
     //  If no beggarWorker is yet selected choose the worker with the largest spill
     if (beggarWorker == 0)
@@ -1800,35 +1975,38 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
         size_t biggest_file = 0;
         for (auto &worker : mana.workers)
         {
-            for (auto &partition : worker.partitions)
+            if (!worker.locked)
             {
-                if (!partition.lock)
+                for (auto &partition : worker.partitions)
                 {
-                    size_t partition_size_temp = 0;
-                    int file_number = 0;
-                    size_t b_file = 0;
-                    for (auto &file : partition.files)
+                    if (!partition.lock)
                     {
-                        if (file.status == 0)
+                        size_t partition_size_temp = 0;
+                        int file_number = 0;
+                        size_t b_file = 0;
+                        for (auto &file : partition.files)
                         {
-                            file_number++;
-                            if (!std::count(blacklist->begin(), blacklist->end(), file.name))
+                            if (file.status == 0)
                             {
-                                partition_size_temp += file.size;
-                                if (b_file < file.size)
+                                file_number++;
+                                if (!std::count(blacklist->begin(), blacklist->end(), file.name))
                                 {
-                                    b_file = file.size;
+                                    partition_size_temp += file.size;
+                                    if (b_file < file.size)
+                                    {
+                                        b_file = file.size;
+                                    }
                                 }
                             }
                         }
-                    }
-                    // if (partition_max < partition_size_temp && file_number > 3)
-                    if (b_file > biggest_file && file_number >= minFileNumMergeHelper)
-                    {
-                        partition_max = partition_size_temp;
-                        partition_id = partition.id;
-                        beggarWorker = worker.id;
-                        biggest_file = b_file;
+                        // if (partition_max < partition_size_temp && file_number > 3)
+                        if (b_file > biggest_file && file_number >= minFileNumMergeHelper)
+                        {
+                            partition_max = partition_size_temp;
+                            partition_id = partition.id;
+                            beggarWorker = worker.id;
+                            biggest_file = b_file;
+                        }
                     }
                 }
             }
@@ -1840,7 +2018,6 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
         get<1>(*res) = 0;
         return;
     }
-    std::cout << "Got beggar Worker: " << beggarWorker << " partition: " << partition_id << " Getting files" << std::endl;
 
     // std::cout << "finding files" << std::endl;
     char file_num = threadNumber * 2;
@@ -1911,12 +2088,6 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
         // std::cout << "setting beggar to 0" << std::endl;
         return;
     }
-    std::cout << "setting file stati : ";
-    for (auto &f : res_files)
-    {
-        std::cout << f.name << ", " << std::endl;
-    }
-    std::cout << std::endl;
     /* std::cout << "res_files: ";
     for (auto temp : res_files)
     {
@@ -1948,7 +2119,6 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
             }
         }
     }
-    std::cout << "creating result" << std::endl;
     get<1>(*res) = beggarWorker;
     get<2>(*res) = partition_id;
     // get<0>(*res) = res_files;
@@ -4002,12 +4172,12 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
     if (add)
     {
         *s3spillFile_head = s3spillNames2->size();
-        std::cout << "adding local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size_temp << std::endl;
+        // std::cout << "adding local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size_temp << std::endl;
     }
-    else
+    /* else
     {
         std::cout << "Merging local input_head_base: " << *input_head_base << ", comb_spill_size: " << comb_spill_size_temp << std::endl;
-    }
+    } */
 
     // std::cout << "New round" << std::endl;
     // Go through entire mapping
@@ -4620,7 +4790,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, &max_hash_size, 0, 0);
 
-        std::cout << "Hmap size: " << old_hmap_size << " -> " << hmap->size() << " Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
+        // std::cout << "Hmap size: " << old_hmap_size << " -> " << hmap->size() << " Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
         //   std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
         //   bit_head_end++;
         increase = false;
@@ -4685,7 +4855,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
                     start_heads[counter] = s3_start_head;
                     start_bits[counter] = start_bit_head;
-                    std::cout << "merging s3 from start_head: " << s3_start_head << " bit_start_head: " << start_bit_head;
+                    // std::cout << "merging s3 from start_head: " << s3_start_head << " bit_start_head: " << start_bit_head;
                     threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &start_heads[counter], &start_bits[counter], &int_n, &n, &n, &input_head_base,
                                                   size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, &max_hash_size, t_c, merge_file_num));
                     counter++;
@@ -4701,7 +4871,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         }
                     }
                     s3_start_head += merge_file_num;
-                    std::cout << " to start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
+                    //   std::cout << " to start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
                 }
                 if ((s3spillNames2->size() - s3spillFile_head) % merge_file_num > 0 && counter > 0)
                 {
@@ -4841,12 +5011,12 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         temp_file.size = write_size;
                         temp_file.status = 0;
                         temp_file.subfiles = write_sizes[partition];
-                        std::cout << "Adding file " << (uName + "_" + std::to_string(partition)) << " to mana. subdfiles:\n";
+                        /* std::cout << "Adding file " << (uName + "_" + std::to_string(partition)) << " to mana. subdfiles:\n";
                         for (auto write_size : write_sizes[partition])
                         {
                             std::cout << write_size.first << ":" << write_size.second << "\n";
                         }
-                        std::cout << std::endl;
+                        std::cout << std::endl; */
                         std::vector<std::pair<file, char>> files = std::vector<std::pair<file, char>>(1, {temp_file, partition});
                         // std::cout << "Adding merge file: " << n_temp << " partition: " << partition << " write size: " << write_size << std::endl;
                         addFileToManag(minio_client, files, beggarWorker, 255);
@@ -6129,22 +6299,6 @@ int main(int argc, char **argv)
     // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
 
-    /* bucketName = "trinobucket";
-    split_mana = true;
-    worker_id = '1';
-    Aws::S3::S3Client minio_client_2 = init();
-    std::vector<std::pair<file, char>> files;
-    file file;
-    file.name = "test";
-    file.size = 123;
-    file.status = 0;
-    file.subfiles.push_back({123, 123});
-    files.push_back({file, 5});
-    addFileToManag(&minio_client_2, files, worker_id, 0);
-    auto part = getMergePartition(&minio_client_2);
-    std::cout << (int)(part) << std::endl;
-    return 0; */
-
     // Status request of Mana file
     if (argc == 3 || argc == 2)
     {
@@ -6160,36 +6314,6 @@ int main(int argc, char **argv)
             return 1;
         }
     }
-    /* else
-    {
-        Aws::S3::S3Client minio_client_3 = init();
-        worker_id = '1';
-        split_mana = true;
-        initManagFile(&minio_client_3);
-        manaFile mana_worker;
-
-        mana_worker.workers.push_back(manaFileWorker());
-        mana_worker.workers[0].id = worker_id;
-        for (char p = 0; p < 5; p++)
-        {
-            std::cout << "Adding partition file: " << (int)(p) << std::endl;
-            partition part;
-            part.id = p;
-            part.lock = false;
-            file file;
-            file.name = "asdf";
-            file.size = 123;
-            file.status = 0;
-            file.subfiles.push_back({132, 123});
-            part.files.push_back(file);
-            mana_worker.workers[0].partitions.push_back(part);
-
-            writeMana(&minio_client_3, mana_worker, false, worker_id, p);
-        }
-        std::cout << "Writing worker file" << std::endl;
-        writeMana(&minio_client_3, mana_worker, false, worker_id);
-        return 1;
-    } */
 
     // set pagesize with system pagesize
     pagesize = sysconf(_SC_PAGE_SIZE);
