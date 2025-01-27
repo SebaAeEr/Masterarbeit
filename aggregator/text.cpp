@@ -6139,7 +6139,7 @@ int main(int argc, char **argv)
         part.lock = false;
         mana_worker.workers[0].partitions.push_back(part);
     }
-    writeMana(minio_client, mana_worker, false, worker_id);
+    writeMana(&minio_client_2, mana_worker, false, worker_id);
 }
 
 auto part = getMergePartition(&minio_client_2);
