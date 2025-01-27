@@ -5099,6 +5099,22 @@ int merge2(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsi
  */
 void setFileStatus(Aws::S3::S3Client *minio_client, std::unordered_map<std::string, char> *file_stati, char worker_id, char partition_id, char thread_id)
 {
+    if (split_mana)
+    {
+        manaFile mana = getLockedMana(minio_client, thread_id, worker_id, partition_id);
+        for (auto &w_file : mana.workers[0].partitions[0].files)
+        {
+            for (auto &f_name : *file_stati)
+            {
+                if (w_file.name == f_name.first)
+                {
+                    w_file.status = f_name.second;
+                }
+            }
+        }
+        writeMana(minio_client, mana, true, worker_id, partition_id);
+        return;
+    }
     manaFile mana = getLockedMana(minio_client, thread_id);
     for (auto &worker : mana.workers)
     {
@@ -5204,41 +5220,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
             bool finish = false;
             while (!finish)
             {
-                // std::cout << "getting Mana" << std::endl;
-                manaFile m = getMana(&minio_client);
-                // std::cout << "got Mana" << std::endl;
-                bool found_files = false;
-                for (auto &w : m.workers)
-                {
-                    if (!found_files && !w.locked)
-                    {
-                        for (auto &p : w.partitions)
-                        {
-                            int file_num_temp = 0;
-                            for (auto &f : p.files)
-                            {
-                                if (f.status == 0)
-                                {
-                                    file_num_temp++;
-                                }
-                            }
-                            if (file_num_temp >= minFileNumMergeHelper && !p.lock)
-                            {
-                                found_files = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (w.id == '1' && w.locked)
-                    {
-                        std::cout << "finish" << std::endl;
-                        finish = true;
-                        found_files = false;
-                        break;
-                    }
-                }
-                // std::cout << "found file: " << found_files << std::endl;
-                if (found_files)
+                if (split_mana)
                 {
                     getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, thread_id, file_num);
 
@@ -5246,6 +5228,53 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
                     {
                         // std::cout << "breaking" << std::endl;
                         break;
+                    }
+                }
+                else
+                {
+                    // std::cout << "getting Mana" << std::endl;
+                    manaFile m = getMana(&minio_client);
+                    // std::cout << "got Mana" << std::endl;
+                    bool found_files = false;
+                    for (auto &w : m.workers)
+                    {
+                        if (!found_files && !w.locked)
+                        {
+                            for (auto &p : w.partitions)
+                            {
+                                int file_num_temp = 0;
+                                for (auto &f : p.files)
+                                {
+                                    if (f.status == 0)
+                                    {
+                                        file_num_temp++;
+                                    }
+                                }
+                                if (file_num_temp >= minFileNumMergeHelper && !p.lock)
+                                {
+                                    found_files = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (w.id == '1' && w.locked)
+                        {
+                            std::cout << "finish" << std::endl;
+                            finish = true;
+                            found_files = false;
+                            break;
+                        }
+                    }
+                    // std::cout << "found file: " << found_files << std::endl;
+                    if (found_files)
+                    {
+                        getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, thread_id, file_num);
+
+                        if (get<1>(files) != 0)
+                        {
+                            // std::cout << "breaking" << std::endl;
+                            break;
+                        }
                     }
                 }
                 usleep(1000000);
@@ -5258,14 +5287,14 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         beggarWorker = get<1>(files);
         partition_id = get<2>(files);
         manaFile mana = getMana(&minio_client);
-        for (auto &w : mana.workers)
+        /* for (auto &w : mana.workers)
         {
             if (w.id == beggarWorker)
             {
                 partitions = w.partitions.size();
                 break;
             }
-        }
+        } */
 
         std::vector<std::pair<std::string, size_t>> empty(0);
         std::cout << "Worker: " << beggarWorker << "; Partition: " << (int)(partition_id) << "; merging files: ";

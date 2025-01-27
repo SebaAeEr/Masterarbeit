@@ -913,10 +913,25 @@ def c_size_by_time():
     #     ]
     # )
 
+    # Mapping size
+    names = [
+        "logfile_4_6_0_4_15-59.json",
+        "logfile_4_6_0_4_16-25.json",
+        "logfile_4_6_0_4_16-51.json",
+        "logfile_4_6_0_4_17-16.json",
+    ]
+    labels = np.array(
+        [
+            "0.05",
+            "0.1",
+            "0.2",
+            "0.3"
+        ]
+    )
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_4_13-50.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_4_09-20.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_17-16.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_17-16.json"))
     except:
         print("File not found.")
         return
@@ -1144,8 +1159,8 @@ def c_size_by_time():
             "Wall time in s",
             True,
             # "Number of partitions",
-            markings=True,
-            marking_labels=marking_labels,
+            # markings=True,
+            # marking_labels=marking_labels,
         )
         print(str(times))
     # bottom = 0
