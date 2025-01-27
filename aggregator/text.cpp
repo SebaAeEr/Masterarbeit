@@ -1861,7 +1861,7 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
         }
     }
 
-    std::cout << "finding files" << std::endl;
+    std::cout << "finding files: " << manaLockedPartition.workers.size() << ", " << manaLockedPartition.workers[0].partitions.size() << ", " << manaLockedPartition.workers[0].partitions[0].size() << std::endl;
     char file_num = threadNumber * 2;
     std::vector<file> res_files(0);
     while (res_files.size() < file_num)
