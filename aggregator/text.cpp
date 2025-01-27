@@ -1295,13 +1295,13 @@ bool writeLock(Aws::S3::S3Client *minio_client, char worker_id = -1, char partit
     auto outcome = minio_client->PutObject(request);
     if (!outcome.IsSuccess())
     {
-        std::cout << "got lock for: " << key << std::endl;
-        // std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
+        // std::cout << "not got lock for: " << key << std::endl;
+        //  std::cout << "Error: " << outcome.GetError().GetMessage() << std::endl;
         return false;
     }
     else
     {
-        std::cout << "not got lock for: " << key << std::endl;
+        std::cout << "got lock for: " << key << std::endl;
         return true;
     }
 }
