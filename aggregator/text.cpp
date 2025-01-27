@@ -6140,527 +6140,526 @@ int main(int argc, char **argv)
         mana_worker.workers[0].partitions.push_back(part);
     }
     writeMana(&minio_client_2, mana_worker, false, worker_id);
-}
 
-auto part = getMergePartition(&minio_client_2);
-std::cout << (int)(part) << std::endl;
-return 0;
+    auto part = getMergePartition(&minio_client_2);
+    std::cout << (int)(part) << std::endl;
+    return 0;
 
-// Status request of Mana file
-if (argc == 3 || argc == 2)
-{
-    std::string f = argv[1];
-    if (f.compare("status") == 0)
+    // Status request of Mana file
+    if (argc == 3 || argc == 2)
     {
-        std::string f2 = argc == 3 ? argv[2] : "nope";
-        std::cout << f2 << std::endl;
-        split_mana = f2.compare("dist") == 0;
-        Aws::S3::S3Client minio_client_2 = init();
-        printMana(&minio_client_2);
-        Aws::ShutdownAPI(options);
+        std::string f = argv[1];
+        if (f.compare("status") == 0)
+        {
+            std::string f2 = argc == 3 ? argv[2] : "nope";
+            std::cout << f2 << std::endl;
+            split_mana = f2.compare("dist") == 0;
+            Aws::S3::S3Client minio_client_2 = init();
+            printMana(&minio_client_2);
+            Aws::ShutdownAPI(options);
+            return 1;
+        }
+    }
+    /* else
+    {
+        Aws::S3::S3Client minio_client_3 = init();
+        worker_id = '1';
+        split_mana = true;
+        initManagFile(&minio_client_3);
+        manaFile mana_worker;
+
+        mana_worker.workers.push_back(manaFileWorker());
+        mana_worker.workers[0].id = worker_id;
+        for (char p = 0; p < 5; p++)
+        {
+            std::cout << "Adding partition file: " << (int)(p) << std::endl;
+            partition part;
+            part.id = p;
+            part.lock = false;
+            file file;
+            file.name = "asdf";
+            file.size = 123;
+            file.status = 0;
+            file.subfiles.push_back({132, 123});
+            part.files.push_back(file);
+            mana_worker.workers[0].partitions.push_back(part);
+
+            writeMana(&minio_client_3, mana_worker, false, worker_id, p);
+        }
+        std::cout << "Writing worker file" << std::endl;
+        writeMana(&minio_client_3, mana_worker, false, worker_id);
         return 1;
-    }
-}
-/* else
-{
-    Aws::S3::S3Client minio_client_3 = init();
-    worker_id = '1';
-    split_mana = true;
-    initManagFile(&minio_client_3);
-    manaFile mana_worker;
+    } */
 
-    mana_worker.workers.push_back(manaFileWorker());
-    mana_worker.workers[0].id = worker_id;
-    for (char p = 0; p < 5; p++)
+    // set pagesize with system pagesize
+    pagesize = sysconf(_SC_PAGE_SIZE);
+    // Name of file results are compared to
+    std::string test_file;
+    // Name of file with input data
+    std::string input_file;
+    // Number of TPC query
+    int tpc_query;
+    // Main memory Limit in B
+    size_t memLimit;
+    // Background memory limit in B
+    size_t memLimitBack;
+    // Number of iterations with different setup
+    int iteration = 0;
+    // Bool if mergeHelp should be executed
+    bool do_mergeHelp = false;
+
+    // Vectors of different setups for every iteration
+
+    std::vector<size_t> memLimit_vec(1);
+    std::vector<size_t> memLimitBack_vec(1);
+    std::vector<int> threadNumber_vec(1);
+    std::vector<bool> deencode_vec(1, deencode);
+    std::vector<bool> set_partitions_vec(1, set_partitions);
+    std::vector<bool> mergePhase_vec(1, mergePhase);
+    std::vector<bool> multiThread_merge_vec(1, multiThread_merge);
+    std::vector<bool> multiThread_subMerge_vec(1, multiThread_subMerge);
+    std::vector<bool> straggler_removal_vec(1, straggler_removal);
+    std::vector<bool> use_file_queue_vec(1, use_file_queue);
+    std::vector<bool> split_mana_vec(1, split_mana);
+    std::vector<float> partition_size_vec(1, partition_size);
+    std::vector<size_t> mapping_max_vec(1, mapping_max);
+    std::vector<size_t> max_s3_spill_size_vec(1, max_s3_spill_size);
+    std::vector<std::string> memLimit_string_vec(1);
+    std::vector<std::string> memLimitBack_string_vec(1);
+    std::vector<bool> dynamic_extension_vec(1, dynamic_extension);
+    std::vector<int> static_partition_number_vec(1, static_partition_number);
+    std::vector<int> mergeThreads_number_vec(1, mergeThreads_number);
+    std::vector<float> thread_efficiency_vec(1, thread_efficiency);
+
+    // If no conf file is used configuration can be obtained directly from command (legacy)
+    if (argc == 10)
     {
-        std::cout << "Adding partition file: " << (int)(p) << std::endl;
-        partition part;
-        part.id = p;
-        part.lock = false;
-        file file;
-        file.name = "asdf";
-        file.size = 123;
-        file.status = 0;
-        file.subfiles.push_back({132, 123});
-        part.files.push_back(file);
-        mana_worker.workers[0].partitions.push_back(part);
+        std::string threadNumber_string;
+        std::string tpc_query_string;
+        std::string log_size_string;
+        std::string log_time_string;
+        std::string memLimit_string;
+        std::string memLimitBack_string;
 
-        writeMana(&minio_client_3, mana_worker, false, worker_id, p);
+        input_file = argv[1];
+        test_file = argv[2];
+        memLimit_string = argv[3];
+        memLimitBack_string = argv[4];
+        threadNumber_string = argv[5];
+        tpc_query_string = argv[6];
+        worker_id = *argv[7];
+        log_size_string = argv[8];
+        log_time_string = argv[9];
+
+        threadNumber_vec[0] = std::stoi(threadNumber_string);
+        tpc_query = std::stoi(tpc_query_string);
+        memLimit_vec[0] = (std::stof(memLimit_string) - 0.01) * (1ul << 30);
+        memLimitBack_vec[0] = std::stof(memLimitBack_string) * (1ul << 30);
+        log_size = log_size_string.compare("true") == 0;
+        log_time = log_time_string.compare("true") == 0;
+        memLimit_string_vec[0] = memLimit_string;
+        memLimitBack_string_vec[0] = memLimitBack_string;
     }
-    std::cout << "Writing worker file" << std::endl;
-    writeMana(&minio_client_3, mana_worker, false, worker_id);
+    else
+    {
+        // read conf file and fill configuration vectors
+
+        // standard conf file name if no name is given
+        std::string conf_name = "conf";
+        if (argc == 2)
+        {
+            conf_name = argv[1];
+        }
+        std::ifstream input(conf_name);
+        std::string line;
+        char del = ':';
+        while (getline(input, line))
+        {
+            std::stringstream ss(line);
+            std::string name;
+            getline(ss, name, del);
+            std::string value;
+            getline(ss, value, del);
+            // set conf variables
+            switch (str2int(name.c_str()))
+            {
+            case str2int("tpc_query"):
+            {
+                tpc_query = std::stoi(value);
+                break;
+            }
+            case str2int("input_file"):
+            {
+                input_file = value;
+                break;
+            }
+            case str2int("test_file"):
+            {
+                test_file = value;
+                break;
+            }
+            case str2int("mainLimit"):
+            {
+                memLimit_vec[iteration] = (std::stof(value) - 0.01) * (1ul << 30);
+                memLimit_string_vec[iteration] = value;
+                break;
+            }
+            case str2int("backLimit"):
+            {
+                memLimitBack_vec[iteration] = std::stof(value) * (1ul << 30);
+                memLimitBack_string_vec[iteration] = value;
+                break;
+            }
+            case str2int("threadNumber"):
+            {
+                threadNumber_vec[iteration] = std::stoi(value);
+                break;
+            }
+            case str2int("log_size"):
+            {
+                log_size = value.compare("true") == 0;
+                break;
+            }
+            case str2int("log_time"):
+            {
+                log_time = value.compare("true") == 0;
+                break;
+            }
+            case str2int("worker_id"):
+            {
+                worker_id = value[0];
+                break;
+            }
+            case str2int("deencode"):
+            {
+                deencode_vec[iteration] = value.compare("true") == 0;
+                break;
+            }
+            case str2int("set_partitions"):
+            {
+                set_partitions_vec[iteration] = value.compare("true") == 0;
+                break;
+            }
+            case str2int("straggler_removal"):
+            {
+                straggler_removal_vec[iteration] = value.compare("true") == 0;
+                break;
+            }
+            case str2int("mergePhase"):
+            {
+                mergePhase_vec[iteration] = value.compare("true") == 0;
+                break;
+            }
+            case str2int("multiThread_subMerge"):
+            {
+                multiThread_subMerge_vec[iteration] = value.compare("true") == 0;
+                break;
+            }
+            case str2int("multiThread_merge"):
+            {
+                multiThread_merge_vec[iteration] = value.compare("true") == 0;
+                break;
+            }
+            case str2int("do_mergeHelp"):
+            {
+                do_mergeHelp = value.compare("true") == 0;
+                break;
+            }
+            case str2int("use_Filequeue"):
+            {
+                use_file_queue_vec[iteration] = value.compare("true") == 0;
+                break;
+            }
+            case str2int("partition_size"):
+            {
+                partition_size_vec[iteration] = std::stof(value);
+                break;
+            }
+            case str2int("mapping_max"):
+            {
+                mapping_max_vec[iteration] = std::stof(value) * (1ul << 30);
+                break;
+            }
+            case str2int("max_s3_spill_size"):
+            {
+                max_s3_spill_size_vec[iteration] = std::stof(value);
+                break;
+            }
+            case str2int("dynamic_extension"):
+            {
+                dynamic_extension_vec[iteration] = value.compare("true") == 0;
+                break;
+            }
+            case str2int("static_partition_number"):
+            {
+                static_partition_number_vec[iteration] = std::stoi(value);
+                break;
+            }
+            case str2int("merge_thread_number"):
+            {
+                mergeThreads_number_vec[iteration] = std::stoi(value);
+                break;
+            }
+            case str2int("split_mana"):
+            {
+                split_mana_vec[iteration] = value.compare("true") == 0;
+                break;
+            }
+            case str2int("thread_efficiency"):
+            {
+                thread_efficiency_vec[iteration] = std::stof(value);
+                break;
+            }
+            case str2int("bucket"):
+            {
+                bucketName = value;
+                break;
+            }
+            case str2int("iteration"):
+            {
+                memLimit_vec.push_back(memLimit_vec[0]);
+                memLimitBack_vec.push_back(memLimitBack_vec[0]);
+                threadNumber_vec.push_back(threadNumber_vec[0]);
+                deencode_vec.push_back(deencode_vec[0]);
+                set_partitions_vec.push_back(set_partitions_vec[0]);
+                mergePhase_vec.push_back(mergePhase_vec[0]);
+                multiThread_merge_vec.push_back(multiThread_merge_vec[0]);
+                multiThread_subMerge_vec.push_back(multiThread_subMerge_vec[0]);
+                straggler_removal_vec.push_back(straggler_removal_vec[0]);
+                memLimitBack_string_vec.push_back(memLimitBack_string_vec[0]);
+                memLimit_string_vec.push_back(memLimit_string_vec[0]);
+                use_file_queue_vec.push_back(use_file_queue_vec[0]);
+                partition_size_vec.push_back(partition_size_vec[0]);
+                mapping_max_vec.push_back(mapping_max_vec[0]);
+                max_s3_spill_size_vec.push_back(max_s3_spill_size_vec[0]);
+                dynamic_extension_vec.push_back(dynamic_extension_vec[0]);
+                static_partition_number_vec.push_back(static_partition_number_vec[0]);
+                mergeThreads_number_vec.push_back(mergeThreads_number_vec[0]);
+                split_mana_vec.push_back(split_mana_vec[0]);
+                thread_efficiency_vec.push_back(thread_efficiency_vec[0]);
+                iteration++;
+                break;
+            }
+            }
+        }
+    }
+
+    // set configuration of TPC Query
+    switch (tpc_query)
+    {
+    case (13):
+    {
+        std::string tmp = "custkey";
+        key_names[0] = tmp;
+        op = count;
+        opKeyName = "orderkey";
+        key_number = 1;
+        value_number = 1;
+        break;
+    }
+    case (4):
+    {
+        std::string tmp = "orderkey";
+        key_names[0] = tmp;
+        op = exists;
+        opKeyName = "";
+        key_number = 1;
+        value_number = 0;
+        break;
+    }
+    case (17):
+    {
+        std::string tmp = "partkey";
+        key_names[0] = tmp;
+        op = average;
+        opKeyName = "quantity";
+        key_number = 1;
+        value_number = 2;
+        break;
+    }
+    case (20):
+    {
+        std::string tmp = "partkey";
+        key_names[0] = tmp;
+        tmp = "suppkey";
+        key_names[1] = tmp;
+        op = sum;
+        opKeyName = "quantity";
+        key_number = 2;
+        value_number = 1;
+        break;
+    }
+    default:
+    {
+        *key_names = "custkey";
+        op = count;
+        opKeyName = "orderkey";
+        key_number = 1;
+    }
+    }
+
+    // output file name where results are written to
+    std::string agg_output = "output_" + test_file;
+    // set minio_client
+    Aws::S3::S3Client minio_client = init();
+    std::cout << "Iterations: " << memLimit_vec.size() << std::endl;
+    // show Progress Bar only when we have 1 iteration; with more iterations it is expected user reads output in nohup.out file
+    showProgressBar = iteration == 0;
+
+    // Execute aggregation, test and mergeHelp for each iteration
+    for (int i = 0; i < iteration + 1; i++)
+    {
+        // reset number of partitions and log file
+
+        partitions = -1;
+        log_file = logFile();
+        backMem_usage = 0;
+        spillTuple_number.exchange(0);
+        comb_spill_size.exchange(0);
+
+        // set configuration for specific iteration
+
+        memLimit = memLimit_vec[i];
+        memLimitBack = memLimitBack_vec[i];
+        threadNumber = threadNumber_vec[i];
+        mergeThreads_number = threadNumber;
+        deencode = deencode_vec[i];
+        set_partitions = set_partitions_vec[i];
+        mergePhase = mergePhase_vec[i];
+        multiThread_merge = multiThread_merge_vec[i];
+        multiThread_subMerge = multiThread_subMerge_vec[i];
+        straggler_removal = straggler_removal_vec[i];
+        use_file_queue = use_file_queue_vec[i];
+        partition_size = partition_size_vec[i];
+        mapping_max = mapping_max_vec[i];
+        max_s3_spill_size = max_s3_spill_size_vec[i];
+        dynamic_extension = dynamic_extension_vec[i];
+        static_partition_number = static_partition_number_vec[i];
+        mergeThreads_number = mergeThreads_number_vec[i];
+        split_mana = split_mana_vec[i];
+        thread_efficiency = thread_efficiency_vec[i];
+
+        use_file_queue = split_mana ? false : use_file_queue;
+
+        // setup mana file
+        initManagFile(&minio_client);
+
+        start_time = std::chrono::high_resolution_clock::now();
+
+        // setup log file name
+
+        time_t now = time(0);
+        struct tm tstruct;
+        char buf[80];
+        tstruct = *localtime(&now);
+        strftime(buf, sizeof(buf), "%H-%M", &tstruct);
+        date_now = std::to_string(tpc_query) + "_" + memLimit_string_vec[i] + "_" + memLimitBack_string_vec[i] + "_" + std::to_string(threadNumber) + "_" + buf;
+        std::cout << date_now << std::endl;
+
+        // log configuration
+
+        log_file.sizes.insert(std::make_pair("threadNumber", threadNumber));
+        log_file.sizes["mainLimit"] = memLimit;
+        log_file.sizes["backLimit"] = memLimitBack;
+        log_file.sizes["tpc_query"] = tpc_query;
+        log_file.sizes["threadNumber"] = threadNumber;
+        log_file.sizes["deencode"] = deencode;
+        log_file.sizes["set_partitions"] = set_partitions;
+        log_file.sizes["mergePhase"] = mergePhase;
+        log_file.sizes["straggler_removal"] = straggler_removal;
+        log_file.sizes["multiThread_subMerge"] = multiThread_subMerge;
+        bool failed = false;
+
+        // check if we have json or csv file format
+
+        std::string suffix = "json";
+        if (test_file != "-")
+        {
+            isJson = test_file.substr(test_file.length() - suffix.length()) == suffix;
+        }
+        else if (input_file != "-")
+        {
+            isJson = input_file.substr(input_file.length() - suffix.length()) == suffix;
+        }
+
+        // aggregate if input_file is given
+        if (input_file != "-")
+        {
+            try
+            {
+                aggregate(input_file, agg_output, memLimit, minio_client, memLimitBack);
+            }
+            catch (std::exception &err)
+            {
+                std::cout << "Error while aggregating: " << err.what() << std::endl;
+                log_file.err_msg = err.what();
+                failed = true;
+            }
+
+            // log time
+
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
+            std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
+            log_file.sizes["queryDuration"] = duration;
+            log_file.failed = failed;
+        }
+
+        // remember log_size configuration
+        bool temp_log_size = log_size;
+        // keep log_size only if we have a helper worker (test and input file not given) otherwise set it to false
+        log_size = test_file == "-" && input_file == "-" ? log_size : false;
+        // run test if test file is given and aggregation didn't fail
+        if (test_file != "-" && !failed)
+        {
+            std::cout << "Testing" << std::endl;
+            try
+            {
+                test(agg_output, test_file);
+            }
+            catch (std::exception &err)
+            {
+                std::cout << "Error while testing: " << err.what() << std::endl;
+            }
+        }
+
+        // mergeHelp
+        if (do_mergeHelp)
+        {
+            // setup variables for mergeHelp
+            // Size of all Hashmap in memory
+            std::atomic_ulong comb_hash_size = 0;
+            // Size of all open mappings
+            std::atomic_ulong diff = 0;
+            // Average size of Hasmap entry in memory
+            float avg = 1;
+            // Hashmap
+            emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
+            // set use_file_queue false as it is only needed in aggregate
+            use_file_queue = false;
+            try
+            {
+                helpMerge(memLimit, memLimitBack, minio_client);
+            }
+            catch (std::exception &err)
+            {
+                std::cout << "Error during mergePhase: " << err.what() << std::endl;
+            }
+        }
+
+        cleanup(&minio_client);
+        if (log_time)
+        {
+            writeLogFile(log_file);
+        }
+        // reset log_size
+        log_size = temp_log_size;
+    }
+    // wait for all Threads started to get Mana to finish
+    while (getManaThreads_num > 0)
+    {
+    }
+    // shutdown awssdk
+    Aws::ShutdownAPI(options);
     return 1;
-} */
-
-// set pagesize with system pagesize
-pagesize = sysconf(_SC_PAGE_SIZE);
-// Name of file results are compared to
-std::string test_file;
-// Name of file with input data
-std::string input_file;
-// Number of TPC query
-int tpc_query;
-// Main memory Limit in B
-size_t memLimit;
-// Background memory limit in B
-size_t memLimitBack;
-// Number of iterations with different setup
-int iteration = 0;
-// Bool if mergeHelp should be executed
-bool do_mergeHelp = false;
-
-// Vectors of different setups for every iteration
-
-std::vector<size_t> memLimit_vec(1);
-std::vector<size_t> memLimitBack_vec(1);
-std::vector<int> threadNumber_vec(1);
-std::vector<bool> deencode_vec(1, deencode);
-std::vector<bool> set_partitions_vec(1, set_partitions);
-std::vector<bool> mergePhase_vec(1, mergePhase);
-std::vector<bool> multiThread_merge_vec(1, multiThread_merge);
-std::vector<bool> multiThread_subMerge_vec(1, multiThread_subMerge);
-std::vector<bool> straggler_removal_vec(1, straggler_removal);
-std::vector<bool> use_file_queue_vec(1, use_file_queue);
-std::vector<bool> split_mana_vec(1, split_mana);
-std::vector<float> partition_size_vec(1, partition_size);
-std::vector<size_t> mapping_max_vec(1, mapping_max);
-std::vector<size_t> max_s3_spill_size_vec(1, max_s3_spill_size);
-std::vector<std::string> memLimit_string_vec(1);
-std::vector<std::string> memLimitBack_string_vec(1);
-std::vector<bool> dynamic_extension_vec(1, dynamic_extension);
-std::vector<int> static_partition_number_vec(1, static_partition_number);
-std::vector<int> mergeThreads_number_vec(1, mergeThreads_number);
-std::vector<float> thread_efficiency_vec(1, thread_efficiency);
-
-// If no conf file is used configuration can be obtained directly from command (legacy)
-if (argc == 10)
-{
-    std::string threadNumber_string;
-    std::string tpc_query_string;
-    std::string log_size_string;
-    std::string log_time_string;
-    std::string memLimit_string;
-    std::string memLimitBack_string;
-
-    input_file = argv[1];
-    test_file = argv[2];
-    memLimit_string = argv[3];
-    memLimitBack_string = argv[4];
-    threadNumber_string = argv[5];
-    tpc_query_string = argv[6];
-    worker_id = *argv[7];
-    log_size_string = argv[8];
-    log_time_string = argv[9];
-
-    threadNumber_vec[0] = std::stoi(threadNumber_string);
-    tpc_query = std::stoi(tpc_query_string);
-    memLimit_vec[0] = (std::stof(memLimit_string) - 0.01) * (1ul << 30);
-    memLimitBack_vec[0] = std::stof(memLimitBack_string) * (1ul << 30);
-    log_size = log_size_string.compare("true") == 0;
-    log_time = log_time_string.compare("true") == 0;
-    memLimit_string_vec[0] = memLimit_string;
-    memLimitBack_string_vec[0] = memLimitBack_string;
-}
-else
-{
-    // read conf file and fill configuration vectors
-
-    // standard conf file name if no name is given
-    std::string conf_name = "conf";
-    if (argc == 2)
-    {
-        conf_name = argv[1];
-    }
-    std::ifstream input(conf_name);
-    std::string line;
-    char del = ':';
-    while (getline(input, line))
-    {
-        std::stringstream ss(line);
-        std::string name;
-        getline(ss, name, del);
-        std::string value;
-        getline(ss, value, del);
-        // set conf variables
-        switch (str2int(name.c_str()))
-        {
-        case str2int("tpc_query"):
-        {
-            tpc_query = std::stoi(value);
-            break;
-        }
-        case str2int("input_file"):
-        {
-            input_file = value;
-            break;
-        }
-        case str2int("test_file"):
-        {
-            test_file = value;
-            break;
-        }
-        case str2int("mainLimit"):
-        {
-            memLimit_vec[iteration] = (std::stof(value) - 0.01) * (1ul << 30);
-            memLimit_string_vec[iteration] = value;
-            break;
-        }
-        case str2int("backLimit"):
-        {
-            memLimitBack_vec[iteration] = std::stof(value) * (1ul << 30);
-            memLimitBack_string_vec[iteration] = value;
-            break;
-        }
-        case str2int("threadNumber"):
-        {
-            threadNumber_vec[iteration] = std::stoi(value);
-            break;
-        }
-        case str2int("log_size"):
-        {
-            log_size = value.compare("true") == 0;
-            break;
-        }
-        case str2int("log_time"):
-        {
-            log_time = value.compare("true") == 0;
-            break;
-        }
-        case str2int("worker_id"):
-        {
-            worker_id = value[0];
-            break;
-        }
-        case str2int("deencode"):
-        {
-            deencode_vec[iteration] = value.compare("true") == 0;
-            break;
-        }
-        case str2int("set_partitions"):
-        {
-            set_partitions_vec[iteration] = value.compare("true") == 0;
-            break;
-        }
-        case str2int("straggler_removal"):
-        {
-            straggler_removal_vec[iteration] = value.compare("true") == 0;
-            break;
-        }
-        case str2int("mergePhase"):
-        {
-            mergePhase_vec[iteration] = value.compare("true") == 0;
-            break;
-        }
-        case str2int("multiThread_subMerge"):
-        {
-            multiThread_subMerge_vec[iteration] = value.compare("true") == 0;
-            break;
-        }
-        case str2int("multiThread_merge"):
-        {
-            multiThread_merge_vec[iteration] = value.compare("true") == 0;
-            break;
-        }
-        case str2int("do_mergeHelp"):
-        {
-            do_mergeHelp = value.compare("true") == 0;
-            break;
-        }
-        case str2int("use_Filequeue"):
-        {
-            use_file_queue_vec[iteration] = value.compare("true") == 0;
-            break;
-        }
-        case str2int("partition_size"):
-        {
-            partition_size_vec[iteration] = std::stof(value);
-            break;
-        }
-        case str2int("mapping_max"):
-        {
-            mapping_max_vec[iteration] = std::stof(value) * (1ul << 30);
-            break;
-        }
-        case str2int("max_s3_spill_size"):
-        {
-            max_s3_spill_size_vec[iteration] = std::stof(value);
-            break;
-        }
-        case str2int("dynamic_extension"):
-        {
-            dynamic_extension_vec[iteration] = value.compare("true") == 0;
-            break;
-        }
-        case str2int("static_partition_number"):
-        {
-            static_partition_number_vec[iteration] = std::stoi(value);
-            break;
-        }
-        case str2int("merge_thread_number"):
-        {
-            mergeThreads_number_vec[iteration] = std::stoi(value);
-            break;
-        }
-        case str2int("split_mana"):
-        {
-            split_mana_vec[iteration] = value.compare("true") == 0;
-            break;
-        }
-        case str2int("thread_efficiency"):
-        {
-            thread_efficiency_vec[iteration] = std::stof(value);
-            break;
-        }
-        case str2int("bucket"):
-        {
-            bucketName = value;
-            break;
-        }
-        case str2int("iteration"):
-        {
-            memLimit_vec.push_back(memLimit_vec[0]);
-            memLimitBack_vec.push_back(memLimitBack_vec[0]);
-            threadNumber_vec.push_back(threadNumber_vec[0]);
-            deencode_vec.push_back(deencode_vec[0]);
-            set_partitions_vec.push_back(set_partitions_vec[0]);
-            mergePhase_vec.push_back(mergePhase_vec[0]);
-            multiThread_merge_vec.push_back(multiThread_merge_vec[0]);
-            multiThread_subMerge_vec.push_back(multiThread_subMerge_vec[0]);
-            straggler_removal_vec.push_back(straggler_removal_vec[0]);
-            memLimitBack_string_vec.push_back(memLimitBack_string_vec[0]);
-            memLimit_string_vec.push_back(memLimit_string_vec[0]);
-            use_file_queue_vec.push_back(use_file_queue_vec[0]);
-            partition_size_vec.push_back(partition_size_vec[0]);
-            mapping_max_vec.push_back(mapping_max_vec[0]);
-            max_s3_spill_size_vec.push_back(max_s3_spill_size_vec[0]);
-            dynamic_extension_vec.push_back(dynamic_extension_vec[0]);
-            static_partition_number_vec.push_back(static_partition_number_vec[0]);
-            mergeThreads_number_vec.push_back(mergeThreads_number_vec[0]);
-            split_mana_vec.push_back(split_mana_vec[0]);
-            thread_efficiency_vec.push_back(thread_efficiency_vec[0]);
-            iteration++;
-            break;
-        }
-        }
-    }
-}
-
-// set configuration of TPC Query
-switch (tpc_query)
-{
-case (13):
-{
-    std::string tmp = "custkey";
-    key_names[0] = tmp;
-    op = count;
-    opKeyName = "orderkey";
-    key_number = 1;
-    value_number = 1;
-    break;
-}
-case (4):
-{
-    std::string tmp = "orderkey";
-    key_names[0] = tmp;
-    op = exists;
-    opKeyName = "";
-    key_number = 1;
-    value_number = 0;
-    break;
-}
-case (17):
-{
-    std::string tmp = "partkey";
-    key_names[0] = tmp;
-    op = average;
-    opKeyName = "quantity";
-    key_number = 1;
-    value_number = 2;
-    break;
-}
-case (20):
-{
-    std::string tmp = "partkey";
-    key_names[0] = tmp;
-    tmp = "suppkey";
-    key_names[1] = tmp;
-    op = sum;
-    opKeyName = "quantity";
-    key_number = 2;
-    value_number = 1;
-    break;
-}
-default:
-{
-    *key_names = "custkey";
-    op = count;
-    opKeyName = "orderkey";
-    key_number = 1;
-}
-}
-
-// output file name where results are written to
-std::string agg_output = "output_" + test_file;
-// set minio_client
-Aws::S3::S3Client minio_client = init();
-std::cout << "Iterations: " << memLimit_vec.size() << std::endl;
-// show Progress Bar only when we have 1 iteration; with more iterations it is expected user reads output in nohup.out file
-showProgressBar = iteration == 0;
-
-// Execute aggregation, test and mergeHelp for each iteration
-for (int i = 0; i < iteration + 1; i++)
-{
-    // reset number of partitions and log file
-
-    partitions = -1;
-    log_file = logFile();
-    backMem_usage = 0;
-    spillTuple_number.exchange(0);
-    comb_spill_size.exchange(0);
-
-    // set configuration for specific iteration
-
-    memLimit = memLimit_vec[i];
-    memLimitBack = memLimitBack_vec[i];
-    threadNumber = threadNumber_vec[i];
-    mergeThreads_number = threadNumber;
-    deencode = deencode_vec[i];
-    set_partitions = set_partitions_vec[i];
-    mergePhase = mergePhase_vec[i];
-    multiThread_merge = multiThread_merge_vec[i];
-    multiThread_subMerge = multiThread_subMerge_vec[i];
-    straggler_removal = straggler_removal_vec[i];
-    use_file_queue = use_file_queue_vec[i];
-    partition_size = partition_size_vec[i];
-    mapping_max = mapping_max_vec[i];
-    max_s3_spill_size = max_s3_spill_size_vec[i];
-    dynamic_extension = dynamic_extension_vec[i];
-    static_partition_number = static_partition_number_vec[i];
-    mergeThreads_number = mergeThreads_number_vec[i];
-    split_mana = split_mana_vec[i];
-    thread_efficiency = thread_efficiency_vec[i];
-
-    use_file_queue = split_mana ? false : use_file_queue;
-
-    // setup mana file
-    initManagFile(&minio_client);
-
-    start_time = std::chrono::high_resolution_clock::now();
-
-    // setup log file name
-
-    time_t now = time(0);
-    struct tm tstruct;
-    char buf[80];
-    tstruct = *localtime(&now);
-    strftime(buf, sizeof(buf), "%H-%M", &tstruct);
-    date_now = std::to_string(tpc_query) + "_" + memLimit_string_vec[i] + "_" + memLimitBack_string_vec[i] + "_" + std::to_string(threadNumber) + "_" + buf;
-    std::cout << date_now << std::endl;
-
-    // log configuration
-
-    log_file.sizes.insert(std::make_pair("threadNumber", threadNumber));
-    log_file.sizes["mainLimit"] = memLimit;
-    log_file.sizes["backLimit"] = memLimitBack;
-    log_file.sizes["tpc_query"] = tpc_query;
-    log_file.sizes["threadNumber"] = threadNumber;
-    log_file.sizes["deencode"] = deencode;
-    log_file.sizes["set_partitions"] = set_partitions;
-    log_file.sizes["mergePhase"] = mergePhase;
-    log_file.sizes["straggler_removal"] = straggler_removal;
-    log_file.sizes["multiThread_subMerge"] = multiThread_subMerge;
-    bool failed = false;
-
-    // check if we have json or csv file format
-
-    std::string suffix = "json";
-    if (test_file != "-")
-    {
-        isJson = test_file.substr(test_file.length() - suffix.length()) == suffix;
-    }
-    else if (input_file != "-")
-    {
-        isJson = input_file.substr(input_file.length() - suffix.length()) == suffix;
-    }
-
-    // aggregate if input_file is given
-    if (input_file != "-")
-    {
-        try
-        {
-            aggregate(input_file, agg_output, memLimit, minio_client, memLimitBack);
-        }
-        catch (std::exception &err)
-        {
-            std::cout << "Error while aggregating: " << err.what() << std::endl;
-            log_file.err_msg = err.what();
-            failed = true;
-        }
-
-        // log time
-
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(stop - start_time).count()) / 1000000;
-        std::cout << "Aggregation finished. With time: " << duration << "s. Checking results." << std::endl;
-        log_file.sizes["queryDuration"] = duration;
-        log_file.failed = failed;
-    }
-
-    // remember log_size configuration
-    bool temp_log_size = log_size;
-    // keep log_size only if we have a helper worker (test and input file not given) otherwise set it to false
-    log_size = test_file == "-" && input_file == "-" ? log_size : false;
-    // run test if test file is given and aggregation didn't fail
-    if (test_file != "-" && !failed)
-    {
-        std::cout << "Testing" << std::endl;
-        try
-        {
-            test(agg_output, test_file);
-        }
-        catch (std::exception &err)
-        {
-            std::cout << "Error while testing: " << err.what() << std::endl;
-        }
-    }
-
-    // mergeHelp
-    if (do_mergeHelp)
-    {
-        // setup variables for mergeHelp
-        // Size of all Hashmap in memory
-        std::atomic_ulong comb_hash_size = 0;
-        // Size of all open mappings
-        std::atomic_ulong diff = 0;
-        // Average size of Hasmap entry in memory
-        float avg = 1;
-        // Hashmap
-        emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> hmap;
-        // set use_file_queue false as it is only needed in aggregate
-        use_file_queue = false;
-        try
-        {
-            helpMerge(memLimit, memLimitBack, minio_client);
-        }
-        catch (std::exception &err)
-        {
-            std::cout << "Error during mergePhase: " << err.what() << std::endl;
-        }
-    }
-
-    cleanup(&minio_client);
-    if (log_time)
-    {
-        writeLogFile(log_file);
-    }
-    // reset log_size
-    log_size = temp_log_size;
-}
-// wait for all Threads started to get Mana to finish
-while (getManaThreads_num > 0)
-{
-}
-// shutdown awssdk
-Aws::ShutdownAPI(options);
-return 1;
 }
