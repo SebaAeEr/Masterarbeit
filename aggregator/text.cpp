@@ -1113,7 +1113,7 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
     {
         if (partition_id != -1)
         {
-             std::cout << "Writing mana partition" << std::endl;
+            std::cout << "Writing mana partition" << std::endl;
             return writeManaPartition(minio_client, mana, freeLock, worker_id, partition_id);
         }
         else if (worker_id != -1)
@@ -1675,9 +1675,10 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
         }
         else
         {
-            std::cout << "Adding files 2" << std::endl;
+
             for (auto &file : *files_temp)
             {
+                std::cout << "Adding files to: " << (int)(file.first) << std::endl;
                 manaFile mana_partition = getLockedMana(minio_client, thread_id, write_to_id, file.first);
                 for (auto &f : file.second)
                 {
@@ -1685,6 +1686,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                 }
                 writeMana(minio_client, mana_partition, true, write_to_id, file.first);
             }
+            std::cout << (int)(thread_id) << "finished" << std::endl;
         }
     }
     mana_writeThread_num.fetch_sub(1);
