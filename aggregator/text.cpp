@@ -2115,7 +2115,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
     {
         get<0>(*res).push_back(f);
     }
-
+    partitions = 
     // std::cout << "unlocking Mana" << std::endl;
     writeMana(minio_client, mana, true);
     return;
@@ -4703,14 +4703,12 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
     int counter = 0;
     for (auto &name : *s3spillNames2)
     {
-        std::cout << get<0>(name) << ", ";
         overall_s3spillsize += get<1>(name);
         for (auto &tuple_num : get<2>(name))
         {
             bitmap_size_sum += std::ceil((float)(tuple_num.second) / 8);
         }
     }
-    std::cout << std::endl;
     /*  if (bitmap_size_sum > memLimit * 0.7)
      {
          // std::cout << "Spilling bitmaps with size: " << bitmap_size_sum << std::endl;
@@ -4761,7 +4759,6 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             s3spillBitmaps.push_back({-1, bitmap});
         }
     }
-    std::cout << "created bitmaps" << std::endl;
     // std::cout << "Keeping bitmaps in mem with size: " << bitmap_size_sum << " Number of bitmaps: " << s3spillBitmaps.size() << std::endl;
     // }
     extra_mem += bitmap_size_sum;
@@ -5279,15 +5276,15 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         }
         beggarWorker = get<1>(files);
         partition_id = get<2>(files);
-        manaFile mana = getMana(&minio_client);
-        /* for (auto &w : mana.workers)
+        manaFile mana = getMana(&minio_client, beggarWorker);
+        for (auto &w : mana.workers)
         {
             if (w.id == beggarWorker)
             {
                 partitions = w.partitions.size();
                 break;
             }
-        } */
+        }
 
         std::vector<std::pair<std::string, size_t>> empty(0);
         std::cout << "Worker: " << beggarWorker << "; Partition: " << (int)(partition_id) << "; merging files: ";
