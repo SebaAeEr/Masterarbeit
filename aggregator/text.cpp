@@ -1268,33 +1268,23 @@ bool writeLock(Aws::S3::S3Client *minio_client, char worker_id = -1, char partit
 {
     Aws::S3::Model::PutObjectRequest request;
     request.SetBucket(bucketName);
+    std::string key = lock_file_name;
     if (split_mana)
     {
         if (partition_id != -1)
         {
-            std::string key = lock_file_name;
             key += "_";
             key += worker_id;
             key += "_";
             key += std::to_string((int)(partition_id));
-            request.SetKey(key);
         }
         else if (worker_id != -1)
         {
-            std::string key = lock_file_name;
             key += "_";
             key += worker_id;
-            request.SetKey(key);
-        }
-        else
-        {
-            request.SetKey(lock_file_name);
         }
     }
-    else
-    {
-        request.SetKey(lock_file_name);
-    }
+    request.SetKey(key);
     // Calc spill size
     const std::shared_ptr<Aws::IOStream> in_stream = Aws::MakeShared<Aws::StringStream>("");
     *in_stream << "locked";
