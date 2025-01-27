@@ -1113,15 +1113,17 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
     {
         if (partition_id != -1)
         {
-            // std::cout << "Writing mana partition" << std::endl;
+             std::cout << "Writing mana partition" << std::endl;
             return writeManaPartition(minio_client, mana, freeLock, worker_id, partition_id);
         }
         else if (worker_id != -1)
         {
+            std::cout << "Writing mana worker" << std::endl;
             return writeManaWorker(minio_client, mana, freeLock, worker_id);
         }
         else
         {
+            std::cout << "Writing mana root" << std::endl;
             return writeDistMana(minio_client, mana, freeLock);
         }
     }
@@ -1568,6 +1570,7 @@ void setPartitionNumber(size_t comb_hash_size)
  */
 void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file, char>> files, char write_to_id, char thread_id)
 {
+    std::cout << "Adding files" << std::endl;
     std::unordered_map<char, std::vector<file>> *files_temp;
     std::unordered_map<char, std::vector<file>> local_files_temp;
     if (use_file_queue)
@@ -1672,6 +1675,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
         }
         else
         {
+            std::cout << "Adding files 2" << std::endl;
             for (auto &file : *files_temp)
             {
                 manaFile mana_partition = getLockedMana(minio_client, thread_id, write_to_id, file.first);
