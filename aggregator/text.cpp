@@ -5208,7 +5208,6 @@ char getSplitMergePartition(Aws::S3::S3Client *minio_client)
         bool b_part = false;
         if (!p.lock)
         {
-            std::cout << "scanning partition: " << (int)(p.id) << std::endl;
             manaFile mana_partition = getMana(minio_client, worker_id, p.id);
             for (auto &p_file : mana_partition.workers[0].partitions[0].files)
             {
@@ -6129,20 +6128,14 @@ int main(int argc, char **argv)
     split_mana = true;
     worker_id = '1';
     Aws::S3::S3Client minio_client_2 = init();
-
-    manaFile mana_worker;
-    mana_worker.workers.push_back(manaFileWorker());
-    mana_worker.workers[0].id = worker_id;
-    std::cout << "Adding partition file" << std::endl;
-    for (char p = 0; p < 10; p++)
-    {
-        partition part;
-        part.id = p;
-        part.lock = false;
-        mana_worker.workers[0].partitions.push_back(part);
-    }
-    writeMana(&minio_client_2, mana_worker, false, worker_id);
-
+    std::vector<std::pair<file, char>> files;
+    file file;
+    file.name = "test";
+    file.size = 123;
+    file.status = 0;
+    file.subfiles.push_back({123, 123});
+    files.push_back({file, 5});
+    addFileToManag(&minio_client_2, files, worker_id, 0);
     auto part = getMergePartition(&minio_client_2);
     std::cout << (int)(part) << std::endl;
     return 0;
