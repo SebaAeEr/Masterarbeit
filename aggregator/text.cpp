@@ -1773,90 +1773,97 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
     get<0>(*res).clear();
     manaFile manaLockedPartition;
     // printMana(minio_client);
-    //  If no beggarWorker is yet selected choose the worker with the largest spill
-    while (beggarWorker == 0)
+    if (beggarWorker == 0)
     {
-        manaFile mana = getMana(minio_client);
-        // std::cout << "finding partition" << std::endl;
-        size_t partition_max = 0;
-        size_t biggest_file = 0;
-        for (auto &worker : mana.workers)
+        //  If no beggarWorker is yet selected choose the worker with the largest spill
+        while (beggarWorker == 0)
         {
-            if (!worker.locked)
+            manaFile mana = getMana(minio_client);
+            // std::cout << "finding partition" << std::endl;
+            size_t partition_max = 0;
+            size_t biggest_file = 0;
+            for (auto &worker : mana.workers)
             {
-                manaFile manaWorker = getMana(minio_client, worker.id);
-                for (auto &partition : manaWorker.workers[0].partitions)
+                if (!worker.locked)
                 {
-                    if (!partition.lock)
+                    manaFile manaWorker = getMana(minio_client, worker.id);
+                    for (auto &partition : manaWorker.workers[0].partitions)
                     {
-                        manaFile manaPartition = getMana(minio_client, worker.id, partition.id);
-                        size_t partition_size_temp = 0;
-                        int file_number = 0;
-                        size_t b_file = 0;
-                        for (auto &file : manaPartition.workers[0].partitions[0].files)
+                        if (!partition.lock)
                         {
-                            if (file.status == 0)
+                            manaFile manaPartition = getMana(minio_client, worker.id, partition.id);
+                            size_t partition_size_temp = 0;
+                            int file_number = 0;
+                            size_t b_file = 0;
+                            for (auto &file : manaPartition.workers[0].partitions[0].files)
                             {
-                                file_number++;
-                                if (!std::count(blacklist->begin(), blacklist->end(), file.name))
+                                if (file.status == 0)
                                 {
-                                    partition_size_temp += file.size;
-                                    if (b_file < file.size)
+                                    file_number++;
+                                    if (!std::count(blacklist->begin(), blacklist->end(), file.name))
                                     {
-                                        b_file = file.size;
+                                        partition_size_temp += file.size;
+                                        if (b_file < file.size)
+                                        {
+                                            b_file = file.size;
+                                        }
                                     }
                                 }
                             }
-                        }
-                        // if (partition_max < partition_size_temp && file_number > 3)
-                        if (b_file > biggest_file && file_number >= minFileNumMergeHelper)
-                        {
-                            partition_max = partition_size_temp;
-                            partition_id = partition.id;
-                            beggarWorker = worker.id;
-                            biggest_file = b_file;
+                            // if (partition_max < partition_size_temp && file_number > 3)
+                            if (b_file > biggest_file && file_number >= minFileNumMergeHelper)
+                            {
+                                partition_max = partition_size_temp;
+                                partition_id = partition.id;
+                                beggarWorker = worker.id;
+                                biggest_file = b_file;
+                            }
                         }
                     }
                 }
             }
-        }
 
-        if (beggarWorker == 0)
-        {
-            get<1>(*res) = 0;
-            return;
-        }
-        else
-        {
-            manaLockedPartition = getLockedMana(minio_client, thread_id, beggarWorker, partition_id);
-            size_t partition_size_temp = 0;
-            int file_number = 0;
-            size_t b_file = 0;
-            for (auto &file : manaLockedPartition.workers[0].partitions[0].files)
+            if (beggarWorker == 0)
             {
-                if (file.status == 0)
-                {
-                    file_number++;
-                    if (!std::count(blacklist->begin(), blacklist->end(), file.name))
-                    {
-                        partition_size_temp += file.size;
-                        if (b_file < file.size)
-                        {
-                            b_file = file.size;
-                        }
-                    }
-                }
-            }
-            if (!manaLockedPartition.workers[0].partitions[0].lock && partition_max == partition_size_temp && b_file == biggest_file && file_number >= minFileNumMergeHelper)
-            {
-                break;
+                get<1>(*res) = 0;
+                return;
             }
             else
             {
-                writeMana(minio_client, manaLockedPartition, true, beggarWorker, partition_id);
-                beggarWorker = 0;
+                manaLockedPartition = getLockedMana(minio_client, thread_id, beggarWorker, partition_id);
+                size_t partition_size_temp = 0;
+                int file_number = 0;
+                size_t b_file = 0;
+                for (auto &file : manaLockedPartition.workers[0].partitions[0].files)
+                {
+                    if (file.status == 0)
+                    {
+                        file_number++;
+                        if (!std::count(blacklist->begin(), blacklist->end(), file.name))
+                        {
+                            partition_size_temp += file.size;
+                            if (b_file < file.size)
+                            {
+                                b_file = file.size;
+                            }
+                        }
+                    }
+                }
+                if (!manaLockedPartition.workers[0].partitions[0].lock && partition_max == partition_size_temp && b_file == biggest_file && file_number >= minFileNumMergeHelper)
+                {
+                    break;
+                }
+                else
+                {
+                    writeMana(minio_client, manaLockedPartition, true, beggarWorker, partition_id);
+                    beggarWorker = 0;
+                }
             }
         }
+    }
+    else
+    {
+        manaLockedPartition = getLockedMana(minio_client, thread_id, beggarWorker, partition_id);
     }
 
     char file_num = threadNumber * 2;
@@ -5280,7 +5287,6 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         {
             if (w.id == beggarWorker || split_mana)
             {
-                std::cout << "Setting partitions number: " << w.partitions.size() << std::endl;
                 partitions = w.partitions.size();
                 break;
             }
