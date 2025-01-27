@@ -5278,8 +5278,9 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         manaFile mana = getMana(&minio_client, beggarWorker);
         for (auto &w : mana.workers)
         {
-            if (w.id == beggarWorker)
+            if (w.id == beggarWorker || split_mana)
             {
+                std::cout << "Setting partitions number: " << w.partitions.size() << std::endl;
                 partitions = w.partitions.size();
                 break;
             }
