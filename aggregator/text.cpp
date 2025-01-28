@@ -4100,7 +4100,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             {
                                 if (add && !locked)
                                 {
-                                    // std::cout << "Calc size: " << hmap->size() * (*avg) + base_size << " base_size: " << base_size << " hmap length " << hmap->size() << " memlimit: " << memLimit << std::endl;
+                                    std::cout << "Calc size: " << (*max_hash_size) * (*avg) + base_size / conc_threads << " base_size: " << base_size << " *max_hash_size " << *max_hash_size << " memlimit: " << (memLimit * 0.9) / conc_threads << " hmap size: " << hmap->size() << std::endl;
                                     locked = true;
                                     *s3spillFile_head = it_counter;
                                     *s3spillStart_head = head;
@@ -4109,7 +4109,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                                 }
                                 if (firsts3File)
                                 {
-
                                     break;
                                 }
                             }
