@@ -947,9 +947,9 @@ def c_size_by_time():
     plt.rcParams.update({"font.size": 35})
     plt.plot(x, mes_y, label="measured size", linewidth=3)
     plt.plot(x, hmap_y, label="Hashmap size", linewidth=3)
-    # plt.plot(x, base_y, label="base size")
-    # plt.plot(x, map_y, label="mapping size")
-    # plt.plot(x, bit_y, label="bitmap size")
+    plt.plot(x, base_y, label="base size")
+    plt.plot(x, map_y, label="mapping size")
+    plt.plot(x, bit_y, label="bitmap size")
     # plt.plot(
     #     x, calc_y, label="calc overall size"
     # )  # Line plot (you can change to scatter plot or others)

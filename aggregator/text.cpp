@@ -1122,17 +1122,17 @@ bool writeMana(Aws::S3::S3Client *minio_client, manaFile mana, bool freeLock, ch
     {
         if (partition_id != -1)
         {
-            std::cout << "Writing mana partition" << std::endl;
+            // std::cout << "Writing mana partition" << std::endl;
             return writeManaPartition(minio_client, mana, freeLock, worker_id, partition_id);
         }
         else if (worker_id != -1)
         {
-            std::cout << "Writing mana worker" << std::endl;
+            //    std::cout << "Writing mana worker" << std::endl;
             return writeManaWorker(minio_client, mana, freeLock, worker_id);
         }
         else
         {
-            std::cout << "Writing mana root" << std::endl;
+            //  std::cout << "Writing mana root" << std::endl;
             return writeDistMana(minio_client, mana, freeLock);
         }
     }
@@ -1301,7 +1301,7 @@ bool writeLock(Aws::S3::S3Client *minio_client, char worker_id = -1, char partit
     }
     else
     {
-        std::cout << "got lock for: " << key << std::endl;
+        // std::cout << "got lock for: " << key << std::endl;
         return true;
     }
 }
@@ -1687,7 +1687,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
 
             for (auto &file : *files_temp)
             {
-                std::cout << "Adding files to: " << (int)(file.first) << std::endl;
+                // std::cout << "Adding files to: " << (int)(file.first) << std::endl;
                 manaFile mana_partition = getLockedMana(minio_client, thread_id, write_to_id, file.first);
                 for (auto &f : file.second)
                 {
@@ -1695,7 +1695,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                 }
                 writeMana(minio_client, mana_partition, true, write_to_id, file.first);
             }
-            std::cout << (int)(thread_id) << "finished" << std::endl;
+            // std::cout << (int)(thread_id) << "finished" << std::endl;
         }
     }
     mana_writeThread_num.fetch_sub(1);
@@ -3641,6 +3641,7 @@ void printSize(int &finished, size_t memLimit, std::atomic<unsigned long> &comb_
         if (old_finish != finished)
         {
             phyMemBase = newsize;
+            std::cout << "new phy mem base: " << phyMemBase << std::endl;
             old_finish = finished;
         }
         reservedMem = diff->load();
@@ -3920,7 +3921,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     {
                         increase = (getPhyValue() - size_after_init) * 1024;
                     }
-                    // std::cout << "Stream buffer: " << increase << std::endl;
+                    std::cout << "Stream buffer: " << increase << std::endl;
 
                     extra_mem += increase;
                     // std::cout << "extra_mem " << extra_mem << std::endl;
@@ -5420,7 +5421,7 @@ char getSplitMergePartition(Aws::S3::S3Client *minio_client)
                     temp_fileNumber++;
                 }
             }
-            std::cout << "file number: " << temp_fileNumber << std::endl;
+            //  std::cout << "file number: " << temp_fileNumber << std::endl;
             if (!b_part && min_fileNumber > temp_fileNumber)
             {
                 partition = p.id;
@@ -5444,7 +5445,7 @@ char getSplitMergePartition(Aws::S3::S3Client *minio_client)
             partition = partition_b;
         }
     }
-    std::cout << "found partition: " << (int)(partition) << std::endl;
+    // std::cout << "found partition: " << (int)(partition) << std::endl;
     manaFile mana = getLockedMana(minio_client, 0, worker_id);
     for (auto &p : mana.workers[0].partitions)
     {
