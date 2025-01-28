@@ -3617,7 +3617,7 @@ void printSize(int &finished, size_t memLimit, std::atomic<unsigned long> &comb_
         output.open(("times_" + date_now + ".csv").c_str());
         output << "mes_size,hmap_size,base_size,map_size,bit_size,avg,time\n";
     }
-    int phyMemBase = (getPhyValue()) * 1024;
+    size_t phyMemBase = (getPhyValue()) * 1024;
     bool first = true;
     int small_counter = 0;
     // int counter = 0;
@@ -3640,7 +3640,7 @@ void printSize(int &finished, size_t memLimit, std::atomic<unsigned long> &comb_
 
         if (old_finish != finished)
         {
-            if (newsize > comb_hash_size.load() * (*avg))
+            if (newsize > comb_hash_size.load() * (*avg) && newsize > 0)
             {
                 phyMemBase = newsize - comb_hash_size.load() * (*avg);
                 std::cout << "new phy mem base: " << phyMemBase << std::endl;
