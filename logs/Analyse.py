@@ -851,34 +851,30 @@ def c_size_by_time():
     # labels = np.array(["3W", "Local", "S3"])
 
     # partition analyses dyn
-    # names = [
-    #     "logfile_4_6_0_4_13-07.json",
-    #     "logfile_4_6_0_4_13-29.json",
-    #     "logfile_4_6_0_4_13-50.json",
-    #     "logfile_4_6_0_4_14-18.json",
-    # ]
-    # labels = np.array(["25; 1T", "50; 3T", "75; 6T", "100; 6T"])
+    names = [
+        "logfile_4_6_0_4_09-09.json",
+        "logfile_4_6_0_4_09-33.json",
+        "logfile_4_6_0_4_09-53.json",
+        "logfile_4_6_0_4_10-14.json",
+    ]
+    labels = np.array(["25; 1T", "50; 2T", "75; 5T", "100; 5T"])
 
     # names = [
     #     "logfile_4_6_0_4_09-02.json",
-    #     "logfile_4_6_0_4_13-07.json",
+    #     "logfile_4_6_0_4_09-09.json",
     #     "logfile_4_6_0_4_09-20.json",
-    #     "logfile_4_6_0_4_13-29.json",
+    #     "logfile_4_6_0_4_09-33.json",
     #     "logfile_4_6_0_4_09-39.json",
-    #     "logfile_4_6_0_4_13-50.json",
+    #     "logfile_4_6_0_4_09-53.json",
     #     "logfile_4_6_0_4_10-01.json",
-    #     "logfile_4_6_0_4_14-18.json",
+    #     "logfile_4_6_0_4_10-14.json",
     # ]
     # labels = np.array(
     #     [
-    #         "25; 3T",
-    #         "25; 1T",
-    #         "50; 6T",
-    #         "50; 3T",
-    #         "75; 9T",
-    #         "75; 6T",
-    #         "100; 12T",
-    #         "100; 6T",
+    #         "25",
+    #         "50",
+    #         "75",
+    #         "100",
     #     ]
     # )
 
@@ -899,20 +895,20 @@ def c_size_by_time():
     # )
 
     # with/out part
-    names = [
-        "logfile_4_6_0_8_17-14.json",
-        "logfile_4_6_0_8_14-43.json",
-        "logfile_4_6_0_8_20-52.json",
-    ]
-    labels = np.array(
-        [
-            "1 partition",
-            "30 partitions",
-            "30 partitions 2W",
-            #   "compression 100BM",
-            # "no compression 100BM",
-        ]
-    )
+    # names = [
+    #     "logfile_4_6_0_8_17-14.json",
+    #     "logfile_4_6_0_8_14-43.json",
+    #    # "logfile_4_6_0_8_20-52.json",
+    # ]
+    # labels = np.array(
+    #     [
+    #         "1",
+    #         "30",
+    #        # "30 partitions 2W",
+    #         #   "compression 100BM",
+    #         # "no compression 100BM",
+    #     ]
+    # )
 
     # Mapping size
     # names = [
@@ -927,8 +923,8 @@ def c_size_by_time():
     # labels = np.array(["0.05", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6"])
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_4_18-22.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_4_18-22.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_09-53.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_09-53.json"))
     except:
         print("File not found.")
         return
@@ -951,9 +947,9 @@ def c_size_by_time():
     plt.rcParams.update({"font.size": 35})
     plt.plot(x, mes_y, label="measured size", linewidth=3)
     plt.plot(x, hmap_y, label="Hashmap size", linewidth=3)
-    plt.plot(x, base_y, label="base size")
-    plt.plot(x, map_y, label="mapping size")
-    plt.plot(x, bit_y, label="bitmap size")
+    # plt.plot(x, base_y, label="base size")
+    # plt.plot(x, map_y, label="mapping size")
+    # plt.plot(x, bit_y, label="bitmap size")
     # plt.plot(
     #     x, calc_y, label="calc overall size"
     # )  # Line plot (you can change to scatter plot or others)
@@ -1002,10 +998,20 @@ def c_size_by_time():
             "Merge duration": np.empty(len(names)),
             # "read_tuple_sum": np.empty(),
             # "Exchange": np.empty(),
-        }
+        },
+        # {
+        #     "Write time of spill files": np.empty(int(len(names) / 2)),
+        #     "Scan duration": np.empty(int(len(names) / 2)),
+        #     # "merge_hash_dur": np.empty(),
+        #     # "get_file_sum": np.empty(),
+        #     "Write time of the output": np.empty(int(len(names) / 2)),
+        #     "Merge duration": np.empty(int(len(names) / 2)),
+        #     # "read_tuple_sum": np.empty(),
+        #     # "Exchange": np.empty(),
+        # },
     ]
     merge_thread_num = []
-
+    sub_counter = 0
     for name in names:
         jf = open(os.path.join(directory, name))
         jf_data = json.load(jf)
@@ -1037,7 +1043,7 @@ def c_size_by_time():
         write_file_dur.sort()
         write_file_size.sort()
         plt.figure(4)
-        plt.scatter(write_file_dur, write_file_size, label=labels[counter])
+        # plt.scatter(write_file_dur, write_file_size, label=labels[counter])
         plt.legend()
         plt.xlabel("Time in s")
         plt.ylabel("Size in MiB")
@@ -1054,7 +1060,7 @@ def c_size_by_time():
         plt.figure(6)
         ecdf_values = np.arange(1, len(write_file_dur) + 1) / len(write_file_dur)
         plt.step(
-            write_file_dur, ecdf_values, label=labels[counter], linewidth=3, alpha=0.3
+            write_file_dur, ecdf_values, label=labels[counter], linewidth=3
         )
         plt.grid(visible=True, linestyle="dashed")
         plt.legend()
@@ -1074,7 +1080,7 @@ def c_size_by_time():
 
         # plt.figure(8)
         get_file_dur = jf_data["getCall_s3_file_dur"]
-        # plt.hist(get_file_dur, bins=30, label="get_file_dur")
+        #plt.hist(get_file_dur, bins=30, label="get_file_dur")
         # plt.title("get_file_dur")
         if len(get_file_dur) > 0:
             average = sum(get_file_dur) / len(get_file_dur)
@@ -1107,6 +1113,13 @@ def c_size_by_time():
         times[0]["Scan duration"][counter] = scan_dur
         times[0]["Write time of the output"][counter] = write_output_sum
         times[0]["Merge duration"][counter] = merge_dur
+        # times[counter % 2]["Write time of spill files"][sub_counter] = write_file_sum
+        # times[counter % 2]["Scan duration"][sub_counter] = scan_dur
+        # times[counter % 2]["Write time of the output"][sub_counter ] = write_output_sum
+        # times[counter % 2]["Merge duration"][sub_counter] = merge_dur
+
+        # if(counter % 2 == 1):
+        #     sub_counter += 1
         counter += 1
         # times +=   [ {
         # "write_file_sum": np.array([write_file_sum]),
@@ -1155,7 +1168,7 @@ def c_size_by_time():
             labels,
             "Wall time in s",
             True,
-            "Size of mapping in GiB",
+            "Number of partitions",
             # markings=True,
             # marking_labels=marking_labels,
         )

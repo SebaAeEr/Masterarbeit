@@ -3927,7 +3927,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     increase_size = false;
                 }
 
-                /* if (add)
+                if (add)
                 {
                     std::cout << " adding ";
                 }
@@ -3935,7 +3935,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 {
                     std::cout << " merging ";
                 }
-                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " head: " << head << " max bit: " << bitmap_vector->size() * 8 << " s3spillStart_head_chars_counter: " << s3spillStart_head_chars_counter << std::endl; */
+                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " head: " << head << " max bit: " << bitmap_vector->size() * 8 << " s3spillStart_head_chars_counter: " << s3spillStart_head_chars_counter << std::endl;
                 while (spill.peek() != EOF)
                 {
                     char *bit;
@@ -4782,11 +4782,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         auto s3spillFile_head_old = s3spillFile_head;
         auto input_head_base_old = input_head_base;
         auto old_hmap_size = hmap->size();
-        std::cout << "adding" << std::endl;
+        std::cout << (int)(partition) << ": adding" << std::endl;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, &max_hash_size, 0, 0);
 
-        std::cout << "Hmap size: " << old_hmap_size << " -> " << hmap->size() << " Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
+        std::cout << (int)(partition) << ": Hmap size: " << old_hmap_size << " -> " << hmap->size() << " Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
         //   std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
         //   bit_head_end++;
         increase = false;
@@ -4851,7 +4851,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
                     start_heads[counter] = s3_start_head;
                     start_bits[counter] = start_bit_head;
-                    // std::cout << "merging s3 from start_head: " << s3_start_head << " bit_start_head: " << start_bit_head;
+                    std::cout << (int)(partition) << ": merging s3 from start_head: " << s3_start_head << " bit_start_head: " << start_bit_head;
                     threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &start_heads[counter], &start_bits[counter], &int_n, &n, &n, &input_head_base,
                                                   size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, &max_hash_size, t_c, merge_file_num));
                     counter++;
@@ -4867,7 +4867,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         }
                     }
                     s3_start_head += merge_file_num;
-                    //   std::cout << " to start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
+                    std::cout << " to start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
                 }
                 if ((s3spillNames2->size() - s3spillFile_head) % merge_file_num > 0 && counter > 0)
                 {
@@ -5736,6 +5736,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     log_file.sizes["mergeHashDuration"] = duration;
     log_file.sizes["colS3Spill"] = comb_spill_size - temp_loc_spills;
     log_file.sizes["colBackSpill"] = temp_loc_spills;
+    log_file.sizes["spillTuple_number"] = spillTuple_number;
+    log_file.sizes["keep_hashmaps"] = keep_hashmaps;
+    log_file.sizes["spill_share"] = spillTuple_number.load() * 1000 / numLines.load();
     finished++;
 
     /* if (mergePhase)
