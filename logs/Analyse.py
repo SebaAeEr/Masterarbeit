@@ -923,31 +923,39 @@ def c_size_by_time():
     # labels = np.array(["0.05", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6"])
 
     # split_mana
-    # names = [
-    #     "logfile_4_6_0_4_14-00.json",
-    # ]
-    # labels = np.array(
-    #     [
-    #         "single worker split mana",
-    #     ]
-    # )
-
-    # mem buffer
     names = [
-        "logfile_4_16_0_4_12-12.json",
-        "logfile_4_16_0_4_15-55.json",
+        "logfile_4_6_0_6_19-28.json",
+        "logfile_4_6_0_6_19-02.json",
+        "logfile_4_6_0_6_19-54.json",
+        "logfile_4_6_0_6_20-39.json",
     ]
     labels = np.array(
         [
-            "10000000",
-            "2000000",
+            "1 worker; no split",
+            "1 worker; split",
+            "2 worker; no split",
+            "2 worker; split",
         ]
     )
 
+    # mem buffer
+    # names = [
+    #     "logfile_4_16_0_4_16-56.json",
+    #     "logfile_4_16_0_4_17-23.json",
+    #     "logfile_4_16_0_4_17-50.json",
+    # ]
+    # labels = np.array(
+    #     [
+    #         "4000000",
+    #         "2000000",
+    #         "1000000",
+    #     ]
+    # )
+
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_16_0_4_15-55.csv"))
-        jf = open(os.path.join(directory, "logfile_4_16_0_4_15-55.json"))
+        f = open(os.path.join(directory, "times_4_16_0_4_16-56.csv"))
+        jf = open(os.path.join(directory, "logfile_4_16_0_4_16-56.json"))
     except:
         print("File not found.")
         return
@@ -971,7 +979,7 @@ def c_size_by_time():
     plt.plot(x, mes_y, label="measured size", linewidth=3)
     plt.plot(x, hmap_y, label="Hashmap size", linewidth=3)
     plt.plot(x, base_y, label="base size")
-    plt.plot(x, map_y, label="mapping size")
+    # plt.plot(x, map_y, label="mapping size")
     plt.plot(x, bit_y, label="bitmap size")
     # plt.plot(
     #     x, calc_y, label="calc overall size"
@@ -1017,7 +1025,7 @@ def c_size_by_time():
             "Scan duration": np.empty(len(names)),
             # "merge_hash_dur": np.empty(),
             # "get_file_sum": np.empty(),
-           # "Write time of the output": np.empty(len(names)),
+            # "Write time of the output": np.empty(len(names)),
             "Merge duration": np.empty(len(names)),
             # "read_tuple_sum": np.empty(),
             # "Exchange": np.empty(),
@@ -1087,6 +1095,16 @@ def c_size_by_time():
         plt.legend()
         plt.xlabel("Time in s")
         plt.ylabel("ECDF")
+
+        plt.figure(7)
+        get_lock_dur.sort()
+        ecdf_values = np.arange(1, len(get_lock_dur) + 1) / len(get_lock_dur)
+        plt.step(get_lock_dur, ecdf_values, label=labels[counter], linewidth=3)
+        plt.grid(visible=True, linestyle="dashed")
+        plt.legend()
+        plt.xlabel("Time in s")
+        plt.ylabel("ECDF")
+
         # plt.title("write file dur")
         # axs.ecdf(df_reads0.latency+10, label="Lvl 1 - Reads (exp.)")
         if len(write_file_dur) > 0:
@@ -1117,22 +1135,25 @@ def c_size_by_time():
         write_file_sum /= jf_data["threadNumber"] * 1000000
 
         get_file_sum = sum(jf_data["getCall_s3_file_dur"]) / (
-             jf_data["mergeThread_number"] * 1000000
-           # jf_data["threadNumber"]
+            jf_data["mergeThread_number"]
+            * 1000000
+            # jf_data["threadNumber"]
             * 1000000
         )
         printEingerückt("get_file_sum: " + str(get_file_sum), tabs)
         # read_tuple_sum = jf_data["get_tuple_dur"] / 1000000
-        write_output_sum = jf_data["write_output_dur"] /( 1000000 *jf_data["mergeThread_number"])
-        merge_dur = (
-            jf_data["mergeDuration"]# - write_output_sum
-        )  # (get_file_sum + write_output_sum)
+        write_output_sum = jf_data["write_output_dur"] / (
+            1000000 * jf_data["mergeThread_number"]
+        )
+        merge_dur = jf_data[
+            "mergeDuration"
+        ]  # - write_output_sum  # (get_file_sum + write_output_sum)
         scan_dur = jf_data["scanDuration"] - write_file_sum
         merge_hash_dur = jf_data["mergeHashDuration"]
 
         times[0]["Write time of spill files"][counter] = write_file_sum
         times[0]["Scan duration"][counter] = scan_dur
-       # times[0]["Write time of the output"][counter] = write_output_sum
+        # times[0]["Write time of the output"][counter] = write_output_sum
         times[0]["Merge duration"][counter] = merge_dur
         # times[counter % 2]["Write time of spill files"][sub_counter] = write_file_sum
         # times[counter % 2]["Scan duration"][sub_counter] = scan_dur
@@ -1189,7 +1210,7 @@ def c_size_by_time():
             labels,
             "Wall time in s",
             True,
-            "Number of partitions",
+           # "max Number of Tuples in Subfile",
             # markings=True,
             # marking_labels=marking_labels,
         )
