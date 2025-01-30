@@ -3931,7 +3931,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                     increase_size = false;
                 }
 
-                if (add)
+                /* if (add)
                 {
                     std::cout << " adding ";
                 }
@@ -3939,7 +3939,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 {
                     std::cout << " merging ";
                 }
-                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " head: " << head << " max bit: " << bitmap_vector->size() * 8 << " s3spillStart_head_chars_counter: " << s3spillStart_head_chars_counter << std::endl;
+                std::cout << get<0>(*set_it) + "_" + std::to_string(sub_file_counter) << " head: " << head << " max bit: " << bitmap_vector->size() * 8 << " s3spillStart_head_chars_counter: " << s3spillStart_head_chars_counter << std::endl; */
                 while (spill.peek() != EOF)
                 {
                     char *bit;
@@ -5650,7 +5650,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
     std::vector<std::vector<std::pair<std::string, size_t>>> local_spill_files_temp(threadNumber, std::vector<std::pair<std::string, size_t>>(partitions, {"", 0}));
 
-    bool keep_hashmaps = partitions == 1 || spillTuple_number.load() / (float)(numLines.load()) < 0.5;
+    bool keep_hashmaps = partitions == 1; // || spillTuple_number.load() / (float)(numLines.load()) < 0.5;
     std::cout << "keep hashmaps: " << keep_hashmaps << ": " << partitions << " == 1 || " << spillTuple_number.load() / (float)(numLines.load()) << " < 0.05" << std::endl;
     log_file.sizes["keep_hashmaps"] = keep_hashmaps;
     log_file.sizes["spill_share"] = spillTuple_number.load() * 1000 / numLines.load();
@@ -5742,7 +5742,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     log_file.sizes["colS3Spill"] = comb_spill_size - temp_loc_spills;
     log_file.sizes["colBackSpill"] = temp_loc_spills;
     log_file.sizes["spillTuple_number"] = spillTuple_number;
-    
+
     finished++;
 
     /* if (mergePhase)
