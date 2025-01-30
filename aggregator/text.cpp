@@ -5650,8 +5650,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> emHashmap;
     std::vector<std::vector<std::pair<std::string, size_t>>> local_spill_files_temp(threadNumber, std::vector<std::pair<std::string, size_t>>(partitions, {"", 0}));
 
-    bool keep_hashmaps = partitions == 1 || spillTuple_number.load() / (float)(numLines.load()) < 0.05;
+    bool keep_hashmaps = partitions == 1 || spillTuple_number.load() / (float)(numLines.load()) < 0.5;
     std::cout << "keep hashmaps: " << keep_hashmaps << ": " << partitions << " == 1 || " << spillTuple_number.load() / (float)(numLines.load()) << " < 0.05" << std::endl;
+    log_file.sizes["keep_hashmaps"] = keep_hashmaps;
+    log_file.sizes["spill_share"] = spillTuple_number.load() * 1000 / numLines.load();
     if (keep_hashmaps)
     {
         for (int i = 0; i < threadNumber; i++)
@@ -5740,8 +5742,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     log_file.sizes["colS3Spill"] = comb_spill_size - temp_loc_spills;
     log_file.sizes["colBackSpill"] = temp_loc_spills;
     log_file.sizes["spillTuple_number"] = spillTuple_number;
-    log_file.sizes["keep_hashmaps"] = keep_hashmaps;
-    log_file.sizes["spill_share"] = spillTuple_number.load() * 1000 / numLines.load();
+    
     finished++;
 
     /* if (mergePhase)

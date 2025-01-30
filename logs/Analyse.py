@@ -928,6 +928,7 @@ def c_size_by_time():
         "logfile_4_6_0_6_19-02.json",
         "logfile_4_6_0_6_19-54.json",
         "logfile_4_6_0_6_20-39.json",
+        "logfile_20_4.2_0_8_19-58.json",
     ]
     labels = np.array(
         [
@@ -935,6 +936,7 @@ def c_size_by_time():
             "1 worker; split",
             "2 worker; no split",
             "2 worker; split",
+            "test",
         ]
     )
 
@@ -954,8 +956,8 @@ def c_size_by_time():
 
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_16_0_4_16-56.csv"))
-        jf = open(os.path.join(directory, "logfile_4_16_0_4_16-56.json"))
+        f = open(os.path.join(directory, "times_20_4.2_0_8_19-58.csv"))
+        jf = open(os.path.join(directory, "logfile_20_4.2_0_8_19-58.json"))
     except:
         print("File not found.")
         return
@@ -1145,6 +1147,7 @@ def c_size_by_time():
         write_output_sum = jf_data["write_output_dur"] / (
             1000000 * jf_data["mergeThread_number"]
         )
+        printEingerückt("Write output sum: " + str(write_output_sum), tabs)
         merge_dur = jf_data[
             "mergeDuration"
         ]  # - write_output_sum  # (get_file_sum + write_output_sum)
@@ -1210,7 +1213,7 @@ def c_size_by_time():
             labels,
             "Wall time in s",
             True,
-           # "max Number of Tuples in Subfile",
+            # "max Number of Tuples in Subfile",
             # markings=True,
             # marking_labels=marking_labels,
         )
