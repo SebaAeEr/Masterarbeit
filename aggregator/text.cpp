@@ -6576,7 +6576,7 @@ int main(int argc, char **argv)
             }
             case str2int("spill_mode"):
             {
-                spill_mode = std::stoi(value);
+                spill_mode_vec[iteration] = std::stoi(value);
                 break;
             }
             case str2int("iteration"):
