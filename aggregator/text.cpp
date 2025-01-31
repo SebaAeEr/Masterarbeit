@@ -3461,9 +3461,9 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
 
             threadLog.spillTimes.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count());
 
-            if (memLimitBack > backMem_usage + temp_spill_size - temp_local_spill_size)
+            if ((spill_mode == 0 || spill_mode == 1 || memLimitBack > backMem_usage + temp_spill_size - temp_local_spill_size) && spill_mode != 2)
             {
-                if (memLimitBack < backMem_usage + temp_spill_size * threadNumber)
+                if ((spill_mode == 1 || memLimitBack < backMem_usage + temp_spill_size * threadNumber) && spill_mode != 0)
                 {
                     threadLog.sizes["localS3Spill"]++;
                     threadLog.sizes["s3SpillSize"] += temp_spill_size;
@@ -5686,7 +5686,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             spillTuple_number.fetch_add(emHashmaps[i].size());
             size_t s_size = emHashmaps[i].size() * sizeof(long) * (key_number + value_number);
             std::string uName = "spill_" + std::to_string(i);
-            if (backMem_usage + size < memLimitBack)
+            if ((backMem_usage + size < memLimitBack || spill_mode == 0) && spill_mode != 1 && spill_mode != 2)
             {
                 for (int p = 0; p < partitions; p++)
                 {
@@ -6704,6 +6704,7 @@ int main(int argc, char **argv)
         split_mana = split_mana_vec[i];
         thread_efficiency = thread_efficiency_vec[i];
         spill_mode = spill_mode_vec[i];
+        std::cout << "spill_mode: " << spill_mode << std::endl;
 
         use_file_queue = split_mana ? false : use_file_queue;
 
