@@ -222,6 +222,7 @@ std::mutex write_log_file_lock;
 
 std::atomic<size_t> comb_spill_size = 0;
 std::atomic<size_t> spillTuple_number = 0;
+int spill_mode = -1;
 
 // hash function for an long array
 auto hash = [](const std::array<unsigned long, max_size> a)
@@ -6386,6 +6387,7 @@ int main(int argc, char **argv)
     std::vector<bool> dynamic_extension_vec(1, dynamic_extension);
     std::vector<int> static_partition_number_vec(1, static_partition_number);
     std::vector<int> mergeThreads_number_vec(1, mergeThreads_number);
+    std::vector<int> spill_mode_vec(1, spill_mode);
     std::vector<float> thread_efficiency_vec(1, thread_efficiency);
 
     // If no conf file is used configuration can be obtained directly from command (legacy)
@@ -6572,6 +6574,11 @@ int main(int argc, char **argv)
                 bucketName = value;
                 break;
             }
+            case str2int("spill_mode"):
+            {
+                spill_mode = std::stoi(value);
+                break;
+            }
             case str2int("iteration"):
             {
                 memLimit_vec.push_back(memLimit_vec[0]);
@@ -6594,6 +6601,7 @@ int main(int argc, char **argv)
                 mergeThreads_number_vec.push_back(mergeThreads_number_vec[0]);
                 split_mana_vec.push_back(split_mana_vec[0]);
                 thread_efficiency_vec.push_back(thread_efficiency_vec[0]);
+                spill_mode_vec.push_back(spill_mode_vec[0]);
                 iteration++;
                 break;
             }
@@ -6695,6 +6703,7 @@ int main(int argc, char **argv)
         mergeThreads_number = mergeThreads_number_vec[i];
         split_mana = split_mana_vec[i];
         thread_efficiency = thread_efficiency_vec[i];
+        spill_mode = spill_mode_vec[i];
 
         use_file_queue = split_mana ? false : use_file_queue;
 

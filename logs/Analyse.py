@@ -923,41 +923,43 @@ def c_size_by_time():
     # labels = np.array(["0.05", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6"])
 
     # split_mana
-    names = [
-        "logfile_4_6_0_6_19-28.json",
-        "logfile_4_6_0_6_19-02.json",
-        "logfile_4_6_0_6_19-54.json",
-        "logfile_4_6_0_6_20-39.json",
-        "logfile_20_4.2_0_8_19-58.json",
-    ]
-    labels = np.array(
-        [
-            "1 worker; no split",
-            "1 worker; split",
-            "2 worker; no split",
-            "2 worker; split",
-            "test",
-        ]
-    )
-
-    # mem buffer
     # names = [
-    #     "logfile_4_16_0_4_16-56.json",
-    #     "logfile_4_16_0_4_17-23.json",
-    #     "logfile_4_16_0_4_17-50.json",
+    #     "logfile_4_6_0_6_19-28.json",
+    #     "logfile_4_6_0_6_19-02.json",
+    #     "logfile_4_6_0_6_19-54.json",
+    #     "logfile_4_6_0_6_20-39.json",
+    #     "logfile_20_4.2_0_8_19-58.json",
     # ]
     # labels = np.array(
     #     [
-    #         "4000000",
-    #         "2000000",
-    #         "1000000",
+    #         "1 worker; no split",
+    #         "1 worker; split",
+    #         "2 worker; no split",
+    #         "2 worker; split",
+    #         "test",
     #     ]
     # )
 
+    # mem buffer
+    names = [
+        # "logfile_4_16_0_4_16-56.json",
+        # "logfile_4_16_0_4_17-23.json",
+        # "logfile_4_16_0_4_17-50.json",
+        "logfile_4_6_0_4_21-44.json",
+        "logfile_4_6_0_4_22-18.json",
+    ]
+    labels = np.array(
+        [
+            "4000000",
+            "2000000",
+            # "1000000",
+        ]
+    )
+
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_20_4.2_0_8_19-58.csv"))
-        jf = open(os.path.join(directory, "logfile_20_4.2_0_8_19-58.json"))
+        f = open(os.path.join(directory, "times_4_6_0_4_22-18.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_4_22-18.json"))
     except:
         print("File not found.")
         return
