@@ -8,6 +8,7 @@
 #include <string>
 #include <iostream>
 #include <random>
+#include <algorithm>
 // #include <json/json.h>
 #include <unordered_map>
 #include <stdio.h>
@@ -5229,6 +5230,16 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
                         // std::cout << "breaking" << std::endl;
                         break;
                     }
+                    manaFile m = getMana(&minio_client);
+                    for (auto w : m.workers)
+                    {
+                        if (w.id == '1' && w.locked)
+                        {
+                            std::cout << "finish" << std::endl;
+                            finish = true;
+                            break;
+                        }
+                    }
                 }
                 else
                 {
@@ -6280,6 +6291,54 @@ constexpr unsigned int str2int(const char *str, int h = 0)
     return !str[h] ? 5381 : (str2int(str, h + 1) * 33) ^ str[h];
 }
 
+int randomize(std::string input_filename, std::string output_filename)
+{
+    // Open the input CSV file
+    std::ifstream input_file(input_filename);
+    if (!input_file)
+    {
+        std::cerr << "Error opening file: " << input_filename << std::endl;
+        return 1;
+    }
+
+    // Read the lines from the CSV file into a vector
+    std::vector<std::string> lines;
+    std::string line;
+    while (std::getline(input_file, line))
+    {
+        lines.push_back(line);
+    }
+
+    // Close the input file after reading
+    input_file.close();
+
+    // Shuffle the lines randomly
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(lines.begin(), lines.end(), g);
+
+    // Open the output CSV file
+    std::ofstream output_file(output_filename);
+    if (!output_file)
+    {
+        std::cerr << "Error opening file: " << output_filename << std::endl;
+        return 1;
+    }
+
+    // Write the shuffled lines to the output file
+    for (const auto &shuffled_line : lines)
+    {
+        output_file << shuffled_line << std::endl;
+    }
+
+    // Close the output file
+    output_file.close();
+
+    std::cout << "Shuffling complete. Shuffled CSV saved to " << output_filename << std::endl;
+
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     /* // The file to be downloaded
@@ -6346,8 +6405,12 @@ int main(int argc, char **argv)
             printMana(&minio_client_2);
             Aws::ShutdownAPI(options);
             return 1;
+        } else if(f.compare("shuffle") == 0) {
+            std::string input = argv[2];
+            std::string output = argv[3];
+            return randomize(input, output);
         }
-    }
+    } 
 
     // set pagesize with system pagesize
     pagesize = sysconf(_SC_PAGE_SIZE);
