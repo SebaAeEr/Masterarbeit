@@ -1035,8 +1035,8 @@ def c_size_by_time():
 
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_16_11-12.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_16_11-12.json"))
+        f = open(os.path.join(directory, "times_4_6_0_10_15-17.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_10_15-17.json"))
     except:
         print("File not found.")
         return
@@ -1060,11 +1060,11 @@ def c_size_by_time():
     plt.plot(x, mes_y, label="measured size", linewidth=3)
     plt.plot(x, hmap_y, label="Hashmap size", linewidth=3)
     plt.plot(x, base_y, label="base size")
-    # plt.plot(x, map_y, label="mapping size")
+    plt.plot(x, map_y, label="mapping size")
     plt.plot(x, bit_y, label="bitmap size")
-    # plt.plot(
-    #     x, calc_y, label="calc overall size"
-    # )  # Line plot (you can change to scatter plot or others)
+    plt.plot(
+        x, calc_y, label="calc overall size"
+    )  # Line plot (you can change to scatter plot or others)
 
     try:
         keys = ["scanTime", "mergeHashTime", "mergeTime"]

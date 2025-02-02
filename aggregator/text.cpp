@@ -1686,15 +1686,36 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
         }
         else
         {
-            for (auto &file : *files_temp)
+            if (use_file_queue)
             {
-                // std::cout << "Adding files to: " << (int)(file.first) << std::endl;
-                manaFile mana_partition = getLockedMana(minio_client, thread_id, write_to_id, file.first);
-                for (auto &f : file.second)
+                for (char i = 0; i < partitions; i++)
                 {
-                    mana_partition.workers[0].partitions[0].files.push_back(f);
+                    if (files_temp->contains(i))
+                    {
+                        manaFile mana_partition = getLockedMana(minio_client, thread_id, write_to_id, i);
+                        file_queue_mutex.lock();
+                        for (auto &f : (*files_temp)[i])
+                        {
+                            mana_partition.workers[0].partitions[0].files.push_back(f);
+                        }
+                        files_temp->erase(i);
+                        file_queue_mutex.unlock();
+                        writeMana(minio_client, mana_partition, true, write_to_id, i);
+                    }
                 }
-                writeMana(minio_client, mana_partition, true, write_to_id, file.first);
+            }
+            else
+            {
+                for (auto &file : *files_temp)
+                {
+                    // std::cout << "Adding files to: " << (int)(file.first) << std::endl;
+                    manaFile mana_partition = getLockedMana(minio_client, thread_id, write_to_id, file.first);
+                    for (auto &f : file.second)
+                    {
+                        mana_partition.workers[0].partitions[0].files.push_back(f);
+                    }
+                    writeMana(minio_client, mana_partition, true, write_to_id, file.first);
+                }
             }
             // std::cout << (int)(thread_id) << "finished" << std::endl;
         }
@@ -3857,6 +3878,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 request.SetKey(get<0>(*set_it) + "_" + std::to_string(sub_file_counter));
                 sub_file_counter++;
                 Aws::S3::Model::GetObjectOutcome outcome;
+                if (increase_size)
+                {
+                    size_after_init = getPhyValue();
+                }
                 while (true)
                 {
                     outcome = minio_client->GetObject(request);
@@ -3916,12 +3941,8 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 unsigned long lower_index = 0;
                 if (increase_size)
                 {
-                    increase = size_after_init * 1024 * 100 + 1;
-                    if (getPhyValue() < size_after_init)
-                    {
-                        increase = 0;
-                    }
-                    else
+                    increase = 0;
+                    if (getPhyValue() > size_after_init)
                     {
                         increase = (getPhyValue() - size_after_init) * 1024;
                     }
@@ -4105,7 +4126,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             {
                                 if (add && !locked)
                                 {
-                                    std::cout << "Calc size: " << (*max_hash_size) * (*avg) + base_size / conc_threads << " base_size: " << base_size << " *max_hash_size " << *max_hash_size << " memlimit: " << (memLimit * 0.9) / conc_threads << " hmap size: " << hmap->size() << std::endl;
+                                    // std::cout << "Calc size: " << (*max_hash_size) * (*avg) + base_size / conc_threads << " base_size: " << base_size << " *max_hash_size " << *max_hash_size << " memlimit: " << (memLimit * 0.9) / conc_threads << " hmap size: " << hmap->size() << std::endl;
                                     locked = true;
                                     *s3spillFile_head = it_counter;
                                     *s3spillStart_head = head;
@@ -6770,7 +6791,7 @@ int main(int argc, char **argv)
         spill_mode = spill_mode_vec[i];
         std::cout << "spill_mode: " << spill_mode << std::endl;
 
-        use_file_queue = split_mana ? false : use_file_queue;
+        // use_file_queue = split_mana ? false : use_file_queue;
 
         // setup mana file
         initManagFile(&minio_client);
