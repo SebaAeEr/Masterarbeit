@@ -926,24 +926,24 @@ def c_size_by_time():
     # labels = np.array(["0.05", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6"])
 
     # split_mana
-    names = [
-        "logfile_4_6_0_6_19-28.json",
-        "logfile_4_6_0_6_19-02.json",
-        "logfile_4_6_0_6_19-54.json",
-        "logfile_4_6_0_6_20-39.json",
-        "logfile_4_6_0_6_18-55.json",
-        "logfile_4_6_0_6_21-38.json",
-    ]
-    labels = np.array(
-        [
-            "1 worker; no split",
-            "1 worker; split",
-            "2 worker; no split",
-            "2 worker; split",
-            "3 worker; no split",
-            "3 worker; split",
-        ]
-    )
+    # names = [
+    #     "logfile_4_6_0_6_19-02.json",
+    #     "logfile_4_6_0_6_19-28.json",
+    #     "logfile_4_6_0_6_19-54.json",
+    #     "logfile_4_6_0_6_20-39.json",
+    #     "logfile_4_6_0_6_18-55.json",
+    #     "logfile_4_6_0_6_21-38.json",
+    # ]
+    # labels = np.array(
+    #     [
+    #         "1 worker; no split",
+    #         "1 worker; split",
+    #         "2 worker; no split",
+    #         "2 worker; split",
+    #         "3 worker; no split",
+    #         "3 worker; split",
+    #     ]
+    # )
 
     # mem buffer
     # names = [
@@ -978,14 +978,17 @@ def c_size_by_time():
     # )
 
     # threadNumber s3 + local
-    # names = [
-    #     "logfile_4_6_0_1_15-40.json",
-    #     "logfile_4_6_0_2_16-28.json",
-    #     "logfile_4_6_0_4_16-57.json",
-    #     "logfile_4_6_0_6_17-19.json",
-    #     "logfile_4_6_0_8_17-38.json",
-    # ]
-    # labels = np.array(["1", "2", "4", "6", "8"])
+    names = [
+        "logfile_4_6_0_1_15-40.json",
+        "logfile_4_6_0_2_16-28.json",
+        "logfile_4_6_0_4_16-57.json",
+        "logfile_4_6_0_6_17-19.json",
+        "logfile_4_6_0_8_17-38.json",
+        "logfile_4_6_0_12_20-36.json",
+        "logfile_4_6_0_16_20-55.json",
+        "logfile_4_6_0_20_21-16.json",
+    ]
+    labels = np.array(["1", "2", "4", "6", "8", "12", "16", "20"])
 
     # # threadNumber s3
     # names = [
@@ -994,9 +997,15 @@ def c_size_by_time():
     #     "logfile_4_6_0_4_20-01.json",
     #     "logfile_4_6_0_6_20-26.json",
     #     "logfile_4_6_0_8_20-47.json",
+    #     "logfile_4_6_0_12_10-53.json",
+    #     "logfile_4_6_0_16_11-12.json",
+    #     "logfile_4_6_0_20_11-33.json",
     # ]
-    # labels = np.array(["1", "2", "4", "6", "8"])
+    # labels = np.array(["1", "2", "4", "6", "8", "12", "16", "20"])
 
+
+    thread_number_anal = False
+    
     # thread number s3 + se + local
     # names = [
     #     "logfile_4_6_0_1_18-27.json",
@@ -1009,23 +1018,24 @@ def c_size_by_time():
     #     "logfile_4_6_0_6_17-19.json",
     #     "logfile_4_6_0_8_20-47.json",
     #     "logfile_4_6_0_8_17-38.json",
+    #     "logfile_4_6_0_12_10-53.json",
     #     "logfile_4_6_0_12_20-36.json",
-    #     "logfile_4_6_0_12_20-36.json",
+    #     "logfile_4_6_0_16_11-12.json",
     #     "logfile_4_6_0_16_20-55.json",
-    #     "logfile_4_6_0_16_20-55.json",
-    #     "logfile_4_6_0_20_21-16.json",
+    #     "logfile_4_6_0_20_11-33.json",
     #     "logfile_4_6_0_20_21-16.json",
     # ]
     # labels = np.array(["1", "2", "4", "6", "8", "12", "16", "20"])
+    # thread_number_anal = True
 
-    # thread_number_x = np.array([1, 2, 4, 6, 8, 12, 16, 20])
-    # thread_number_y_sl = np.empty(len(labels))
-    # thread_number_y_s = np.empty(len(labels))
+    thread_number_x = np.array([1, 2, 4, 6, 8, 12, 16, 20])
+    thread_number_y_sl = np.empty(len(labels))
+    thread_number_y_s = np.empty(len(labels))
 
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_6_21-38.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_6_21-38.json"))
+        f = open(os.path.join(directory, "times_4_6_0_16_11-12.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_16_11-12.json"))
     except:
         print("File not found.")
         return
@@ -1144,7 +1154,7 @@ def c_size_by_time():
         # plt.title("write_mana_dur")
         average = sum(write_mana_dur) / len(write_mana_dur)
         printEingerückt("write_mana_dur avg: " + str(average), tabs)
-        printEingerückt("write_mana_dur sum: " + str(sum(write_mana_dur) ), tabs)
+        printEingerückt("write_mana_dur sum: " + str(sum(write_mana_dur)), tabs)
         printEingerückt("write_mana_dur times: " + str(len(write_mana_dur)), tabs)
 
         get_lock_dur = np.array(jf_data["get_lock_dur"]) / 1000000
@@ -1153,7 +1163,7 @@ def c_size_by_time():
         plt.title("get_lock_dur")
         average = sum(get_lock_dur) / len(get_lock_dur)
         printEingerückt("get_lock_dur avg: " + str(average), tabs)
-        printEingerückt("get_lock_dur sum: " + str( sum(get_lock_dur)), tabs)
+        printEingerückt("get_lock_dur sum: " + str(sum(get_lock_dur)), tabs)
 
         write_file_dur = np.array(jf_data["writeCall_s3_file_dur"]) / 1000000
         write_file_size = np.array(jf_data["writeCall_s3_file_size"]) / 2**20
@@ -1254,13 +1264,13 @@ def c_size_by_time():
         # times[counter % 2]["Write time of the output"][sub_counter] = write_output_sum
         # times[counter % 2]["Merge duration"][sub_counter] = merge_dur
 
-        # if counter % 2 == 1:
-        #     thread_number_y_sl[sub_counter] = scan_dur
-        # else:
-        #     thread_number_y_s[sub_counter] = scan_dur
+        if counter % 2 == 1:
+            thread_number_y_sl[sub_counter] = scan_dur
+        else:
+            thread_number_y_s[sub_counter] = scan_dur
 
-        # if counter % 2 == 1:
-        #     sub_counter += 1
+        if counter % 2 == 1:
+            sub_counter += 1
         counter += 1
         # times +=   [ {
         # "write_file_sum": np.array([write_file_sum]),
@@ -1275,40 +1285,36 @@ def c_size_by_time():
         # ]
         # merge_thread_num.append(jf_data["mergeThread_number"])
 
-    # plt.figure(4)
-    # plt.plot(thread_number_x, thread_number_y_s, label="S3", linewidth=3)
-    # plt.plot(thread_number_x, thread_number_y_sl, label="S3+local", linewidth=3)
-    # plt.legend()
-    # plt.xlabel("Number of Threads")
-    # plt.ylabel("Time of Scan in s")
-    # x = np.arange(len(names))
-    # plt.bar(x, merge_thread_num)
-    # plt.legend()
-    # plt.xlabel("Time in s")
-    # plt.ylabel("ECDF")
-
-    if len(names) > 0:
-        # s1 = "dynamic"
-        # s2 = "static"
-        s1 = "S3+local"
-        s2 = "S3"
-        marking_labels = []
-        for n in range(len(names)):
-            if n % 2 == 0:
-                s = s2
-            else:
-                s = s1
-            marking_labels.append(s)
-        makeBarFig(
-            times,
-            labels,
-            "Number of Threads",
-            True,
-            # "max Number of Tuples in Subfile",
-            # markings=True,
-            # marking_labels=marking_labels,
-        )
-        print(str(times))
+    if thread_number_anal:
+        plt.figure(4)
+        plt.plot(thread_number_x, thread_number_y_s, label="S3", linewidth=3)
+        plt.plot(thread_number_x, thread_number_y_sl, label="S3+local", linewidth=3)
+        plt.legend()
+        plt.xlabel("Number of Threads")
+        plt.ylabel("Time of Scan in s")
+    else:
+        if len(names) > 0:
+            # s1 = "dynamic"
+            # s2 = "static"
+            s1 = "S3+local"
+            s2 = "S3"
+            marking_labels = []
+            for n in range(len(names)):
+                if n % 2 == 0:
+                    s = s2
+                else:
+                    s = s1
+                marking_labels.append(s)
+            makeBarFig(
+                times,
+                labels,
+                "Number of Threads",
+                True,
+                # "max Number of Tuples in Subfile",
+                # markings=True,
+                # marking_labels=marking_labels,
+            )
+            print(str(times))
     # bottom = 0
     # for datum in dates:
     #     rects = plt.bar(

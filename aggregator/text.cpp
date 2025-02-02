@@ -1686,7 +1686,6 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
         }
         else
         {
-
             for (auto &file : *files_temp)
             {
                 // std::cout << "Adding files to: " << (int)(file.first) << std::endl;
@@ -4787,13 +4786,13 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         auto s3spillFile_head_old = s3spillFile_head;
         auto input_head_base_old = input_head_base;
         auto old_hmap_size = hmap->size();
-        std::cout << (int)(partition) << ": adding" << std::endl;
+        // std::cout << (int)(partition) << ": adding" << std::endl;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, &max_hash_size, 0, 0);
 
-        std::cout << (int)(partition) << ": Hmap size: " << old_hmap_size << " -> " << hmap->size() << " Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
-        //   std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
-        //   bit_head_end++;
+        // std::cout << (int)(partition) << ": Hmap size: " << old_hmap_size << " -> " << hmap->size() << " Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
+        //    std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
+        //    bit_head_end++;
         increase = false;
         if (!finished)
         {
@@ -4856,7 +4855,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
 
                     start_heads[counter] = s3_start_head;
                     start_bits[counter] = start_bit_head;
-                    std::cout << (int)(partition) << ": merging s3 from start_head: " << s3_start_head << " bit_start_head: " << start_bit_head;
+                    // std::cout << (int)(partition) << ": merging s3 from start_head: " << s3_start_head << " bit_start_head: " << start_bit_head;
                     threads.push_back(std::thread(subMerge, hmap, s3spillNames2, &s3spillBitmaps, spills, false, &start_heads[counter], &start_bits[counter], &int_n, &n, &n, &input_head_base,
                                                   size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, std::ref(comb_hash_size), diff, false, &max_hash_size, t_c, merge_file_num));
                     counter++;
@@ -4872,7 +4871,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                         }
                     }
                     s3_start_head += merge_file_num;
-                    std::cout << " to start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
+                    // std::cout << " to start_head: " << s3_start_head << " bit_start_head: " << start_bit_head << std::endl;
                 }
                 if ((s3spillNames2->size() - s3spillFile_head) % merge_file_num > 0 && counter > 0)
                 {
@@ -6405,12 +6404,14 @@ int main(int argc, char **argv)
             printMana(&minio_client_2);
             Aws::ShutdownAPI(options);
             return 1;
-        } else if(f.compare("shuffle") == 0) {
+        }
+        else if (f.compare("shuffle") == 0)
+        {
             std::string input = argv[2];
             std::string output = argv[3];
             return randomize(input, output);
         }
-    } 
+    }
 
     // set pagesize with system pagesize
     pagesize = sysconf(_SC_PAGE_SIZE);
@@ -6876,12 +6877,13 @@ int main(int argc, char **argv)
                 std::cout << "Error during mergePhase: " << err.what() << std::endl;
             }
         }
-
-        cleanup(&minio_client);
         if (log_time)
         {
             writeLogFile(log_file);
         }
+
+        cleanup(&minio_client);
+
         // reset log_size
         log_size = temp_log_size;
     }
