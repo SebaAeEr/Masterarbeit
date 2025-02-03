@@ -948,10 +948,11 @@ def c_size_by_time():
     names = [
         "logfile_4_6_0_10_10-44.json",
         "logfile_4_6_0_10_11-32.json",
-        "logfile_4_6_0_10_16-21.json",
-        "logfile_4_6_0_10_20-58.json",  # worker logfile: logfile_4_6_0_4_20-58.json
-        "logfile_4_6_0_10_15-17.json",  # worker logfile: logfile_4_6_0_4_15-17.json
-        "logfile_4_6_0_10_12-27.json",  # worker logfile: logfile_4_6_0_4_12-27.json
+       # "logfile_4_6_0_10_16-21.json",
+       # "logfile_4_6_0_10_20-58.json",  # worker logfile: logfile_4_6_0_4_20-58.json
+       "logfile_4_6_0_10_14-39.json",  # worker logfile: logfile_4_6_0_4_14-39.json
+       # "logfile_4_6_0_10_15-17.json",  # worker logfile: logfile_4_6_0_4_15-17.json
+        "logfile_4_6_0_10_14-00.json",  # worker logfile: logfile_4_6_0_4_12-27.json
         # "",
         # "",
     ]
@@ -959,14 +960,22 @@ def c_size_by_time():
         [
             "1 worker; no split",
             "1 worker; split",
-            "1 worker; split(2)",
+            #"1 worker; split(2)",
             "2 worker; no split",
             "2 worker; split",
-            "2 worker; split(2)",
+           # "2 worker; split(2)",
             # "3 worker; no split",
             # "3 worker; split",
         ]
     )
+    helpers = ["logfile_4_6_0_4_14-39.json","logfile_4_6_0_4_14-00.json", ]
+    for helper in helpers:
+        jf = open(os.path.join("c++_logs", helper))
+        jf_data = json.load(jf)
+        print(helper + ":")
+        printEingerückt("Number of written files: " + str(len(jf_data["writeCall_s3_file_dur"])), 1)
+
+
 
     # mem buffer
     # names = [
@@ -1078,8 +1087,8 @@ def c_size_by_time():
 
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_4_12-27.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_4_12-27.json"))
+        f = open(os.path.join(directory, "times_4_6_0_10_14-00.csv"))
+        jf = open(os.path.join(directory, "logfile_4_6_0_10_14-00.json"))
     except:
         print("File not found.")
         return
@@ -1149,7 +1158,7 @@ def c_size_by_time():
             "Scan duration": np.empty(len(names)),
             # "merge_hash_dur": np.empty(),
             # "get_file_sum": np.empty(),
-            "Write time of the output": np.empty(len(names)),
+           # "Write time of the output": np.empty(len(names)),
             "Merge duration": np.empty(len(names)),
             # "read_tuple_sum": np.empty(),
             # "Exchange": np.empty(),
@@ -1301,7 +1310,7 @@ def c_size_by_time():
 
         times[0]["Write time of spill files"][counter] = write_file_sum
         times[0]["Scan duration"][counter] = scan_dur
-        times[0]["Write time of the output"][counter] = write_output_sum
+       # times[0]["Write time of the output"][counter] = write_output_sum
         times[0]["Merge duration"][counter] = merge_dur
         # times[counter % 2]["Write time of spill files"][sub_counter] = write_file_sum
         # times[counter % 2]["Scan duration"][sub_counter] = scan_dur
@@ -1355,7 +1364,7 @@ def c_size_by_time():
             makeBarFig(
                 times,
                 labels,
-                "Number of Threads",
+                "Time in s",
                 True,
                 # "max Number of Tuples in Subfile",
                 # markings=True,

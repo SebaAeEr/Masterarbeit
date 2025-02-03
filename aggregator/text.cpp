@@ -118,6 +118,7 @@ struct logFile
     std::vector<std::pair<size_t, size_t>> writeCall_s3_file_durs;
     std::vector<std::pair<size_t, size_t>> getCall_s3_file_durs;
     std::vector<std::pair<size_t, size_t>> mergeHelp_merge_tuple_num;
+    std::vector<std::pair<size_t, size_t>> mergeFiles;
     testLog test;
     bool failed;
     std::string err_msg;
@@ -224,6 +225,7 @@ std::mutex write_log_file_lock;
 std::atomic<size_t> comb_spill_size = 0;
 std::atomic<size_t> spillTuple_number = 0;
 int spill_mode = -1;
+float spill_perc = 1;
 
 // hash function for an long array
 auto hash = [](const std::array<unsigned long, max_size> a)
@@ -463,6 +465,26 @@ void writeLogFile(logFile log_t)
         t_counter++;
         output << it.second;
         if (t_counter < log_t.mergeHelp_merge_tuple_num.size())
+            output << ",";
+    }
+
+    output << "],\n\"mergeFiles_num\":[";
+    t_counter = 0;
+    for (auto &it : log_t.mergeFiles)
+    {
+        t_counter++;
+        output << it.first;
+        if (t_counter < log_t.mergeFiles.size())
+            output << ",";
+    }
+
+    output << "],\n\"mergeFiles_time\":[";
+    t_counter = 0;
+    for (auto &it : log_t.mergeFiles)
+    {
+        t_counter++;
+        output << it.second;
+        if (t_counter < log_t.mergeFiles.size())
             output << ",";
     }
 
@@ -2839,9 +2861,15 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     std::vector<unsigned long> temp_counter = std::vector<unsigned long>(partitions, 0);
     std::vector<size_t> spill_mem_size_temp = std::vector<size_t>(partitions, 0);
+    size_t tuple_counter = 0;
     char byteArray[sizeof(long)];
     for (auto &it : *hmap)
     {
+        /*  if (tuple_counter < hmap->size() * spill_perc)
+         {
+             break;
+         }
+         tuple_counter++; */
         int partition = 0;
         if (partition_id != -1)
         {
@@ -2919,6 +2947,11 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                     *in_streams[partition] << byteArray[k];
             }
         }
+
+        /* if (spill_perc < 1)
+        {
+            hmap->erase(it.first);
+        } */
     }
     if (partition_id == -1)
     {
@@ -5348,8 +5381,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
             spills.insert({merge_file.name, merge_file.size, merge_file.subfiles});
             std::cout << merge_file.name << ", ";
             write_log_file_lock.lock();
-            log_file.sizes["mergedFiles"]++;
-            
+
             write_log_file_lock.unlock();
         }
         std::cout << std::endl;
@@ -5361,6 +5393,8 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         write_log_file_lock.lock();
         log_file.mergeHelp_merge_tuple_num.push_back({first_tuple_num, col_tuple_num - first_tuple_num});
         log_file.sizes["mergedTuples"] += col_tuple_num;
+        log_file.mergeFiles.push_back({get<0>(files).size(), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()});
+        log_file.sizes["mergedFilesNum"] += get<0>(files).size();
         write_log_file_lock.unlock();
         uName = worker_id;
         uName += "_";
