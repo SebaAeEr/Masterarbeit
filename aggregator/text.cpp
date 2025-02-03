@@ -1804,6 +1804,7 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
             // std::cout << "finding partition" << std::endl;
             size_t partition_max = 0;
             size_t biggest_file = 0;
+            int most_files = 0;
             for (auto &worker : mana.workers)
             {
                 if (!worker.locked)
@@ -1833,12 +1834,14 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
                                 }
                             }
                             // if (partition_max < partition_size_temp && file_number > 3)
-                            if (b_file > biggest_file && file_number >= minFileNumMergeHelper)
+                            // if (b_file > biggest_file && file_number >= minFileNumMergeHelper)
+                            if (file_number >= minFileNumMergeHelper && file_number > most_files)
                             {
                                 partition_max = partition_size_temp;
                                 partition_id = partition.id;
                                 beggarWorker = worker.id;
                                 biggest_file = b_file;
+                                most_files = file_number;
                             }
                         }
                     }
@@ -1871,7 +1874,8 @@ void getDistMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, ch
                         }
                     }
                 }
-                if (!manaLockedPartition.workers[0].partitions[0].lock && partition_max == partition_size_temp && b_file == biggest_file && file_number >= minFileNumMergeHelper)
+                // if (!manaLockedPartition.workers[0].partitions[0].lock && partition_max == partition_size_temp && b_file == biggest_file && file_number >= minFileNumMergeHelper)
+                if (!manaLockedPartition.workers[0].partitions[0].lock && file_number == most_files && file_number >= minFileNumMergeHelper)
                 {
                     break;
                 }
@@ -1991,6 +1995,7 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
         // std::cout << "finding partition" << std::endl;
         size_t partition_max = 0;
         size_t biggest_file = 0;
+        int most_files = 0;
         for (auto &worker : mana.workers)
         {
             if (!worker.locked)
@@ -2018,12 +2023,14 @@ void getMergeFileName(Aws::S3::S3Client *minio_client, char beggarWorker, char p
                             }
                         }
                         // if (partition_max < partition_size_temp && file_number > 3)
-                        if (b_file > biggest_file && file_number >= minFileNumMergeHelper)
+                        // if (b_file > biggest_file && file_number >= minFileNumMergeHelper)
+                        if (file_number > most_files && file_number >= minFileNumMergeHelper)
                         {
                             partition_max = partition_size_temp;
                             partition_id = partition.id;
                             beggarWorker = worker.id;
                             biggest_file = b_file;
+                            most_files = file_number;
                         }
                     }
                 }
