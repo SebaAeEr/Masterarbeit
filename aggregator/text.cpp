@@ -5347,14 +5347,8 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
             spills.insert({merge_file.name, merge_file.size, merge_file.subfiles});
             std::cout << merge_file.name << ", ";
             write_log_file_lock.lock();
-            if (merge_file.name.substr(2, 5) == "merge")
-            {
-                log_file.sizes["mergedFiles"]++;
-            }
-            else
-            {
-                log_file.sizes["remergedFiles"]++;
-            }
+            log_file.sizes["mergedFiles"]++;
+            
             write_log_file_lock.unlock();
         }
         std::cout << std::endl;
@@ -5365,6 +5359,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         }
         write_log_file_lock.lock();
         log_file.mergeHelp_merge_tuple_num.push_back({first_tuple_num, col_tuple_num - first_tuple_num});
+        log_file.sizes["mergedTuples"] += col_tuple_num;
         write_log_file_lock.unlock();
         uName = worker_id;
         uName += "_";
