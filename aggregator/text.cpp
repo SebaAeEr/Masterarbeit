@@ -1703,6 +1703,7 @@ void addFileToManag(Aws::S3::S3Client *minio_client, std::vector<std::pair<file,
                         writeMana(minio_client, mana_partition, true, write_to_id, i);
                     }
                 }
+                file_queue_status.exchange(true);
             }
             else
             {
