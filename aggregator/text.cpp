@@ -4173,10 +4173,17 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                                     *s3spillStart_head = head;
                                     *bit_head = bit_i;
                                     *subfile_head = sub_file_counter - 1;
-                                }
-                                if (firsts3File)
-                                {
-                                    break;
+                                    if (firsts3File)
+                                    {
+                                        size_t skipped_tuples = sub_file - head;
+                                        for (int temp_counter = sub_file_k; temp_counter < get<2>(*set_it).size(); temp_counter++)
+                                        {
+                                            skipped_tuples += get<2>(*set_it)[temp_counter].second;
+                                        }
+                                        std::cout << "Skipping first file. Tuples: " << skipped_tuples << std::endl;
+                                        log_file.sizes["skippedTuples"] += skipped_tuples;
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -4193,7 +4200,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             }
                             if (!spill)
                             {
-
                                 break;
                             }
                         }
@@ -4202,7 +4208,6 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                             spill.ignore(sizeof(long) * number_of_longs);
                             if (!spill)
                             {
-
                                 break;
                             }
                         }
@@ -5862,6 +5867,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     unsigned long overall_size = 0;
     manaFile mana = getMana(&minio_client, worker_id);
     bool s3spilled;
+    log_file.sizes["skippedTuples"] = 0;
     for (auto &worker : mana.workers)
     {
         if (worker.id == worker_id)
