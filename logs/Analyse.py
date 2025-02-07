@@ -978,7 +978,7 @@ def c_size_by_time():
     labels = np.array(
         [
             "1 worker; no split",
-             "1 worker; no split(2)",
+            "1 worker; no split(2)",
             "1 worker; split",
             # "1 worker; split(2)",
             "2 worker; no split",
@@ -1086,49 +1086,50 @@ def c_size_by_time():
     thread_number_anal = False
 
     # thread number s3 + se + local
-    # names = [
-    #     "logfile_4_6_0_1_18-27.json",
-    #     "logfile_4_6_0_1_15-40.json",
-    #     "logfile_4_6_0_1_10-25.json",
-    #    # "logfile_4_6_0_1_23-41.json",
-    #     "logfile_4_6_0_2_19-25.json",
-    #     "logfile_4_6_0_2_16-28.json",
-    #     "logfile_4_6_0_2_11-14.json",
-    #    # "logfile_4_6_0_2_00-30.json",
-    #     "logfile_4_6_0_4_20-01.json",
-    #     "logfile_4_6_0_4_16-57.json",
-    #     "logfile_4_6_0_4_11-43.json",
-    #   #  "logfile_4_6_0_4_01-00.json",
-    #     # "logfile_4_6_0_6_20-26.json",
-    #     # "logfile_4_6_0_6_17-19.json",
-    #     "logfile_4_6_0_8_20-47.json",
-    #     "logfile_4_6_0_8_17-38.json",
-    #     "logfile_4_6_0_8_12-03.json",
-    #    # "logfile_4_6_0_8_01-22.json",
-    #     "logfile_4_6_0_12_10-53.json",
-    #     "logfile_4_6_0_12_22-38.json",
-    #     "logfile_4_6_0_12_12-17.json",
-    #   #  "logfile_4_6_0_12_01-40.json",
-    #     "logfile_4_6_0_16_11-12.json",
-    #     "logfile_4_6_0_16_22-55.json",
-    #     "logfile_4_6_0_16_12-31.json",
-    #   #  "logfile_4_6_0_16_01-58.json",
-    #     "logfile_4_6_0_20_11-33.json",
-    #     "logfile_4_6_0_20_23-13.json",
-    #     "logfile_4_6_0_20_12-44.json",
-    #  #   "logfile_4_6_0_20_02-16.json",
-    # ]
-    # labels = np.array(["1", "2", "4", "8", "12", "16", "20"])
-    # thread_number_anal = True
+    names = [
+        "logfile_4_6_0_1_18-27.json",
+        "logfile_4_6_0_1_15-40.json",
+        "logfile_4_6_0_1_10-25.json",
+       # "logfile_4_6_0_1_23-41.json",
+        "logfile_4_6_0_2_19-25.json",
+        "logfile_4_6_0_2_16-28.json",
+        "logfile_4_6_0_2_11-14.json",
+       # "logfile_4_6_0_2_00-30.json",
+        "logfile_4_6_0_4_20-01.json",
+        "logfile_4_6_0_4_16-57.json",
+        "logfile_4_6_0_4_11-43.json",
+      #  "logfile_4_6_0_4_01-00.json",
+        # "logfile_4_6_0_6_20-26.json",
+        # "logfile_4_6_0_6_17-19.json",
+        "logfile_4_6_0_8_20-47.json",
+        "logfile_4_6_0_8_17-38.json",
+        "logfile_4_6_0_8_12-03.json",
+       # "logfile_4_6_0_8_01-22.json",
+        "logfile_4_6_0_12_10-53.json",
+        "logfile_4_6_0_12_22-38.json",
+        "logfile_4_6_0_12_12-17.json",
+      #  "logfile_4_6_0_12_01-40.json",
+        "logfile_4_6_0_16_11-12.json",
+        "logfile_4_6_0_16_22-55.json",
+        "logfile_4_6_0_16_12-31.json",
+      #  "logfile_4_6_0_16_01-58.json",
+        "logfile_4_6_0_20_11-33.json",
+        "logfile_4_6_0_20_23-13.json",
+        "logfile_4_6_0_20_12-44.json",
+     #   "logfile_4_6_0_20_02-16.json",
+    ]
+    labels = np.array(["1", "2", "4", "8", "12", "16", "20"])
+    thread_number_anal = True
 
     # merge helpe
     # names = [
     #     "logfile_4_6_0_10_10-24.json",
     #     "logfile_4_6_0_10_10-36.json",
     #     "logfile_4_6_0_10_10-51.json",
-    #     "logfile_4_6_0_10_11-11.json",
+    #     "logfile_4_6_0_10_11-45.json",
+    #     "logfile_4_6_0_10_10-33.json",
     # ]
-    # labels = np.array(["local", "S3 + local", "S3", "2 Worker"])
+    # labels = np.array(["local", "S3 + local", "S3", "2 Worker", "2 Worker shuffled"])
 
     thread_number_x = np.array([1, 2, 4, 8, 12, 16, 20])
     thread_number_y_sl = np.empty(len(labels))
@@ -1412,6 +1413,46 @@ def c_size_by_time():
         plt.legend()
         plt.xlabel("Number of Threads")
         plt.ylabel("Time of Scan in s")
+        plt.grid(visible=True, linestyle="dashed")
+
+        plt.figure(5)
+        perc_s = [
+            (
+                (thread_number_y_s[i - 1] - thread_number_y_s[i])
+                * 100
+                / thread_number_y_s[i - 1]
+            )
+            for i in range(1, len(thread_number_y_s))
+        ]
+        smoothed_perc_s = pd.Series(perc_s).rolling(window=2, min_periods=1).mean()
+        perc_sl = [
+            (
+                (thread_number_y_sl[i - 1] - thread_number_y_sl[i])
+                * 100
+                / thread_number_y_sl[i - 1]
+            )
+            for i in range(1, len(thread_number_y_sl))
+        ]
+        smoothed_perc_sl = pd.Series(perc_sl).rolling(window=2, min_periods=1).mean()
+        perc_l = [
+            (
+                (thread_number_y_l[i - 1] - thread_number_y_l[i])
+                * 100
+                / thread_number_y_l[i - 1]
+            )
+            for i in range(1, len(thread_number_y_l))
+        ]
+        smoothed_perc_l = pd.Series(perc_l).rolling(window=2, min_periods=1).mean()
+        # plt.plot(thread_number_x[1::], perc_s, label="S3", linewidth=3)
+        # plt.plot(thread_number_x[1::], perc_sl, label="S3+local", linewidth=3)
+        # plt.plot(thread_number_x[1::], perc_l, label="local", linewidth=3)
+        plt.plot(thread_number_x[1::], smoothed_perc_s, label="S3", linewidth=3)
+        plt.plot(thread_number_x[1::], smoothed_perc_sl, label="S3+local", linewidth=3)
+        plt.plot(thread_number_x[1::], smoothed_perc_l, label="local", linewidth=3)
+        plt.legend()
+        plt.xlabel("Number of Threads")
+        plt.ylabel("Proportional runtime improvement")
+        plt.grid(visible=True, linestyle="dashed")
     else:
         if len(names) > 0:
             # s1 = "dynamic"

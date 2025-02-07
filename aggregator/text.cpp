@@ -5441,12 +5441,12 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
     {
         log_file.sizes["selectivity"] = (log_file.sizes["linesWritten"] * 1000) / log_file.sizes["linesRead"];
     }
+    log_file.sizes["mergeHelpDuration"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - mergeHelp_start_time).count();
+    write_log_file_lock.unlock();
     std::cout << "waiting for mana writer" << std::endl;
     while (mana_writeThread_num.load() != 0)
     {
     }
-    log_file.sizes["mergeHelpDuration"] = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - mergeHelp_start_time).count();
-    write_log_file_lock.unlock();
     std::cout << "End of helping Phase" << std::endl;
 }
 
