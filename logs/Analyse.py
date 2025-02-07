@@ -963,50 +963,50 @@ def c_size_by_time():
     #     ]
     # )
     # split_mana shuffled
-    # names = [
-    #     "logfile_4_6_0_10_10-44.json",
-    #     "logfile_4_6_0_10_16-17.json",
-    #     "logfile_4_6_0_10_11-32.json",
-    #     # "logfile_4_6_0_10_16-21.json",
-    #     # "logfile_4_6_0_10_20-58.json",  # worker logfile: logfile_4_6_0_4_20-58.json
-    #     "logfile_4_6_0_10_14-39.json",  # worker logfile: logfile_4_6_0_4_14-39.json
-    #     # "logfile_4_6_0_10_15-17.json",  # worker logfile: logfile_4_6_0_4_15-17.json
-    #     "logfile_4_6_0_10_14-00.json",  # worker logfile: logfile_4_6_0_4_12-27.json
-    #     # "",
-    #     # "",
-    # ]
-    # labels = np.array(
-    #     [
-    #         "1 worker; no split",
-    #          "1 worker; no split(2)",
-    #         "1 worker; split",
-    #         # "1 worker; split(2)",
-    #         "2 worker; no split",
-    #         "2 worker; split",
-    #         # "2 worker; split(2)",
-    #         # "3 worker; no split",
-    #         # "3 worker; split",
-    #     ]
-    # )
-    # helpers = [
-    #     "logfile_4_6_0_4_14-39.json",
-    #     "logfile_4_6_0_4_14-00.json",
-    # ]
-    # for helper in helpers:
-    #     jf = open(os.path.join("c++_logs", helper))
-    #     jf_data = json.load(jf)
-    #     print(helper + ":")
-    #     printEingerückt(
-    #         "Number of written files: " + str(len(jf_data["writeCall_s3_file_dur"])), 1
-    #     )
-    #     printEingerückt(
-    #         "Sum of size of written files: "
-    #         + str(sum(jf_data["writeCall_s3_file_size"]) / 2**20),
-    #         1,
-    #     )
-    #     printEingerückt(
-    #         "Number of written mana files: " + str(len(jf_data["get_mana_dur"])), 1
-    #     )
+    names = [
+        "logfile_4_6_0_10_10-44.json",
+        "logfile_4_6_0_10_16-17.json",
+        "logfile_4_6_0_10_11-32.json",
+        # "logfile_4_6_0_10_16-21.json",
+        # "logfile_4_6_0_10_20-58.json",  # worker logfile: logfile_4_6_0_4_20-58.json
+        "logfile_4_6_0_10_14-39.json",  # worker logfile: logfile_4_6_0_4_14-39.json
+        # "logfile_4_6_0_10_15-17.json",  # worker logfile: logfile_4_6_0_4_15-17.json
+        "logfile_4_6_0_10_14-00.json",  # worker logfile: logfile_4_6_0_4_12-27.json
+        # "",
+        # "",
+    ]
+    labels = np.array(
+        [
+            "1 worker; no split",
+             "1 worker; no split(2)",
+            "1 worker; split",
+            # "1 worker; split(2)",
+            "2 worker; no split",
+            "2 worker; split",
+            # "2 worker; split(2)",
+            # "3 worker; no split",
+            # "3 worker; split",
+        ]
+    )
+    helpers = [
+        "logfile_4_6_0_4_14-39.json",
+        "logfile_4_6_0_4_14-00.json",
+    ]
+    for helper in helpers:
+        jf = open(os.path.join("c++_logs", helper))
+        jf_data = json.load(jf)
+        print(helper + ":")
+        printEingerückt(
+            "Number of written files: " + str(len(jf_data["writeCall_s3_file_dur"])), 1
+        )
+        printEingerückt(
+            "Sum of size of written files: "
+            + str(sum(jf_data["writeCall_s3_file_size"]) / 2**20),
+            1,
+        )
+        printEingerückt(
+            "Number of written mana files: " + str(len(jf_data["get_mana_dur"])), 1
+        )
 
     # mem buffer
     # names = [
@@ -1029,9 +1029,12 @@ def c_size_by_time():
     #     # "logfile_4_6_0_6_11-47.json",
     #     # "logfile_4_6_0_6_12-11.json",
     #     # "logfile_4_6_0_6_14-41.json",
+    #     # "logfile_4_6_0_8_20-47.json",
+    #     # "logfile_4_6_0_8_17-38.json",
+    #     # "logfile_4_6_0_8_01-22.json",
     #     "logfile_4_6_0_8_20-47.json",
     #     "logfile_4_6_0_8_17-38.json",
-    #     "logfile_4_6_0_8_01-22.json",
+    #     "logfile_4_6_0_8_12-03.json",
     # ]
     # labels = np.array(
     #     [
@@ -1119,13 +1122,13 @@ def c_size_by_time():
     # thread_number_anal = True
 
     # merge helpe
-    names = [
-        "logfile_4_6_0_10_10-24.json",
-        "logfile_4_6_0_10_10-36.json",
-        "logfile_4_6_0_10_10-51.json",
-        "logfile_4_6_0_10_11-11.json",
-    ]
-    labels = np.array(["local", "S3 + local", "S3", "2 Worker"])
+    # names = [
+    #     "logfile_4_6_0_10_10-24.json",
+    #     "logfile_4_6_0_10_10-36.json",
+    #     "logfile_4_6_0_10_10-51.json",
+    #     "logfile_4_6_0_10_11-11.json",
+    # ]
+    # labels = np.array(["local", "S3 + local", "S3", "2 Worker"])
 
     thread_number_x = np.array([1, 2, 4, 8, 12, 16, 20])
     thread_number_y_sl = np.empty(len(labels))
@@ -1293,6 +1296,17 @@ def c_size_by_time():
             plt.figure(6)
             ecdf_values = np.arange(1, len(write_file_dur) + 1) / len(write_file_dur)
             plt.step(write_file_dur, ecdf_values, label=labels[counter], linewidth=3)
+            plt.grid(visible=True, linestyle="dashed")
+            plt.legend()
+            plt.xlabel("Time in s")
+            plt.ylabel("ECDF")
+
+        if len(names) == len(labels):
+            plt.figure(8)
+            write_spill_dur = np.array(jf_data["write_spill_durs"]) / 1000000
+            write_spill_dur.sort()
+            ecdf_values = np.arange(1, len(write_spill_dur) + 1) / len(write_spill_dur)
+            plt.step(write_spill_dur, ecdf_values, label=labels[counter], linewidth=3)
             plt.grid(visible=True, linestyle="dashed")
             plt.legend()
             plt.xlabel("Time in s")

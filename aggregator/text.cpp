@@ -5342,7 +5342,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
                             break;
                         }
                     }
-                    // std::cout << "found file: " << found_files << std::endl;
+                    std::cout << "found file: " << found_files << std::endl;
                     if (found_files)
                     {
                         getMergeFileName(&minio_client, beggarWorker, partition_id, &blacklist, &files, thread_id, file_num);
@@ -5358,6 +5358,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
             }
             if (finish)
             {
+                std::cout << "Real finish" << std::endl;
                 break;
             }
         }
@@ -5385,9 +5386,6 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
             file_names.push_back(merge_file.name);
             spills.insert({merge_file.name, merge_file.size, merge_file.subfiles});
             std::cout << merge_file.name << ", ";
-            write_log_file_lock.lock();
-
-            write_log_file_lock.unlock();
         }
         std::cout << std::endl;
         size_t first_tuple_num = 0;
@@ -5432,15 +5430,18 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         }
         counter++;
     }
+    std::cout << "Joining spiller" << std::endl;
     if (b_minioSpiller)
     {
         minioSpiller.join();
     }
+    std::cout << "writing log" << std::endl;
     write_log_file_lock.lock();
     if (log_file.sizes["linesRead"] > 0)
     {
         log_file.sizes["selectivity"] = (log_file.sizes["linesWritten"] * 1000) / log_file.sizes["linesRead"];
     }
+    std::cout << "waiting for mana writer" << std::endl;
     while (mana_writeThread_num.load() != 0)
     {
     }
