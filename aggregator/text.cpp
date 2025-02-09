@@ -5728,7 +5728,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     bool keep_hashmaps = partitions == 1; // || spillTuple_number.load() / (float)(numLines.load()) < 0.5;
     std::cout << "keep hashmaps: " << keep_hashmaps << ": " << partitions << " == 1 || " << spillTuple_number.load() / (float)(numLines.load()) << " < 0.05" << std::endl;
     log_file.sizes["keep_hashmaps"] = keep_hashmaps;
-    log_file.sizes["spill_share"] = spillTuple_number.load() * 1000 / numLines.load();
+    log_file.sizes["spill_share"] = spillTuple_number.load() * 1000 / w_lines;
     if (keep_hashmaps)
     {
         for (int i = 0; i < threadNumber; i++)
