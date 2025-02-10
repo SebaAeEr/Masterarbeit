@@ -916,20 +916,24 @@ def c_size_by_time():
     # )
 
     # with/out part
-    # names = [
-    #     "logfile_4_6_0_8_17-14.json",
-    #     "logfile_4_6_0_8_14-43.json",
-    #    # "logfile_4_6_0_8_20-52.json",
-    # ]
-    # labels = np.array(
-    #     [
-    #         "1",
-    #         "30",
-    #        # "30 partitions 2W",
-    #         #   "compression 100BM",
-    #         # "no compression 100BM",
-    #     ]
-    # )
+    names = [
+        "logfile_4_6_0_8_17-14.json",
+        "logfile_4_6_0_8_14-43.json",
+        "logfile_4_40_0_10_18-01.json",
+        "logfile_4_40_0_10_17-40.json",
+       
+    ]
+    labels = np.array(
+        [
+            "1; 0.9",
+            "30; 0.9",
+            "1; 0.5",
+            "30; 0.5",
+           # "30 partitions 2W",
+            #   "compression 100BM",
+            # "no compression 100BM",
+        ]
+    )
 
     # Mapping size
     # names = [
@@ -965,20 +969,18 @@ def c_size_by_time():
     # split_mana shuffled
     names = [
         "logfile_4_6_0_10_10-44.json",
-        "logfile_4_6_0_10_16-17.json",
+       # "logfile_4_6_0_10_16-17.json",
         "logfile_4_6_0_10_11-32.json",
         # "logfile_4_6_0_10_16-21.json",
         # "logfile_4_6_0_10_20-58.json",  # worker logfile: logfile_4_6_0_4_20-58.json
         "logfile_4_6_0_10_14-39.json",  # worker logfile: logfile_4_6_0_4_14-39.json
         # "logfile_4_6_0_10_15-17.json",  # worker logfile: logfile_4_6_0_4_15-17.json
         "logfile_4_6_0_10_14-00.json",  # worker logfile: logfile_4_6_0_4_12-27.json
-        # "",
-        # "",
     ]
     labels = np.array(
         [
             "1 worker; no split",
-            "1 worker; no split(2)",
+          #  "1 worker; no split(2)",
             "1 worker; split",
             # "1 worker; split(2)",
             "2 worker; no split",
@@ -1045,17 +1047,17 @@ def c_size_by_time():
     # )
 
     # threadNumber s3 + local
-    names = [
-        "logfile_4_6_0_1_15-40.json",
-        "logfile_4_6_0_2_16-28.json",
-        "logfile_4_6_0_4_16-57.json",
-        "logfile_4_6_0_6_17-19.json",
-        "logfile_4_6_0_8_17-38.json",
-        "logfile_4_6_0_12_22-38.json",
-        "logfile_4_6_0_16_22-55.json",
-        "logfile_4_6_0_20_23-13.json",
-    ]
-    labels = np.array(["1", "2", "4", "6", "8", "12", "16", "20"])
+    # names = [
+    #     "logfile_4_6_0_1_15-40.json",
+    #     "logfile_4_6_0_2_16-28.json",
+    #     "logfile_4_6_0_4_16-57.json",
+    #     "logfile_4_6_0_6_17-19.json",
+    #     "logfile_4_6_0_8_17-38.json",
+    #     "logfile_4_6_0_12_22-38.json",
+    #     "logfile_4_6_0_16_22-55.json",
+    #     "logfile_4_6_0_20_23-13.json",
+    # ]
+    # labels = np.array(["1", "2", "4", "6", "8", "12", "16", "20"])
 
     # # threadNumber s3
     # names = [
@@ -1086,36 +1088,36 @@ def c_size_by_time():
     thread_number_anal = False
 
     # thread number s3 + se + local
-    names = [
-        "logfile_4_6_0_1_18-27.json",
-        "logfile_4_6_0_1_15-40.json",
-        "logfile_4_6_0_1_10-25.json",
-        "logfile_4_6_0_2_19-25.json",
-        "logfile_4_6_0_2_16-28.json",
-        "logfile_4_6_0_2_11-14.json",
-        "logfile_4_6_0_4_20-01.json",
-        "logfile_4_6_0_4_16-57.json",
-        "logfile_4_6_0_4_11-43.json",
-        #  "logfile_4_6_0_4_01-00.json",
-        # "logfile_4_6_0_6_20-26.json",
-        # "logfile_4_6_0_6_17-19.json",
-        "logfile_4_6_0_8_20-47.json",
-        "logfile_4_6_0_8_17-38.json",
-        "logfile_4_6_0_8_12-03.json",
-        "logfile_4_6_0_12_10-53.json",
-        "logfile_4_6_0_12_22-38.json",
-        "logfile_4_6_0_12_12-17.json",
-        "logfile_4_6_0_16_11-12.json",
-        "logfile_4_6_0_16_22-55.json",
-        "logfile_4_6_0_16_12-31.json",
-        "logfile_4_6_0_20_11-33.json",
-        "logfile_4_6_0_20_23-13.json",
-        "logfile_4_6_0_20_12-44.json",
-    ]
-    labels = np.array(["1", "2", "4", "8", "12", "16", "20"])
-    thread_number_anal = True
+    # names = [
+    #     "logfile_4_6_0_1_18-27.json",
+    #     "logfile_4_6_0_1_15-40.json",
+    #     "logfile_4_6_0_1_10-25.json",
+    #     "logfile_4_6_0_2_19-25.json",
+    #     "logfile_4_6_0_2_16-28.json",
+    #     "logfile_4_6_0_2_11-14.json",
+    #     "logfile_4_6_0_4_20-01.json",
+    #     "logfile_4_6_0_4_16-57.json",
+    #     "logfile_4_6_0_4_11-43.json",
+    #     #  "logfile_4_6_0_4_01-00.json",
+    #     # "logfile_4_6_0_6_20-26.json",
+    #     # "logfile_4_6_0_6_17-19.json",
+    #     "logfile_4_6_0_8_20-47.json",
+    #     "logfile_4_6_0_8_17-38.json",
+    #     "logfile_4_6_0_8_12-03.json",
+    #     "logfile_4_6_0_12_10-53.json",
+    #     "logfile_4_6_0_12_22-38.json",
+    #     "logfile_4_6_0_12_12-17.json",
+    #     "logfile_4_6_0_16_11-12.json",
+    #     "logfile_4_6_0_16_22-55.json",
+    #     "logfile_4_6_0_16_12-31.json",
+    #     "logfile_4_6_0_20_11-33.json",
+    #     "logfile_4_6_0_20_23-13.json",
+    #     "logfile_4_6_0_20_12-44.json",
+    # ]
+    # labels = np.array(["1", "2", "4", "8", "12", "16", "20"])
+    # thread_number_anal = True
 
-    # merge helpe
+    # merge helpe 4
     # names = [
     #     "logfile_4_6_0_10_10-24.json",
     #     "logfile_4_6_0_10_10-36.json",
@@ -1128,6 +1130,17 @@ def c_size_by_time():
     #     "logfile_4_6_0_10_13-19.json",
     # ]
     # labels = np.array(["local", "S3 + local", "S3 + local shuffled", "S3", "2 Worker", "2 Worker shuffled", "3 Worker", "3 Worker shuffled"])
+
+    #merge help 20
+    names = [
+        "logfile_20_6_0_10_13-52.json",
+        "logfile_20_6_0_10_13-55.json",
+        "logfile_20_6_0_10_14-04.json",
+        "logfile_20_6_0_10_14-17.json",
+    ]
+    labels = np.array(["local", "S3 + local", "S3", "2 Worker"])#, "2 Worker", "3 Worker"])
+
+
 
     thread_number_x = np.array([1, 2, 4, 8, 12, 16, 20])
     thread_number_y_sl = np.empty(len(labels))
@@ -1144,8 +1157,8 @@ def c_size_by_time():
 
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_10_10-36.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_10_10-36.json"))
+        f = open(os.path.join(directory, "times_20_6_0_10_14-34.csv"))
+        jf = open(os.path.join(directory, "logfile_20_6_0_10_14-04.json"))
     except:
         print("File not found.")
         return
@@ -1213,6 +1226,7 @@ def c_size_by_time():
         {
             "Write time of spill files": np.empty(len(names)),
             "Scan duration": np.empty(len(names)),
+          #  "Spill rest duration":np.empty(len(names)),
             # "merge_hash_dur": np.empty(),
             # "get_file_sum": np.empty(),
             # "Write time of the output": np.empty(len(names)),
@@ -1381,6 +1395,7 @@ def c_size_by_time():
 
         times[0]["Write time of spill files"][counter] = write_file_sum
         times[0]["Scan duration"][counter] = scan_dur
+        #times[0]["Spill rest duration"][counter] = merge_hash_dur
         # times[0]["Write time of the output"][counter] = write_output_sum
         times[0]["Merge duration"][counter] = merge_dur
         # times[counter % 2]["Write time of spill files"][sub_counter] = write_file_sum

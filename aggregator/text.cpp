@@ -3921,7 +3921,7 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 Aws::S3::Model::GetObjectOutcome outcome;
                 if (increase_size)
                 {
-                    size_after_init = getPhyValue();
+                    size_after_init = getPhyValue() * 1024 - (comb_hash_size.load() * (*avg) + base_size);
                 }
                 while (true)
                 {
@@ -3983,9 +3983,10 @@ bool subMerge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<u
                 if (increase_size)
                 {
                     increase = 0;
-                    if (getPhyValue() > size_after_init)
+                    size_t phy = getPhyValue() * 1024;
+                    if (phy > (comb_hash_size.load() * (*avg) + base_size))
                     {
-                        increase = (getPhyValue() - size_after_init) * 1024;
+                        increase = phy - (comb_hash_size.load() * (*avg) + base_size);
                     }
                     std::cout << "Stream buffer: " << increase << std::endl;
 
