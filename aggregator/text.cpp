@@ -5391,9 +5391,9 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
             file_names.push_back(merge_file.name);
             spills.insert({merge_file.name, merge_file.size, merge_file.subfiles});
             std::cout << merge_file.name << ", ";
-            if (str.find("merge") != std::string::npos)
+            if (merge_file.name.find("merge") != std::string::npos)
             {
-                merge_files_num++
+                merge_files_num++;
             }
         }
         std::cout << std::endl;
