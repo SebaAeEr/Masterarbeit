@@ -122,15 +122,16 @@ def makeBarFig(
 
 
 def makeScatterFig(xdata, ydata, labels, xlabel, ylabel):
-    fig, ax = plt.subplots()
+    plt.figure(1)
+    plt.rcParams.update({"font.size": 35})
 
-    ax.scatter(xdata, ydata, marker="o", s=70)
-    for i, txt in enumerate(labels):
-        ax.annotate(txt, (xdata[i], ydata[i]))
-    ax.set_xlabel(xlabel, fontsize=20)
-    ax.set_ylabel(ylabel, fontsize=20)
-    ax.grid(visible=True, linestyle="dashed")
-    ax.set_axisbelow(True)
+    plt.scatter(xdata, ydata, marker="o", s=100)
+    # for i, txt in enumerate(labels):
+    #     ax.annotate(txt, (xdata[i], ydata[i]))
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.grid(visible=True, linestyle="dashed")
+    # plt.set_axisbelow(True)
     plt.show()
 
 
@@ -334,9 +335,17 @@ def TPC():
     all_agg_spills = []
     all_agg_times = []
     all_agg_times_cpu = []
+    join_input_size = []
+    hash_input_size = []
+    agg_input_size = []
+    join_spill_size = []
+    hash_spill_size = []
+    agg_spill_size = []
     memcounter = 0
     tabs = 0
     for k in range(1, 23):
+        if k == 7:
+            continue
         join_spills = 0
         agg_spills = 0
         hash_spills = 0
@@ -401,6 +410,9 @@ def TPC():
                 all_hash_times.append(wtime)
                 all_hash_times_cpu.append(cputime)
                 join_counter += 1
+                if spill > 0:
+                    hash_input_size.append(convertByteToGB(i["outputDataSize"]))
+                    hash_spill_size.append(spill)
             elif i["operatorType"] == "LookupJoinOperator":
                 wtime, cputime, spill = CollectOPData(i, tabs + 1)
                 join_spills += spill
@@ -410,6 +422,9 @@ def TPC():
                 all_join_times.append(wtime)
                 all_join_times_cpu.append(cputime)
                 join_counter += 1
+                if spill > 0:
+                    join_input_size.append(convertByteToGB(i["outputDataSize"]))
+                    join_spill_size.append(spill)
             elif i["operatorType"] == "HashAggregationOperator":
                 wtime, cputime, spill = CollectOPData(i, tabs + 1)
                 agg_spills += spill
@@ -419,6 +434,9 @@ def TPC():
                 all_agg_times.append(wtime)
                 all_agg_times_cpu.append(cputime)
                 agg_counter += 1
+                if spill > 0 :#and convertByteToGB(i["inputDataSize"]) < 100:
+                    agg_input_size.append(convertByteToGB(i["outputDataSize"]))
+                    agg_spill_size.append(spill)
             elif i["operatorType"] == "AggregationOperator":
                 wtime, cputime, spill = CollectOPData(i, tabs + 1)
                 agg_spills += spill
@@ -428,6 +446,9 @@ def TPC():
                 all_agg_times.append(wtime)
                 all_agg_times_cpu.append(cputime)
                 agg_counter += 1
+                if spill > 0 :#and convertByteToGB(i["inputDataSize"]) < 100:
+                    agg_input_size.append(convertByteToGB(i["outputDataSize"]))
+                    agg_spill_size.append(spill)
             elif "Exchange" in i["operatorType"]:
                 wtime, cputime, spill = CollectOPData(i, tabs + 1)
                 ex_time += wtime
@@ -477,6 +498,40 @@ def TPC():
         query_names,
         "Execution time in min",
         "Data spilled in GB",
+    )
+    plt.figure(2)
+    plt.rcParams.update({"font.size": 35})
+
+    plt.scatter(join_input_size, join_spill_size, marker="o", s=100, label="Join")
+    plt.scatter(agg_input_size, agg_spill_size, marker="X", s=100, label="Aggregator")
+    plt.scatter(hash_input_size, hash_spill_size, marker="P", s=100, label="Hash")
+    plt.xlabel("Output size in GiB")
+    plt.ylabel("Spill size in GiB")
+    plt.legend()
+    plt.grid(visible=True, linestyle="dashed")
+    # plt.set_axisbelow(True)
+    plt.show()
+
+    total_difference = 0
+    for a, b in zip(join_input_size, join_spill_size):
+        if(b/a < 3):
+            total_difference += b / a
+    printEingerückt(
+        "Join spill proportion:" + str(total_difference / len(join_input_size)), 1
+    )
+    total_difference = 0
+    for a, b in zip(agg_input_size, agg_spill_size):
+        if(b/a < 3):
+            total_difference += b / a
+    printEingerückt(
+        "Aggregator spill proportion:" + str(total_difference / len(agg_input_size)), 1
+    )
+    total_difference = 0
+    for a, b in zip(hash_input_size, hash_spill_size):
+        if(b/a < 3):
+            total_difference += b / a
+    printEingerückt(
+        "Hash spill proportion:" + str(total_difference / len(hash_input_size)), 1
     )
 
     # fig, ax = plt.subplots()
@@ -1043,26 +1098,26 @@ def c_size_by_time():
     # )
 
     # local vs local + s3 vs. s3
-    names = [
-        # "logfile_4_6_0_6_11-47.json",
-        # "logfile_4_6_0_6_12-11.json",
-        # "logfile_4_6_0_6_14-41.json",
-        # "logfile_4_6_0_8_20-47.json",
-        # "logfile_4_6_0_8_17-38.json",
-        # "logfile_4_6_0_8_01-22.json",
-        "logfile_4_6_0_8_20-47.json",
-        "logfile_4_6_0_8_17-38.json",
-        "logfile_4_6_0_8_12-03.json",
-    ]
-    labels = np.array(
-        [
-            "S3",
-            "local + S3",
-            "local",
-        ]
-    )
+    # names = [
+    #     # "logfile_4_6_0_6_11-47.json",
+    #     # "logfile_4_6_0_6_12-11.json",
+    #     # "logfile_4_6_0_6_14-41.json",
+    #     # "logfile_4_6_0_8_20-47.json",
+    #     # "logfile_4_6_0_8_17-38.json",
+    #     # "logfile_4_6_0_8_01-22.json",
+    #     "logfile_4_6_0_8_20-47.json",
+    #     "logfile_4_6_0_8_17-38.json",
+    #     "logfile_4_6_0_8_12-03.json",
+    # ]
+    # labels = np.array(
+    #     [
+    #         "S3",
+    #         "local + S3",
+    #         "local",
+    #     ]
+    # )
 
-     # local vs local + s3 vs. s3 shuffled
+    # local vs local + s3 vs. s3 shuffled
     # names = [
     #     "logfile_4_6_0_10_21-06.json",
     #            "logfile_4_6_0_10_12-14.json",
@@ -1168,91 +1223,91 @@ def c_size_by_time():
 
     # # # merge helpe 4 shuffled
 
-    names = [
-        #   "logfile_4_4_0_10_11-42.json",
-              "logfile_4_4_0_10_18-53.json",
-        #    "logfile_4_4_0_10_13-21.json",
-        "logfile_4_4_0_10_14-24.json",
-        # "logfile_4_4_0_10_14-54.json",
-               "logfile_4_4_0_10_09-57.json",
-        #    "logfile_4_6_0_10_21-06.json",
-               "logfile_4_6_0_10_12-14.json",
-        #     "logfile_4_6_0_10_22-06.json",
-        "logfile_4_6_0_10_09-04.json",
-        # "logfile_4_6_0_10_16-49.json",
-              "logfile_4_6_0_10_12-50.json",
-        #    "logfile_4_10_0_10_23-14.json",
-               "logfile_4_10_0_10_23-33.json",
-        #     "logfile_4_10_0_10_00-10.json",
-        "logfile_4_10_0_10_09-14.json",
-        # "logfile_4_10_0_10_17-14.json",
-        #      "logfile_4_10_0_10_13-21.json",
-             "logfile_4_15_0_10_07-57.json",
-        #       "logfile_4_15_0_10_08-13.json",
-              "logfile_4_15_0_10_08-36.json",
-        # "logfile_4_15_0_10_08-36.json",
-        "logfile_4_10_0_10_09-14.json",
-        #        "logfile_4_15_0_10_20-28.json",
-              "logfile_4_15_0_10_20-56.json",
-        #      "logfile_4_20_0_10_10-32.json",
-               "logfile_4_20_0_10_10-45.json",
-        #       "logfile_4_20_0_10_11-03.json",
-        "logfile_4_20_0_10_11-23.json",
-               "logfile_4_20_0_10_21-43.json",
-    ]
-    labels = np.array(
-        [
-            #  "local",
-            "S3 + local",
-            # "S3",
-            "2 Worker 1",
-            "3 Worker",
-            # "local",
-            "S3 + local",
-            # "S3",
-            "2 Worker 2",
-            "3 Worker",
-            #  "local",
-            "S3 + local",
-            #   "S3",
-            "2 Worker 3",
-            "3 Worker",
-            #   "local",
-             "S3 + local",
-            #   "S3",
-            "2 Worker 4",
-            "3 Worker",
-            #   "local",
-            "S3 + local",
-            #   "S3",
-            "2 Worker 5",
-            "3 Worker",
-        ]
-    )
-    runtimes = {
-        #   "local": np.zeros(5),
-        # "local + S3": np.zeros(5),
-        #   "S3": np.zeros(5),
-          "1 Worker": np.zeros(5),
-        "2 Worker": np.zeros(5),
-          "3 Worker": np.zeros(5),
-    }
-    runtime_x = [4, 6, 10, 15, 20]
-    tpc_4_shuffled = True
-    helpers = {
-        "2 Worker": "logfile_4_6_0_4_22-04.json",
-        "3 Worker (1)": "logfile_4_6_0_4_13-50.json",
-        "3 Worker (2)": "logfile_4_6_0_4_13-50(2).json",
-    }
-    subplot = 0
-    subruntimes = {
-        #   "local": np.zeros(5),
-        # "local + S3": np.zeros(5),
-        #   "S3": np.zeros(5),
-        "Write time of spill files": np.zeros(5),
-        "Scan duration": np.zeros(5),
-        "Merge duration": np.zeros(5),
-    }
+    # names = [
+    #     #   "logfile_4_4_0_10_11-42.json",
+    #           "logfile_4_4_0_10_18-53.json",
+    #     #    "logfile_4_4_0_10_13-21.json",
+    #     "logfile_4_4_0_10_14-24.json",
+    #     # "logfile_4_4_0_10_14-54.json",
+    #            "logfile_4_4_0_10_09-57.json",
+    #     #    "logfile_4_6_0_10_21-06.json",
+    #            "logfile_4_6_0_10_12-14.json",
+    #     #     "logfile_4_6_0_10_22-06.json",
+    #     "logfile_4_6_0_10_09-04.json",
+    #     # "logfile_4_6_0_10_16-49.json",
+    #           "logfile_4_6_0_10_12-50.json",
+    #     #    "logfile_4_10_0_10_23-14.json",
+    #            "logfile_4_10_0_10_23-33.json",
+    #     #     "logfile_4_10_0_10_00-10.json",
+    #     "logfile_4_10_0_10_09-14.json",
+    #     # "logfile_4_10_0_10_17-14.json",
+    #     #      "logfile_4_10_0_10_13-21.json",
+    #          "logfile_4_15_0_10_07-57.json",
+    #     #       "logfile_4_15_0_10_08-13.json",
+    #           "logfile_4_15_0_10_08-36.json",
+    #     # "logfile_4_15_0_10_08-36.json",
+    #     "logfile_4_10_0_10_09-14.json",
+    #     #        "logfile_4_15_0_10_20-28.json",
+    #           "logfile_4_15_0_10_20-56.json",
+    #     #      "logfile_4_20_0_10_10-32.json",
+    #            "logfile_4_20_0_10_10-45.json",
+    #     #       "logfile_4_20_0_10_11-03.json",
+    #     "logfile_4_20_0_10_11-23.json",
+    #            "logfile_4_20_0_10_21-43.json",
+    # ]
+    # labels = np.array(
+    #     [
+    #         #  "local",
+    #         "S3 + local",
+    #         # "S3",
+    #         "2 Worker 1",
+    #         "3 Worker",
+    #         # "local",
+    #         "S3 + local",
+    #         # "S3",
+    #         "2 Worker 2",
+    #         "3 Worker",
+    #         #  "local",
+    #         "S3 + local",
+    #         #   "S3",
+    #         "2 Worker 3",
+    #         "3 Worker",
+    #         #   "local",
+    #          "S3 + local",
+    #         #   "S3",
+    #         "2 Worker 4",
+    #         "3 Worker",
+    #         #   "local",
+    #         "S3 + local",
+    #         #   "S3",
+    #         "2 Worker 5",
+    #         "3 Worker",
+    #     ]
+    # )
+    # runtimes = {
+    #     #   "local": np.zeros(5),
+    #     # "local + S3": np.zeros(5),
+    #     #   "S3": np.zeros(5),
+    #       "1 Worker": np.zeros(5),
+    #     "2 Worker": np.zeros(5),
+    #       "3 Worker": np.zeros(5),
+    # }
+    # runtime_x = [4, 6, 10, 15, 20]
+    # tpc_4_shuffled = True
+    # helpers = {
+    #     "2 Worker": "logfile_4_6_0_4_22-04.json",
+    #     "3 Worker (1)": "logfile_4_6_0_4_13-50.json",
+    #     "3 Worker (2)": "logfile_4_6_0_4_13-50(2).json",
+    # }
+    # subplot = 0
+    # subruntimes = {
+    #     #   "local": np.zeros(5),
+    #     # "local + S3": np.zeros(5),
+    #     #   "S3": np.zeros(5),
+    #     "Write time of spill files": np.zeros(5),
+    #     "Scan duration": np.zeros(5),
+    #     "Merge duration": np.zeros(5),
+    # }
 
     # merge help 20
     # names = [
@@ -1287,16 +1342,26 @@ def c_size_by_time():
     #     ]
     # )
 
+    # merge help 20
+    names = [
+        "logfile_17_20_0_10_10-33.json",
+        "logfile_17_20_0_10_15-33.json",
+    ]
+    labels = np.array(
+        [
+            # "local",
+            "S3 + local",
+            # "S3",
+            "2 Worker",
+        ]
+    )
+
     trino = False
 
-
-    #Trino 20 4.2 spill: 16.32 GiB
+    # Trino 20 4.2 spill: 16.32 GiB
     # t_scan_dur = 241
     # t_query_dur = 1080
     # trino = True
-
-
-
 
     for label, helper in helpers.items():
         jf = open(os.path.join("c++_logs", helper))
@@ -1312,6 +1377,12 @@ def c_size_by_time():
         )
         printEingerückt(
             "Number of written mana files: " + str(len(jf_data["get_mana_dur"])), 1
+        )
+        printEingerückt(
+            "Number of merge mana files: " + str(sum(jf_data["mergeFiles_num"])), 1
+        )
+        printEingerückt(
+            "exec Time: " + str(jf_data["mergeFiles_time"][-1] / 1000000), 1
         )
         merge_file_num = np.cumsum(np.array(jf_data["mergeFiles_num"]))
         merge_file_times = np.array(jf_data["mergeFiles_time"]) / 1000000
@@ -1778,7 +1849,7 @@ def c_size_by_time():
                 labels,
                 "Time in s",
                 True,
-                #"Number of Partitions",
+                # "Number of Partitions",
                 # markings=True,
                 # marking_labels=marking_labels,
             )
@@ -1796,7 +1867,7 @@ def c_size_by_time():
     plt.show()
 
 
-# TPC()
+TPC()
 # analyse_Query("8")
-c_size_by_time()
+# c_size_by_time()
 # analyse_1_6_13()

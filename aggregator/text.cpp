@@ -4752,10 +4752,14 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         bool skip = true;
         for (auto &file : s3spillNames)
         {
-            if(skip) {
+            if (skip)
+            {
                 skip = false;
-            } else {
-                for(auto &sub:get<2>(file)) {
+            }
+            else
+            {
+                for (auto &sub : get<2>(file))
+                {
                     merge_tuples += sub.second;
                 }
             }
@@ -5033,11 +5037,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
                 spillS3Hmap(&(*hmap), minio_client, &write_sizes, uName, &write_counter, partition);
 
                 std::cout << "Writing hashmap with size " << hmap->size() << " subfiles of file " << (uName + "_" + std::to_string(partition)) << ":\n";
-                for (auto write_size : write_sizes[partition])
+                /* for (auto write_size : write_sizes[partition])
                 {
                     std::cout << write_size.first << ":" << write_size.second << "\n";
                 }
-                std::cout << std::endl;
+                std::cout << std::endl;*/
                 /*if (backMemLimit < backMem_usage + spill_size + comb_spill_temp)
                 {
                     if (backMemLimit <= backMem_usage + spill_size)
