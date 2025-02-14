@@ -3641,7 +3641,10 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
         struct stat stats;
         stat(spill_file_name.c_str(), &stats);
         backMem_usage -= stats.st_size;
-        remove(spill_file_name.c_str());
+        for (int i = 0; i < partitions; i++)
+        {
+            remove((spill_file_name + std::to_string(i)).c_str());
+        }
     }
     try
     {
@@ -5378,6 +5381,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         std::vector<std::pair<std::string, size_t>> empty(0);
         std::cout << "Worker: " << beggarWorker << "; Partition: " << (int)(partition_id) << "; merging files: ";
         size_t col_tuple_num = 0;
+        int merge_files_num = 0;
         for (auto &merge_file : get<0>(files))
         {
             for (auto sf : merge_file.subfiles)
@@ -5387,6 +5391,10 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
             file_names.push_back(merge_file.name);
             spills.insert({merge_file.name, merge_file.size, merge_file.subfiles});
             std::cout << merge_file.name << ", ";
+            if (str.find("merge") != std::string::npos)
+            {
+                merge_files_num++
+            }
         }
         std::cout << std::endl;
         size_t first_tuple_num = 0;
@@ -5399,6 +5407,7 @@ void helpMergePhase(size_t memLimit, size_t backMemLimit, Aws::S3::S3Client mini
         log_file.sizes["mergedTuples"] += col_tuple_num;
         log_file.mergeFiles.push_back({get<0>(files).size(), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count()});
         log_file.sizes["mergedFilesNum"] += get<0>(files).size();
+        log_file.sizes["newMergedFilesNum"] += get<0>(files).size() - merge_files_num;
         write_log_file_lock.unlock();
         uName = worker_id;
         uName += "_";
