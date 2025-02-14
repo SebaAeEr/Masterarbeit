@@ -1168,132 +1168,132 @@ def c_size_by_time():
 
     # # # merge helpe 4 shuffled
 
-    # names = [
-    #     #   "logfile_4_4_0_10_11-42.json",
-    #           "logfile_4_4_0_10_18-53.json",
-    #     #    "logfile_4_4_0_10_13-21.json",
-    #     "logfile_4_4_0_10_14-24.json",
-    #     # "logfile_4_4_0_10_14-54.json",
-    #            "logfile_4_4_0_10_09-57.json",
-    #     #    "logfile_4_6_0_10_21-06.json",
-    #            "logfile_4_6_0_10_12-14.json",
-    #     #     "logfile_4_6_0_10_22-06.json",
-    #     "logfile_4_6_0_10_09-04.json",
-    #     # "logfile_4_6_0_10_16-49.json",
-    #           "logfile_4_6_0_10_12-50.json",
-    #     #    "logfile_4_10_0_10_23-14.json",
-    #            "logfile_4_10_0_10_23-33.json",
-    #     #     "logfile_4_10_0_10_00-10.json",
-    #     "logfile_4_10_0_10_09-14.json",
-    #     # "logfile_4_10_0_10_17-14.json",
-    #     #      "logfile_4_10_0_10_13-21.json",
-    #          "logfile_4_15_0_10_07-57.json",
-    #     #       "logfile_4_15_0_10_08-13.json",
-    #           "logfile_4_15_0_10_08-36.json",
-    #     # "logfile_4_15_0_10_08-36.json",
-    #     "logfile_4_10_0_10_09-14.json",
-    #     #        "logfile_4_15_0_10_20-28.json",
-    #           "logfile_4_15_0_10_20-56.json",
-    #     #      "logfile_4_20_0_10_10-32.json",
-    #            "logfile_4_20_0_10_10-45.json",
-    #     #       "logfile_4_20_0_10_11-03.json",
-    #     "logfile_4_20_0_10_11-23.json",
-    #            "logfile_4_20_0_10_21-43.json",
-    # ]
-    # labels = np.array(
-    #     [
-    #         #  "local",
-    #         "S3 + local",
-    #         # "S3",
-    #         "2 Worker 1",
-    #         "3 Worker",
-    #         # "local",
-    #         "S3 + local",
-    #         # "S3",
-    #         "2 Worker 2",
-    #         "3 Worker",
-    #         #  "local",
-    #         "S3 + local",
-    #         #   "S3",
-    #         "2 Worker 3",
-    #         "3 Worker",
-    #         #   "local",
-    #          "S3 + local",
-    #         #   "S3",
-    #         "2 Worker 4",
-    #         "3 Worker",
-    #         #   "local",
-    #         "S3 + local",
-    #         #   "S3",
-    #         "2 Worker 5",
-    #         "3 Worker",
-    #     ]
-    # )
-    # runtimes = {
-    #     #   "local": np.zeros(5),
-    #     # "local + S3": np.zeros(5),
-    #     #   "S3": np.zeros(5),
-    #       "1 Worker": np.zeros(5),
-    #     "2 Worker": np.zeros(5),
-    #       "3 Worker": np.zeros(5),
-    # }
-    # runtime_x = [4, 6, 10, 15, 20]
-    # tpc_4_shuffled = True
-    # helpers = {
-    #     "2 Worker": "logfile_4_6_0_4_22-04.json",
-    #     "3 Worker (1)": "logfile_4_6_0_4_13-50.json",
-    #     "3 Worker (2)": "logfile_4_6_0_4_13-50(2).json",
-    # }
-    # subplot = 0
-    # subruntimes = {
-    #     #   "local": np.zeros(5),
-    #     # "local + S3": np.zeros(5),
-    #     #   "S3": np.zeros(5),
-    #     "Write time of spill files": np.zeros(5),
-    #     "Scan duration": np.zeros(5),
-    #     "Merge duration": np.zeros(5),
-    # }
-
-    # merge help 20
     names = [
-        # "logfile_20_3_0_10_16-02.json",
-        # "logfile_20_3_0_10_16-06.json",
-        # "logfile_20_3_0_10_16-17.json",
-        # "logfile_20_3_0_10_16-37.json",
-        "logfile_20_6_0_10_13-52.json",
-        "logfile_20_6_0_10_13-55.json",
-        "logfile_20_6_0_10_14-04.json",
-        # "logfile_20_6_0_10_14-17.json",
-        "logfile_20_6_0_10_14-55.json",
-        # "logfile_20_10_0_10_15-08.json",
-        # "logfile_20_10_0_10_15-11.json",
-        # "logfile_20_10_0_10_15-19.json",
-        # "logfile_20_10_0_10_15-47.json",
+        #   "logfile_4_4_0_10_11-42.json",
+              "logfile_4_4_0_10_18-53.json",
+        #    "logfile_4_4_0_10_13-21.json",
+        "logfile_4_4_0_10_14-24.json",
+        # "logfile_4_4_0_10_14-54.json",
+               "logfile_4_4_0_10_09-57.json",
+        #    "logfile_4_6_0_10_21-06.json",
+               "logfile_4_6_0_10_12-14.json",
+        #     "logfile_4_6_0_10_22-06.json",
+        "logfile_4_6_0_10_09-04.json",
+        # "logfile_4_6_0_10_16-49.json",
+              "logfile_4_6_0_10_12-50.json",
+        #    "logfile_4_10_0_10_23-14.json",
+               "logfile_4_10_0_10_23-33.json",
+        #     "logfile_4_10_0_10_00-10.json",
+        "logfile_4_10_0_10_09-14.json",
+        # "logfile_4_10_0_10_17-14.json",
+        #      "logfile_4_10_0_10_13-21.json",
+             "logfile_4_15_0_10_07-57.json",
+        #       "logfile_4_15_0_10_08-13.json",
+              "logfile_4_15_0_10_08-36.json",
+        # "logfile_4_15_0_10_08-36.json",
+        "logfile_4_10_0_10_09-14.json",
+        #        "logfile_4_15_0_10_20-28.json",
+              "logfile_4_15_0_10_20-56.json",
+        #      "logfile_4_20_0_10_10-32.json",
+               "logfile_4_20_0_10_10-45.json",
+        #       "logfile_4_20_0_10_11-03.json",
+        "logfile_4_20_0_10_11-23.json",
+               "logfile_4_20_0_10_21-43.json",
     ]
     labels = np.array(
         [
-            # "local; 3",
-            # "S3 + local; 3",
-            # "S3; 3",
-            # "2 Worker; 3",
-            "local",
+            #  "local",
             "S3 + local",
-            "S3",
-            "2 Worker",
-            # "local; 10",
-            # "S3 + local; 10",
-            # "S3; 10",
-            # "2 Worker; 10",
+            # "S3",
+            "2 Worker 1",
+            "3 Worker",
+            # "local",
+            "S3 + local",
+            # "S3",
+            "2 Worker 2",
+            "3 Worker",
+            #  "local",
+            "S3 + local",
+            #   "S3",
+            "2 Worker 3",
+            "3 Worker",
+            #   "local",
+             "S3 + local",
+            #   "S3",
+            "2 Worker 4",
+            "3 Worker",
+            #   "local",
+            "S3 + local",
+            #   "S3",
+            "2 Worker 5",
+            "3 Worker",
         ]
     )
+    runtimes = {
+        #   "local": np.zeros(5),
+        # "local + S3": np.zeros(5),
+        #   "S3": np.zeros(5),
+          "1 Worker": np.zeros(5),
+        "2 Worker": np.zeros(5),
+          "3 Worker": np.zeros(5),
+    }
+    runtime_x = [4, 6, 10, 15, 20]
+    tpc_4_shuffled = True
+    helpers = {
+        "2 Worker": "logfile_4_6_0_4_22-04.json",
+        "3 Worker (1)": "logfile_4_6_0_4_13-50.json",
+        "3 Worker (2)": "logfile_4_6_0_4_13-50(2).json",
+    }
+    subplot = 0
+    subruntimes = {
+        #   "local": np.zeros(5),
+        # "local + S3": np.zeros(5),
+        #   "S3": np.zeros(5),
+        "Write time of spill files": np.zeros(5),
+        "Scan duration": np.zeros(5),
+        "Merge duration": np.zeros(5),
+    }
+
+    # merge help 20
+    # names = [
+    #     # "logfile_20_3_0_10_16-02.json",
+    #     # "logfile_20_3_0_10_16-06.json",
+    #     # "logfile_20_3_0_10_16-17.json",
+    #     # "logfile_20_3_0_10_16-37.json",
+    #     "logfile_20_6_0_10_13-52.json",
+    #     "logfile_20_6_0_10_13-55.json",
+    #     "logfile_20_6_0_10_14-04.json",
+    #     # "logfile_20_6_0_10_14-17.json",
+    #     "logfile_20_6_0_10_14-55.json",
+    #     # "logfile_20_10_0_10_15-08.json",
+    #     # "logfile_20_10_0_10_15-11.json",
+    #     # "logfile_20_10_0_10_15-19.json",
+    #     # "logfile_20_10_0_10_15-47.json",
+    # ]
+    # labels = np.array(
+    #     [
+    #         # "local; 3",
+    #         # "S3 + local; 3",
+    #         # "S3; 3",
+    #         # "2 Worker; 3",
+    #         "local",
+    #         "S3 + local",
+    #         "S3",
+    #         "2 Worker",
+    #         # "local; 10",
+    #         # "S3 + local; 10",
+    #         # "S3; 10",
+    #         # "2 Worker; 10",
+    #     ]
+    # )
 
     trino = False
 
 
     #Trino 20 4.2 spill: 16.32 GiB
-    t_scan_dur = 241
-    t_query_dur = 1080
-    trino = True
+    # t_scan_dur = 241
+    # t_query_dur = 1080
+    # trino = True
 
 
 
