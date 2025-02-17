@@ -9,7 +9,7 @@ nohup
 kind create cluster --name trino
 helm install -f conf/conf.yaml trino trino/trino
 kubectl port-forward trino-coordinator-... 8080:8080
-nohup kubectl port-forward trino-coordinator-5bd56bb74d-f5qxp 8080:8080 &
+nohup kubectl port-forward trino-coordinator-dc9d9b5dc-n52p9 8080:8080 &
 
 ssh -L 8080:localhost:8080 erasmus@atkemper4.in.tum.de
 nohup trino --server http://localhost:8080 --catalog tpch --schema sf1000 --output-format=null --file queries/tpc_pretty.txt &

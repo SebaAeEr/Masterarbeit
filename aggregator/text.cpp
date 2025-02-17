@@ -5997,7 +5997,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                         }
                     }
                     std::cout << std::endl;
-                    if (dynamic_extension && !thread_done && add_new_thread && (comb_hash_size * avg + base_size) / thread_bitmap.size() < memLimit - (comb_hash_size * avg + base_size))
+                    // diabled dynamic extension!
+                    if (false && dynamic_extension && !thread_done && add_new_thread && (comb_hash_size * avg + base_size) / thread_bitmap.size() < memLimit - (comb_hash_size * avg + base_size))
                     {
                         std::cout << "Adding new Thread" << std::endl;
                         max_HashSizes.push_back(0);
