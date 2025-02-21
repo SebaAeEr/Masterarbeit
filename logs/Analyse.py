@@ -76,6 +76,52 @@ def CollectOPData(i, tabs):
     return wall_time, cpu_time, spilltemp
 
 
+def getOpTimes(op, kind, prev_time):
+    printEingerückt(op["operatorType"], 1)
+    drivers = op["totalDrivers"]
+    in_out_time = 0
+    prev_out_time = 0
+    if kind == 0:
+        trans_time = transTimes(op["finishCpu"])
+        prev_out_time = transTimes(op["addInputCpu"])
+        in_out_time = transTimes(op["getOutputCpu"])
+        add_time = transTimes(op["addInputCpu"]) + transTimes(op["finishCpu"])
+    elif kind == 1:
+        trans_time = max(prev_time, transTimes(op["getOutputCpu"])) + transTimes(
+            op["finishCpu"]
+        )
+        prev_out_time = transTimes(op["addInputCpu"])
+        add_time = (
+            transTimes(op["addInputCpu"])
+            + transTimes(op["finishCpu"])
+            + transTimes(op["getOutputCpu"])
+        )
+    if kind == 2:
+        trans_time = max(prev_time, transTimes(op["getOutputCpu"])) + transTimes(
+            op["finishCpu"]
+        )
+        prev_out_time = 0
+        in_out_time = transTimes(op["addInputCpu"])
+        add_time = transTimes(op["getOutputCpu"]) + transTimes(op["finishCpu"])
+    printEingerückt(
+        "Spill Data: " + str(convertByteToGB(op["spilledDataSize"])) + " GB", 2
+    )
+    printEingerückt(
+        "input: " + str(transTimes(op["addInputWall"])),
+        2,
+    )
+    printEingerückt(
+        "output: " + str(transTimes(op["getOutputWall"])),
+        2,
+    )
+    printEingerückt(
+        "finish: " + str(transTimes(op["finishWall"])),
+        2,
+    )
+    printEingerückt("trans time: " + str(trans_time) + " add_time: " + str(add_time), 2)
+    return trans_time / 2, add_time / 2, in_out_time / 2, prev_out_time
+
+
 def getTrinoAggStats(filename, tpc):
     if tpc == 13:
         sid = 2
@@ -100,116 +146,56 @@ def getTrinoAggStats(filename, tpc):
     in_dur = 0
     out_dur = 0
     prev_out_time = 0
+    add_times = []
+    trans_times = []
+    spill_size = 0
     print(filename + ":")
     for op in ops:
         if op["stageId"] == sid:
             if op["pipelineId"] == pipid:
                 if op["operatorId"] == op_id[0]:
                     # Main Agg
-                    printEingerückt(op["operatorType"], 1)
-                    drivers = op["totalDrivers"]
-                    trans_time = max(prev_out_time, transTimes(op["addInputCpu"]))
-                    prev_out_time = transTimes(op["getOutputCpu"])
-                    out_dur = transTimes(op["getOutputCpu"]) * 60
-                    # col_run += transTimes(op["finishWall"])  + trans_time
-                    # col_run += transTimes(op["blockedWall"]) * 60 / drivers
-                    col_run += trans_time + transTimes(op["finishCpu"])
-                    printEingerückt(
-                        "Spilled Data: " + str(convertByteToGB(op["spilledDataSize"])),
-                        2,
+                    trans_time, add_time, out_dur, prev_out_time = getOpTimes(
+                        op, 2, prev_out_time
                     )
-                    printEingerückt(
-                        "input: " + str(transTimes(op["addInputWall"])),
-                        2,
-                    )
-                    printEingerückt(
-                        "output: " + str(transTimes(op["getOutputWall"])),
-                        2,
-                    )
-                    printEingerückt(
-                        "finish: " + str(transTimes(op["finishWall"])),
-                        2,
-                    )
-                # printEingerückt(
-                #     "blocked Wall: "
-                #     + op["blockedWall"]
-                #     + "->"
-                #     + str(transTimes(op["blockedWall"]))
-                #     + "->"
-                #     + str(transTimes(op["blockedWall"]) / drivers),
-                #     2,
-                # )
-
+                    trans_times.append(trans_time)
+                    add_times.append(add_time)
+                    spill_size += convertByteToGB(op["spilledDataSize"])
                 elif op["operatorId"] == op_id[1]:
                     # Exchange source
-                    printEingerückt(op["operatorType"], 1)
-                    drivers = op["totalDrivers"]
-                    # wtime, cpu_time, spilltemp = CollectOPData(op, 2)
-                    # wtime = transTimes(op["blockedWall"])/ drivers
-                    trans_time = max(prev_out_time, transTimes(op["addInputCpu"]))
-                    prev_out_time = transTimes(op["getOutputCpu"])
-                    # col_run += transTimes(op["finishWall"])  + trans_time
-                    # col_run += transTimes(op["blockedWall"]) / drivers
-                    col_run += trans_time + transTimes(op["finishCpu"])
-                    printEingerückt(
-                        "input: " + str(transTimes(op["addInputWall"])),
-                        2,
+                    trans_time, add_time, in_out_time, prev_out_time = getOpTimes(
+                        op, 1, prev_out_time
                     )
-                    printEingerückt(
-                        "output: " + str(transTimes(op["getOutputWall"])),
-                        2,
-                    )
-                    printEingerückt(
-                        "finish: " + str(transTimes(op["finishWall"])),
-                        2,
-                    )
+                    trans_times.append(trans_time)
+                    add_times.append(add_time)
+                    spill_size += convertByteToGB(op["spilledDataSize"])
             elif op["pipelineId"] == pipid - 1:
                 if op["operatorId"] == op_id[2]:
                     # exhcangeSink
-                    printEingerückt(op["operatorType"], 1)
-                    drivers = op["totalDrivers"]
-                    # wtime, cpu_time, spilltemp = CollectOPData(op, 2)
-                    # wtime = transTimes(op["blockedWall"])/ drivers
-                    trans_time = max(prev_out_time, transTimes(op["addInputCpu"]))
-                    prev_out_time = transTimes(op["getOutputCpu"])
-                    # col_run += transTimes(op["finishWall"]) + trans_time
-                    # col_run += transTimes(op["blockedWall"]) / drivers
-                    col_run += trans_time + transTimes(op["finishCpu"])
-                    printEingerückt(
-                        "input: " + str(transTimes(op["addInputWall"])),
-                        2,
+                    trans_time, add_time, in_out_time, prev_out_time = getOpTimes(
+                        op, 1, prev_out_time
                     )
-                    printEingerückt(
-                        "output: " + str(transTimes(op["getOutputWall"])),
-                        2,
-                    )
-                    printEingerückt(
-                        "finish: " + str(transTimes(op["finishWall"])),
-                        2,
-                    )
+                    trans_times.append(trans_time)
+                    add_times.append(add_time)
+                    spill_size += convertByteToGB(op["spilledDataSize"])
                 elif op["operatorId"] == op_id[3]:
                     # pre Agg
-                    printEingerückt(op["operatorType"], 1)
-                    drivers = op["totalDrivers"]
-                    # wtime, cpu_time, spilltemp = CollectOPData(op, 2)
-                    prev_out_time = transTimes(op["getOutputCpu"])  # / drivers
-                    in_dur = transTimes(op["addInputCpu"]) * 60  # / drivers
-                    # col_run += transTimes(op["finishWall"]) #/ drivers
-                    # col_run += transTimes(op["blockedWall"]) / drivers
-                    col_run += transTimes(op["finishCpu"])
-                    printEingerückt(
-                        "input: " + str(transTimes(op["addInputWall"])),
-                        2,
+                    trans_time, add_time, in_dur, prev_out_time = getOpTimes(
+                        op, 0, prev_out_time
                     )
-                    printEingerückt(
-                        "output: " + str(transTimes(op["getOutputWall"])),
-                        2,
-                    )
-                    printEingerückt(
-                        "finish: " + str(transTimes(op["finishWall"])),
-                        2,
-                    )
-    return col_run * 60, in_dur, out_dur
+                    trans_times.append(trans_time)
+                    add_times.append(add_time)
+                    spill_size += convertByteToGB(op["spilledDataSize"])
+
+    add_times = np.cumsum(np.array(add_times))
+    trans_times = np.cumsum(np.array(trans_times))
+    return (
+        add_times * 60,
+        trans_times * 60,
+        in_dur * 60,
+        out_dur * 60,
+        spill_size,
+    )
 
 
 def makeBarFig(
@@ -886,10 +872,24 @@ def analyse_Query(number):
 
 def analyse_1_6_13():
     memcounter = 0
+    plt.rcParams.update({"font.size": 35})
     tabs = 0
-    query_ids = [13]  # [4, 17, 20]  # [1, 6, 13]
+    query_ids = [4, 13, 17, 20]  # [4, 17, 20]  # [1, 6, 13]
     data_scale = [1000]  # [300, 1000]  # [100, 300, 1000]
-    worker_size = [4, 45, 5, 6, 10]  # [8, 9, 10]  # [4, 5, 6]
+    worker_size = [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        15,
+        20,
+        50,
+        60,
+    ]  # [4, 45, 5, 6, 10]  # [8, 9, 10]  # [4, 5, 6]
     query_names = []
     query_times = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
     spilledData = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
@@ -904,6 +904,10 @@ def analyse_1_6_13():
     spill_agg = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
     spill_hash = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
     spill_join = np.zeros((len(query_ids), len(worker_size), len(data_scale)), float)
+
+    agg_times = np.zeros((len(query_ids), len(worker_size)), float)
+    agg_spill = np.zeros((len(query_ids), len(worker_size)), float)
+
     for qid in range(len(query_ids)):
         query_names.append("Query " + str(query_ids[qid]))
         tabs = 0
@@ -929,6 +933,12 @@ def analyse_1_6_13():
                     continue
 
                 data = json.load(f)
+
+                add_t, tans_t, in_t, out_t, spill_t = getTrinoAggStats(
+                    name, query_ids[qid]
+                )
+                agg_times[qid][worker] = (tans_t[-1] + in_t + out_t) / 60
+                agg_spill[qid][worker] = spill_t
 
                 qTime = transTimes(data["queryStats"]["executionTime"])
                 printEingerückt("ExecutionTime: " + str(qTime), tabs)
@@ -972,7 +982,7 @@ def analyse_1_6_13():
                         wall_time_exc[qid][worker][scale] += wtime
                 f.close()
         tabs -= 1
-
+    plt.rcParams.update({"font.size": 35})
     # labels = ["100GB", "300GB", "1000GB"]
     labels = ["1000GB"]
     # for h in range(2):
@@ -1027,33 +1037,147 @@ def analyse_1_6_13():
     ]
     x_positions = spilledData.squeeze()
 
-    fig, ax = plt.subplots()
-    width = 0.1
-    space = 0.05
-    colors = plt.cm.viridis.colors
-    nth = int(len(colors) / len(list(data[0].keys())))
-    colors = colors[nth - 1 :: nth]
-    for i in range(len(data)):
-        bottom = np.zeros(len(x_positions))
-        counter = 0
-        for label, datum in data[i].items():
-            rects = ax.bar(
-                x_positions,
-                datum,
-                width,
-                bottom=bottom,
-                color=colors[counter],
-                label=label,
-            )
-            bottom += datum
-            counter += 1
-            ax.bar_label(rects, padding=2, fontsize=20)
+    plt.figure(1)
+    labels = ["4", "13", "17", "20"]
+    for x in range(len(spilledData)):
+        x_data = spilledData[x].flatten()
+        x_ind = np.argsort(x_data)
+        y_data = query_times[x].flatten()
+        cond = y_data[x_ind] > 0
+        plt.plot(x_data[x_ind][cond], y_data[x_ind][cond], linewidth=3, label=labels[x])
+    plt.legend()
+    plt.xlabel("Spilled Data in GiB")
+    plt.ylabel("Runtime in min")
+    plt.grid(visible=True, linestyle="dashed")
 
-    ax.set_xlabel("Spilled data in GB", fontsize=20)
-    ax.legend(list(data[0].keys()), loc="upper right", fontsize=20)
-    ax.set_ylabel("Wall time in min", fontsize=20)
-    ax.grid(visible=True, linestyle="dashed")
-    ax.set_axisbelow(True)
+    plt.figure(3)
+    labels = ["4", "13", "17", "20"]
+    colors = plt.cm.viridis.colors
+    nth = int(len(colors) / len(spilledData))
+    colors = colors[nth - 1 :: nth]
+    for x in range(len(spilledData)):
+        y_data = spilledData[x].flatten()
+        y_data2 = agg_spill[x]
+        x_data = worker_size
+        cond = query_times[x].flatten() > 0
+        plt.plot(
+            np.array(x_data)[cond],
+            np.array(y_data)[cond],
+            linewidth=3,
+            label=labels[x],
+            color=colors[x],
+        )
+        plt.plot(
+            np.array(x_data)[cond],
+            np.array(y_data2)[cond],
+            linewidth=3,
+            label=labels[x],
+            color=colors[x],
+            linestyle="dashed",
+        )
+        line_length = 0.5
+        plt.plot(
+            [np.array(x_data)[cond][0], np.array(x_data)[cond][0]],
+            [
+                np.array(y_data)[cond][0] + line_length,
+                np.array(y_data)[cond][0] - line_length,
+            ],
+            color=colors[x],
+            lw=3,
+            zorder=10,
+        )
+        plt.text(
+            np.array(x_data)[cond][0] - 0.02,
+            np.array(y_data)[cond][0],
+            "⚡",
+            ha="right",
+            va="center",
+            fontsize=35,
+            zorder=11,
+            color="red",
+        )
+    plt.legend()
+    plt.xlim(0, 30)
+    plt.xlabel("Worker Main Memory in GiB")
+    plt.ylabel("Spilled Data in GiB")
+    plt.grid(visible=True, linestyle="dashed")
+
+    plt.figure(4)
+    labels = ["4", "13", "17", "20"]
+    for x in range(len(spilledData)):
+        x_data = worker_size
+        y_data = query_times[x].flatten()
+        y_data2 = agg_times[x]
+        cond = y_data > 0
+        plt.plot(
+            np.array(x_data)[cond],
+            np.array(y_data)[cond],
+            linewidth=3,
+            label=labels[x],
+            color=colors[x],
+        )
+        plt.plot(
+            np.array(x_data)[cond],
+            np.array(y_data2)[cond],
+            linewidth=3,
+            label=labels[x],
+            color=colors[x],
+            linestyle="dashed",
+        )
+        line_length = 0.5
+        plt.plot(
+            [np.array(x_data)[cond][0], np.array(x_data)[cond][0]],
+            [
+                np.array(y_data)[cond][0] + line_length,
+                np.array(y_data)[cond][0] - line_length,
+            ],
+            color=colors[x],
+            lw=3,
+            zorder=10,
+        )
+        plt.text(
+            np.array(x_data)[cond][0] - 0.02,
+            np.array(y_data)[cond][0],
+            "⚡",
+            ha="right",
+            va="center",
+            fontsize=35,
+            zorder=11,
+            color="red",
+        )
+    plt.legend()
+    plt.xlim(0, 60)
+    plt.xlabel("Main Memory in GiB")
+    plt.ylabel("Runtime in min")
+    plt.grid(visible=True, linestyle="dashed")
+
+    # fig, ax = plt.subplots()
+    # width = 0.1
+    # space = 0.05
+    # colors = plt.cm.viridis.colors
+    # nth = int(len(colors) / len(list(data[0].keys())))
+    # colors = colors[nth - 1 :: nth]
+    # for i in range(len(data)):
+    #     bottom = np.zeros(len(x_positions))
+    #     counter = 0
+    #     for label, datum in data[i].items():
+    #         rects = ax.bar(
+    #             x_positions,
+    #             datum,
+    #             width,
+    #             bottom=bottom,
+    #             color=colors[counter],
+    #             label=label,
+    #         )
+    #         bottom += datum
+    #         counter += 1
+    #         ax.bar_label(rects, padding=2, fontsize=20)
+
+    # ax.set_xlabel("Spilled data in GB", fontsize=20)
+    # ax.legend(list(data[0].keys()), loc="upper right", fontsize=20)
+    # ax.set_ylabel("Wall time in min", fontsize=20)
+    # ax.grid(visible=True, linestyle="dashed")
+    # ax.set_axisbelow(True)
     plt.show()
     # for k in range(3):
     #     times = [
@@ -1106,6 +1230,26 @@ def analyse_1_6_13():
     #     )
 
 
+def printhelperStats(jf_data):
+    printEingerückt(
+        "Number of written files: " + str(len(jf_data["writeCall_s3_file_dur"])),
+        1,
+    )
+    printEingerückt(
+        "Sum of size of written files: "
+        + str(sum(jf_data["writeCall_s3_file_size"]) / 2**20),
+        1,
+    )
+    printEingerückt(
+        "Number of written mana files: " + str(len(jf_data["get_mana_dur"])), 1
+    )
+
+    printEingerückt(
+        "merge speed: "
+        + str(jf_data["linesRead"] / jf_data["mergeHelp_merging_Duration"]), 1
+    )
+
+
 def c_size_by_time():
     plt.rcParams.update({"font.size": 35})
     tpc_4_shuffled = False
@@ -1114,6 +1258,7 @@ def c_size_by_time():
     divide = 1
     helpers = {}
     titles = []
+    trino_labels = []
     # first analyses
     # names = [
     #     "logfile_0_6_0_4_22-42.json",
@@ -1205,75 +1350,75 @@ def c_size_by_time():
     # )
 
     # #4,6,8 threads
-    names = [
-        # "logfile_4_6_0_4_20-58.json",  # 2
-        "logfile_4_6_0_4_10-48.json",  # 2
-        "logfile_4_6_0_4_15-38.json",  # 4
-        "logfile_4_6_0_4_13-41.json",  # 6
-        "logfile_4_6_0_4_17-25.json",  # 8
-        # "logfile_4_6_0_4_21-18.json",  # 2
-        "logfile_4_6_0_4_11-06.json",  # 2
-        "logfile_4_6_0_4_15-56.json",  # 4
-        "logfile_4_6_0_4_09-02.json",  # 6
-        "logfile_4_6_0_4_17-47.json",  # 8
-        # "logfile_4_6_0_4_21-36.json",  # 2
-        "logfile_4_6_0_4_11-25.json",  # 2
-        "logfile_4_6_0_4_16-13.json",  # 4
-        "logfile_4_6_0_4_09-19.json",  # 6
-        "logfile_4_6_0_4_18-06.json",  # 8
-        # "logfile_4_6_0_4_21-57.json",  # 2
-        "logfile_4_6_0_4_11-45.json",  # 2
-        "logfile_4_6_0_4_16-30.json",  # 4
-        "logfile_4_6_0_4_09-37.json",  # 6
-        "logfile_4_6_0_4_18-25.json",  # 8
-        # "logfile_4_6_0_4_22-21.json",  # 2
-        "logfile_4_6_0_4_12-08.json",  # 2
-        "logfile_4_6_0_4_16-49.json",  # 4
-        "logfile_4_6_0_4_09-57.json",  # 6
-        "logfile_4_6_0_4_18-49.json",  # 8
-    ]
-    labels = np.array(
-        [
-            "10",
-            "10",
-            "10",
-            "10",
-            "25",
-            "25",
-            "25",
-            "25",
-            "50",
-            "50",
-            "50",
-            "50",
-            "75",
-            "75",
-            "75",
-            "75",
-            "100",
-            "100",
-            "100",
-            "100",
-        ]
-    )
-    runtimes = {
-        "2": np.zeros(5),
-        "4": np.zeros(5),
-        "6": np.zeros(5),
-        "8": np.zeros(5),
-    }
-    runtime_keys = ["2", "4", "6", "8"]
-    runtime_x = [10, 25, 50, 75, 100]
-    tpc_4_shuffled = True
-    subplot = 0
-    subruntimes = {
-        #   "local": np.zeros(5),
-        # "local + S3": np.zeros(5),
-        #   "S3": np.zeros(5),
-        "Write time of spill files": np.zeros(5),
-        "Scan duration": np.zeros(5),
-        "Merge duration": np.zeros(5),
-    }
+    # names = [
+    #     # "logfile_4_6_0_4_20-58.json",  # 2
+    #     "logfile_4_6_0_4_10-48.json",  # 2
+    #     "logfile_4_6_0_4_15-38.json",  # 4
+    #     "logfile_4_6_0_4_13-41.json",  # 6
+    #     "logfile_4_6_0_4_17-25.json",  # 8
+    #     # "logfile_4_6_0_4_21-18.json",  # 2
+    #     "logfile_4_6_0_4_11-06.json",  # 2
+    #     "logfile_4_6_0_4_15-56.json",  # 4
+    #     "logfile_4_6_0_4_09-02.json",  # 6
+    #     "logfile_4_6_0_4_17-47.json",  # 8
+    #     # "logfile_4_6_0_4_21-36.json",  # 2
+    #     "logfile_4_6_0_4_11-25.json",  # 2
+    #     "logfile_4_6_0_4_16-13.json",  # 4
+    #     "logfile_4_6_0_4_09-19.json",  # 6
+    #     "logfile_4_6_0_4_18-06.json",  # 8
+    #     # "logfile_4_6_0_4_21-57.json",  # 2
+    #     "logfile_4_6_0_4_11-45.json",  # 2
+    #     "logfile_4_6_0_4_16-30.json",  # 4
+    #     "logfile_4_6_0_4_09-37.json",  # 6
+    #     "logfile_4_6_0_4_18-25.json",  # 8
+    #     # "logfile_4_6_0_4_22-21.json",  # 2
+    #     "logfile_4_6_0_4_12-08.json",  # 2
+    #     "logfile_4_6_0_4_16-49.json",  # 4
+    #     "logfile_4_6_0_4_09-57.json",  # 6
+    #     "logfile_4_6_0_4_18-49.json",  # 8
+    # ]
+    # labels = np.array(
+    #     [
+    #         "10",
+    #         "10",
+    #         "10",
+    #         "10",
+    #         "25",
+    #         "25",
+    #         "25",
+    #         "25",
+    #         "50",
+    #         "50",
+    #         "50",
+    #         "50",
+    #         "75",
+    #         "75",
+    #         "75",
+    #         "75",
+    #         "100",
+    #         "100",
+    #         "100",
+    #         "100",
+    #     ]
+    # )
+    # runtimes = {
+    #     "2": np.zeros(5),
+    #     "4": np.zeros(5),
+    #     "6": np.zeros(5),
+    #     "8": np.zeros(5),
+    # }
+    # runtime_keys = ["2", "4", "6", "8"]
+    # runtime_x = [10, 25, 50, 75, 100]
+    # tpc_4_shuffled = True
+    # subplot = 0
+    # subruntimes = {
+    #     #   "local": np.zeros(5),
+    #     # "local + S3": np.zeros(5),
+    #     #   "S3": np.zeros(5),
+    #     "Write time of spill files": np.zeros(5),
+    #     "Scan duration": np.zeros(5),
+    #     "Merge duration": np.zeros(5),
+    # }
 
     # deencode analyses
     # names = [
@@ -1561,25 +1706,20 @@ def c_size_by_time():
         "logfile_4_4_0_10_18-53.json",
         "logfile_4_4_0_10_13-21.json",
         "logfile_4_4_0_10_14-24.json",
-        # "logfile_4_4_0_10_14-54.json",
         "logfile_4_4_0_10_09-57.json",
         "logfile_4_6_0_10_21-06.json",
         "logfile_4_6_0_10_12-14.json",
         "logfile_4_6_0_10_22-06.json",
         "logfile_4_6_0_10_09-04.json",
-        # "logfile_4_6_0_10_16-49.json",
         "logfile_4_6_0_10_12-50.json",
         "logfile_4_10_0_10_23-14.json",
         "logfile_4_10_0_10_23-33.json",
         "logfile_4_10_0_10_00-10.json",
         "logfile_4_10_0_10_09-14.json",
-        # "logfile_4_10_0_10_17-14.json",
         "logfile_4_10_0_10_13-21.json",
         "logfile_4_15_0_10_07-57.json",
         "logfile_4_15_0_10_08-13.json",
         "logfile_4_15_0_10_08-36.json",
-        # "logfile_4_15_0_10_08-36.json",
-        # "logfile_4_10_0_10_09-14.json",
         "logfile_4_15_0_10_20-28.json",
         "logfile_4_15_0_10_20-56.json",
         "logfile_4_20_0_10_10-32.json",
@@ -1635,7 +1775,6 @@ def c_size_by_time():
             "logfile_4_6_0_4_13-50(2).json",
         ],
     }
-
     subplot = 2
     subruntimes = {
         #   "local": np.zeros(5),
@@ -1695,41 +1834,41 @@ def c_size_by_time():
     #     ]
     # )
 
-    # merge help 13
-    names = [
-        # "logfile_13_4_0_10_12-17.json",
-        # "logfile_13_4_0_10_12-20.json",
-        # "logfile_13_4_0_10_12-24.json",
-        "logfile_13_6_0_10_15-59.json",
-        "logfile_13_6_0_10_16-05.json",
-        "logfile_13_6_0_10_16-15.json",
-        "logfile_13_6_0_10_17-37.json",
-    ]
-    labels = np.array(
-        [
-            "local",
-            "S3 + local",
-            "S3",
-            "2 Worker",
-        ]
-    )
+    # merge help 13 shuffled
+    # names = [
+    #     # "logfile_13_4_0_10_12-17.json",
+    #     # "logfile_13_4_0_10_12-20.json",
+    #     # "logfile_13_4_0_10_12-24.json",
+    #     "logfile_13_6_0_10_15-59.json",
+    #     "logfile_13_6_0_10_16-05.json",
+    #     "logfile_13_6_0_10_16-15.json",
+    #     "logfile_13_6_0_10_17-37.json",
+    # ]
+    # labels = np.array(
+    #     [
+    #         "local",
+    #         "S3 + local",
+    #         "S3",
+    #         "2 Worker",
+    #     ]
+    # )
 
     # tpc 13 all shuffled
-    names = [
-        "logfile_13_6_0_10_16-05.json",
-        "logfile_13_10_0_10_16-56.json",
-        "logfile_13_15_0_10_17-05.json",
-        "logfile_13_20_0_10_17-14.json",
-        "logfile_13_25_0_10_16-47.json",
-    ]
-    labels = np.array(["6", "10", "15", "20", "25"])
+    # names = [
+    #     "logfile_13_6_0_10_16-05.json",
+    #     "logfile_13_10_0_10_16-56.json",
+    #     "logfile_13_15_0_10_17-05.json",
+    #     "logfile_13_20_0_10_17-14.json",
+    #     "logfile_13_25_0_10_16-47.json",
+    # ]
+    # labels = np.array(["6", "10", "15", "20", "25"])
 
-    runtimes = {
-        "local + S3": np.zeros(5),
-    }
-    runtime_keys = ["local + S3"]
-    runtime_x = [6, 10, 15, 20, 25]
-    tpc_4_shuffled = True
+    # runtimes = {
+    #     "local + S3": np.zeros(5),
+    # }
+    # runtime_keys = ["local + S3"]
+    # runtime_x = [6, 10, 15, 20, 25]
+    # tpc_4_shuffled = True
 
     # subplot = 0
     # subruntimes = {
@@ -1747,24 +1886,24 @@ def c_size_by_time():
     # trino = True
 
     # Trino 13
-    trino_names = [
-        "tpc_13_4_1000.json",
-        "tpc_13_5_1000_1.json",
-        "tpc_13_6_1000.json",
-        "tpc_13_7_1000.json",
-        "tpc_13_10_1000.json",
-    ]
-    trino_labels = np.array(
-        [
-            "4",
-            "5",
-            "6",
-            "7",
-            "10",
-        ]
-    )
-    only_trino = 13
-    trino_x = [8, 10, 12, 14, 20]
+    # trino_names = [
+    #     "tpc_13_4_1000.json",
+    #     "tpc_13_5_1000.json",
+    #     "tpc_13_6_1000.json",
+    #     "tpc_13_7_1000.json",
+    #     "tpc_13_10_1000.json",
+    # ]
+    # trino_labels = np.array(
+    #     [
+    #         "4",
+    #         "5",
+    #         "6",
+    #         "7",
+    #         "10",
+    #     ]
+    # )
+    # only_trino = 13
+    # trino_x = [8, 10, 12, 14, 20]
 
     # Trino 17
     # trino_names = [
@@ -1806,14 +1945,11 @@ def c_size_by_time():
     # trino_names = [
     #     "tpc_4_9_1000.json",
     #     "tpc_4_10_1000.json",
+    #     "tpc_4_15_1000(1).json",
+    #     "tpc_4_20_1000.json",
     # ]
-    # trino_labels = np.array(
-    #     [
-    #         "9",
-    #         "10",
-    #     ]
-    # )
-    # trino_x = [18, 20]
+    # trino_labels = np.array(["9", "10", "15", "20"])
+    # trino_x = [18, 20, 30, 40]
     # only_trino = 4
 
     linestyles = ["dashed", "solid"]
@@ -1823,19 +1959,7 @@ def c_size_by_time():
             jf = open(os.path.join("c++_logs", helper))
             jf_data = json.load(jf)
             print(helper + ":")
-            printEingerückt(
-                "Number of written files: "
-                + str(len(jf_data["writeCall_s3_file_dur"])),
-                1,
-            )
-            printEingerückt(
-                "Sum of size of written files: "
-                + str(sum(jf_data["writeCall_s3_file_size"]) / 2**20),
-                1,
-            )
-            printEingerückt(
-                "Number of written mana files: " + str(len(jf_data["get_mana_dur"])), 1
-            )
+            printhelperStats(jf_data)
             try:
                 printEingerückt(
                     "Number of merge mana files: "
@@ -1870,21 +1994,7 @@ def c_size_by_time():
                 jf = open(os.path.join("c++_logs", h))
                 jf_data = json.load(jf)
                 print(h + ":")
-                printEingerückt(
-                    "Number of written files: "
-                    + str(len(jf_data["writeCall_s3_file_dur"])),
-                    1,
-                )
-                printEingerückt(
-                    "Sum of size of written files: "
-                    + str(sum(jf_data["writeCall_s3_file_size"]) / 2**20),
-                    1,
-                )
-                printEingerückt(
-                    "Number of written mana files: "
-                    + str(len(jf_data["get_mana_dur"])),
-                    1,
-                )
+                printhelperStats(jf_data)
             combine_y, combine_x = combinemergeFiles(helper[0], helper[1])
             plt.figure(9)
             plt.plot(
@@ -1917,10 +2027,13 @@ def c_size_by_time():
     thread_number_y_s_write = np.empty(len(labels))
     thread_number_y_l_write = np.empty(len(labels))
 
+    prot_spill_size = np.empty(len(labels))
+    trino_spill_size = np.empty(len(trino_labels))
+
     try:
         directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_6_0_10_22-06.csv"))
-        jf = open(os.path.join(directory, "logfile_4_6_0_10_22-06.json"))
+        f = open(os.path.join(directory, "times_13_10_0_10_16-26.csv"))
+        jf = open(os.path.join(directory, "logfile_13_6_0_10_15-59.json"))
     except:
         print("File not found.")
         return
@@ -2036,15 +2149,59 @@ def c_size_by_time():
                 # "Exchange": np.empty(),
             }
         ]
-        trino_runtimes = []
+        trino_runtimes_add = {
+            "Trino input": np.zeros(len(trino_names)),
+            "pre Agg": np.zeros(len(trino_names)),
+            "ex sink": np.zeros(len(trino_names)),
+            "ex source": np.zeros(len(trino_names)),
+            "main Agg": np.zeros(len(trino_names)),
+            # "Trino Aggregation": np.zeros(len(trino_names)),
+            "Trino output": np.zeros(len(trino_names)),
+        }
+        trino_runtimes_trans = {
+            "Trino input": np.zeros(len(trino_names)),
+            "pre Agg": np.zeros(len(trino_names)),
+            "ex sink": np.zeros(len(trino_names)),
+            "ex source": np.zeros(len(trino_names)),
+            "main Agg": np.zeros(len(trino_names)),
+            # "Trino Aggregation": np.zeros(len(trino_names)),
+            "Trino output": np.zeros(len(trino_names)),
+        }
+
+        downy = np.zeros(len(trino_names))
         for name in trino_names:
-            ov_dur, in_dur, out_dur = getTrinoAggStats(name, only_trino)
-            trino_times[0]["Write time of spill files"][counter] = 0
+            add_times, trans_times, in_dur, out_dur, spill_size = getTrinoAggStats(
+                name, only_trino
+            )
+            trino_times[0]["Write time of spill files"][counter] = out_dur
             trino_times[0]["Scan duration"][counter] = in_dur
-            trino_times[0]["Merge duration"][counter] = ov_dur  # - (in_dur + out_dur)
+            trino_times[0]["Merge duration"][counter] = add_times[3] + out_dur + in_dur
             trino_times[0]["Write time of the output"][counter] = out_dur
+
+            trino_runtimes_add["Trino input"][counter] = in_dur
+            trino_runtimes_add["pre Agg"][counter] = add_times[0] + in_dur
+            trino_runtimes_add["ex sink"][counter] = add_times[1] + in_dur
+            trino_runtimes_add["ex source"][counter] = add_times[2] + in_dur
+            trino_runtimes_add["main Agg"][counter] = add_times[3] + in_dur
+            trino_runtimes_add["Trino output"][counter] = (
+                add_times[3] + out_dur + in_dur
+            )
+            # trino_runtimes_add["Trino Aggregation"][counter] = add_times[3]
+
+            trino_runtimes_trans["Trino input"][counter] = in_dur
+            trino_runtimes_trans["pre Agg"][counter] = trans_times[0] + in_dur
+            trino_runtimes_trans["ex sink"][counter] = trans_times[1] + in_dur
+            trino_runtimes_trans["ex source"][counter] = trans_times[2] + in_dur
+            trino_runtimes_trans["main Agg"][counter] = trans_times[3] + in_dur
+            trino_runtimes_trans["Trino output"][counter] = (
+                add_times[3] + out_dur + in_dur
+            )
+            # trino_runtimes_trans["Trino Aggregation"][counter] = add_times[3]
+
+            trino_spill_size[counter] = spill_size
+
             counter += 1
-            trino_runtimes.append(ov_dur + in_dur + out_dur)
+
         plt.figure(12)
         makeBarFig(
             trino_times,
@@ -2059,8 +2216,24 @@ def c_size_by_time():
             # marking_labels=marking_labels,
         )
         if tpc_4_shuffled:
+            colors = plt.cm.viridis.colors
+            nth = int(len(colors) / len(trino_runtimes_add))
+            colors = colors[nth - 1 :: nth]
+            counter = 0
             plt.figure(10)
-            plt.plot(trino_x, trino_runtimes, label="Trino", linewidth=3)
+            for label, value in trino_runtimes_trans.items():
+                plt.plot(
+                    trino_x,
+                    value,
+                    label=label,
+                    linewidth=3,
+                    color=colors[counter],
+                )
+                plt.fill_between(
+                    trino_x, value, downy, color=colors[counter], alpha=0.2
+                )
+                downy = value
+                counter += 1
 
     # times = [
     #     {
@@ -2130,6 +2303,10 @@ def c_size_by_time():
         average = sum(get_lock_dur) / len(get_lock_dur)
         printEingerückt("get_lock_dur avg: " + str(average), tabs)
         printEingerückt("get_lock_dur sum: " + str(sum(get_lock_dur)), tabs)
+
+        prot_spill_size[counter] = (
+            jf_data["colS3Spill"] + jf_data["colBackSpill"]
+        ) / 2**30
 
         write_file_dur = np.array(jf_data["writeCall_s3_file_dur"]) / 1000000
         write_file_size = np.array(jf_data["writeCall_s3_file_size"]) / 2**20
@@ -2219,12 +2396,16 @@ def c_size_by_time():
             printEingerückt("write_file_size sum: " + str(sum(write_file_size)), tabs)
 
         # plt.figure(8)
-        get_file_dur = jf_data["getCall_s3_file_dur"]
+        get_file_dur = np.array(jf_data["getCall_s3_file_dur"]) / (
+            1000000 * jf_data["mergeThread_number"]
+        )
         # plt.hist(get_file_dur, bins=30, label="get_file_dur")
         # plt.title("get_file_dur")
         if len(get_file_dur) > 0:
             average = sum(get_file_dur) / len(get_file_dur)
             printEingerückt("get_file_dur avg: " + str(average), tabs)
+            printEingerückt("get_file_dur sum: " + str(sum(get_file_dur)), tabs)
+            printEingerückt("get_file_dur num: " + str(len(get_file_dur)), tabs)
 
         # plt.figure(9)
         # plt.plot(x, hmap_y * scale / avg_y, label="hmap_size")
@@ -2247,6 +2428,17 @@ def c_size_by_time():
             1000000 * jf_data["mergeThread_number"]
         )
         printEingerückt("Write output sum: " + str(write_output_sum), tabs)
+        printEingerückt(
+            "Merge speed: "
+            + str(
+                jf_data["linesRead"]
+                / (
+                    jf_data["mergeDuration"] * jf_data["mergeThread_number"]
+                    - sum(get_file_dur)
+                )
+            ),
+            tabs,
+        )
 
         merge_dur = jf_data[
             "mergeDuration"
@@ -2364,6 +2556,15 @@ def c_size_by_time():
             plt.fill_between(runtime_x, value, downy, color=colors[counter], alpha=0.2)
             downy = value
             counter += 1
+        plt.legend()
+        plt.xlabel("Size of Main Memory in GiB")
+        plt.ylabel("Query runtime in s")
+        plt.grid(visible=True, linestyle="dashed")
+
+    if only_trino != -1:
+        plt.figure(14)
+        plt.plot(trino_x, trino_spill_size, label="Trino", linewidth=3)
+        plt.plot(runtime_x, prot_spill_size, label="Prototype", linewidth=3)
         plt.legend()
         plt.xlabel("Size of Main Memory in GiB")
         plt.ylabel("Query runtime in s")
