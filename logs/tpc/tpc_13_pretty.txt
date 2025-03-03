@@ -20,3 +20,13 @@ group by
 order by
         custdist desc,
         c_count desc;
+
+-- TPC 13 shuffled
+
+select
+                        custkey,
+                        count(orderkey)
+                from
+                        tpc_13
+                group by
+                        custkey;

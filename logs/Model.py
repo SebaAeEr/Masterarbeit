@@ -1,4 +1,6 @@
 import math
+from scipy.special import comb
+
 
 # tpc = 4
 # tuple_size = 2
@@ -29,14 +31,15 @@ merge_speed = 1.5
 buffer_fac = 8.53
 tuple_size = 0
 comp_fac = 5 * tuple_size  # size of compressed tuple
-merge_help_speed = 7.7
-
+merge_help_speed = 6
+# merge_help_speed = 14
 scan_hashmapSize = 0
 scan_dur = 0
 write_spill_dur = 0
 
 post_scan_selectivity = -1
 scan_time_per_spill = 0
+spill_freq = 0
 
 upload_network_load_scan = 0
 upload_network_load_merge_help = 0
@@ -57,10 +60,11 @@ merge_help_write_tuple = 0
 merge_help_get_tuple = 0
 file_get_number = 0
 biggest_file = 0
+merge_help_max_file_number = 0
 
 
 def reset():
-    global biggest_file, scan_hashmapSize, scan_dur, write_spill_dur, post_scan_selectivity, scan_time_per_spill, upload_network_load_scan, upload_network_load_merge_help, download_network_load_merge_help, download_network_load_merge, merge_hashmapSize, merge_time_per_partition, merge_selectivity, merge_help_selectivity, help_merged_tuples, spill_file_merge_speed, postScan_tuple_number, merge_dur, write_time_per_spill, congestion_factor, merge_help_write_tuple, merge_help_get_tuple, file_get_number
+    global spill_freq, merge_help_max_file_number, biggest_file, scan_hashmapSize, scan_dur, write_spill_dur, post_scan_selectivity, scan_time_per_spill, upload_network_load_scan, upload_network_load_merge_help, download_network_load_merge_help, download_network_load_merge, merge_hashmapSize, merge_time_per_partition, merge_selectivity, merge_help_selectivity, help_merged_tuples, spill_file_merge_speed, postScan_tuple_number, merge_dur, write_time_per_spill, congestion_factor, merge_help_write_tuple, merge_help_get_tuple, file_get_number
 
     scan_hashmapSize = 0
     scan_dur = 0
@@ -87,22 +91,56 @@ def reset():
     merge_help_get_tuple = 0
     file_get_number = 0
     biggest_file = 0
+    merge_help_max_file_number = 0
+    spill_freq = 0
+
+
+def calc_selectivity(values_number, tuple_number):
+    """
+    Calculates the expected number of distinct colors when drawing z marbles
+    from a box with x marbles and y colors, assuming equal distribution of marbles.
+
+    Parameters:
+    - x: Total number of marbles in the box
+    - y: Total number of distinct colors
+    - z: Number of marbles drawn from the box
+
+    Returns:
+    - Expected number of distinct colors
+    """
+    # The number of marbles per color
+
+    # Calculate the expected number of distinct colors
+    probability_not_selected = (1 - 1 / values_number) ** tuple_number
+    expected_value = values_number * (1 - probability_not_selected)
+
+    return expected_value / tuple_number
 
 
 def calc_scan_hashmapSize():
     global scan_hashmapSize
     thread_mem = (mainMemory) * 2**30 / scanThreads
     scan_hashmapSize = int(thread_mem / hashmap_avg)
-    # print("scan hashmap size: " + str(scan_hashmapSize))
+    print("scan hashmap size: " + str(scan_hashmapSize))
 
 
 def calc_postScan_selectivity():
     global post_scan_selectivity, selectivity, scan_hashmapSize
     num_same = 1 / selectivity
-    num_of_matches = (
-        num_same * (scan_hashmapSize * (scan_hashmapSize + 1) / 2) / (input_lines)
+    post_scan_selectivity = calc_selectivity(
+        input_lines * selectivity, scan_hashmapSize
     )
-    post_scan_selectivity = (scan_hashmapSize - num_of_matches) / scan_hashmapSize
+    # num_of_matches = (
+    #     num_same * (scan_hashmapSize * (scan_hashmapSize + 1) / 2) / (input_lines)
+    # )
+    # post_scan_selectivity = (scan_hashmapSize - num_of_matches) / scan_hashmapSize
+    # print("num_of_matches: " + str(scan_hashmapSize - num_of_matches) + " vs " + str(selec))
+    # print(
+    #     "post_scan_selectivity: "
+    #     + str(post_scan_selectivity)
+    #     + " vs "
+    #     + str(post_scan_selectivity2)
+    # )
 
 
 def calc_scan_time_per_spill():
@@ -110,6 +148,17 @@ def calc_scan_time_per_spill():
     scan_time_per_spill = scan_hashmapSize / (
         post_scan_selectivity * read_speed * 10**6
     )
+    scan_time_per_spill += write_time_per_spill
+    print("scan_time_per_spill: " + str(scan_time_per_spill))
+
+
+def calc_spill_freq():
+    global spill_freq
+    spill_num = input_lines * post_scan_selectivity / scan_hashmapSize
+    spill_freq = spill_num / (scan_dur + write_spill_dur)
+    print("spill_freq: " + str(spill_freq))
+    print("spill_num: " + str(spill_num))
+    print("time: " + str(scan_dur + write_spill_dur))
 
 
 def calc_write_spill_dur():
@@ -117,6 +166,7 @@ def calc_write_spill_dur():
     write_spill_dur = write_time_per_spill * math.ceil(
         input_lines * post_scan_selectivity / scan_hashmapSize
     )
+    print("write_spill_dur: " + str(write_spill_dur))
 
 
 def calc_scan_dur():
@@ -156,60 +206,75 @@ def calc_merge_help_selectivity():
     global merge_help_selectivity
     num_same = post_scan_selectivity / selectivity
     # print("num_same: " + str(num_same))
-    spill_tuples = scan_hashmapSize / partition_number
+    spill_tuples = scan_hashmapSize * 8 / partition_number
     # print("spill_tuples: " + str(spill_tuples))
     hmap_size_base = min(
-        mainMemory * 2**30 / (4 * hashmap_avg * 3), input_lines / partition_number
+        mainMemory * 2**30 / (4 * hashmap_avg), input_lines / partition_number
     )
-    print("hmap_size_base: " + str(hmap_size_base))
-    num_of_matches = 0
-    for i in range(1, 8):
-        hmsap_size = spill_tuples * i - num_of_matches + hmap_size_base
-        num_of_matches += (
-            num_same * partition_number * (hmap_size_base * spill_tuples) / input_lines
+    hmap_size_base *= partition_number
+    merge_help_selectivity = calc_selectivity(
+        selectivity * post_scan_selectivity * input_lines, hmap_size_base
+    )
+
+
+def calc_merge_help_max_file_number():
+    global merge_help_max_file_number
+    merge_help_max_file_number = (
+        mainMemory
+        * 2**30
+        / (
+            4
+            * hashmap_avg
+            * scan_hashmapSize
+            * merge_help_selectivity
+            / partition_number
         )
-    print("num_of_matches: " + str(num_of_matches))
-    merge_help_selectivity = max(
-        (spill_tuples * 8 - num_of_matches) / (spill_tuples * 8),
-        selectivity / post_scan_selectivity,
     )
-    print("merge_help_selectivity: " + str(merge_help_selectivity))
+    merge_help_max_file_number = max(8, merge_help_max_file_number)
 
 
 def calc_merge_help_write_get_tuple():
     global merge_help_write_tuple, merge_help_get_tuple
     if worker_number > 0:
+        avg_file_number_partition = (
+            input_lines * post_scan_selectivity / scan_hashmapSize
+        )
+        avg_file_number_partition /= 2
         io_dur = (
             (
-                scan_hashmapSize * 8 * (1 + merge_help_selectivity)
+                scan_hashmapSize * comp_fac * merge_help_selectivity
             )  # download + upload size
-        ) / (bandwith * 4)
-        merge_dur = scan_hashmapSize * 8 / (partition_number * merge_help_speed * 10**6)
-        # print("merge_dur: " + str(merge_dur))
+        ) / bandwith
+        merge_dur = scan_hashmapSize / (partition_number * merge_help_speed * 10**6)
+        print("merge_dur + io_dur: " + str(merge_dur + io_dur))
+        print("io_dur: " + str(io_dur))
+        print("merge_help_max_file_number: " + str(merge_help_max_file_number))
         # if inf_spill_freq:
         #     spill_freq = worker_number * 8 * 4 / (merge_dur + io_dur)
         #     print("inf, spill_freq: " + str(spill_freq))
         # else:
-        spill_freq = min(
-            scanThreads * partition_number / (worker_number * scan_time_per_spill),
-            worker_number * 8 * 4 / (merge_dur + io_dur),
+        min_spill_freq = min(
+            # scanThreads * partition_number / scan_time_per_spill,
+            spill_freq * partition_number,
+            worker_number * 5 * 4 / (merge_dur + io_dur),
         )
         print(
             "spill_freq: "
-            + str(
-                scanThreads * partition_number / (worker_number * scan_time_per_spill)
-            )
+            + str(spill_freq * partition_number)
             + " vs "
-            + str(worker_number * 8 * 4 / (merge_dur + io_dur))
+            + str(worker_number * 5 * 4 / (merge_dur + io_dur))
         )
         # print("min spill_freq: " + str(spill_freq))
         merge_help_write_tuple = (
-            scan_hashmapSize * spill_freq * merge_help_selectivity / partition_number
+            scan_hashmapSize
+            * min_spill_freq
+            * merge_help_selectivity
+            / partition_number
         )
         # print("merge_help_write_tuple: " + str(merge_help_write_tuple))
         # print("scan_hashmapSize: " + str(scan_hashmapSize))
         print("merge_help_selectivity: " + str(merge_help_selectivity))
-        merge_help_get_tuple = scan_hashmapSize * spill_freq / partition_number
+        merge_help_get_tuple = scan_hashmapSize * min_spill_freq / partition_number
 
 
 def calc_biggest_file():
@@ -224,12 +289,16 @@ def calc_biggest_file():
 def calc_network_load_merge_help():
     global upload_network_load_merge_help, download_network_load_merge_help
     merge_help_write_tuple_temp = merge_help_write_tuple
-    merge_help_get_tuple_temp = merge_help_get_tuple 
-    if postScan_tuple_number == input_lines * selectivity:  
-        merge_help_dur = max(0, scan_dur - scan_time_per_spill * 2 - late_start + merge_dur)
-        merge_help_write_tuple_temp = postScan_tuple_number / merge_help_dur
-        merge_help_get_tuple_temp = input_lines * post_scan_selectivity / merge_help_dur
-    
+    merge_help_get_tuple_temp = merge_help_get_tuple
+    # if postScan_tuple_number == input_lines * selectivity:
+    #     merge_help_dur = max(0, scan_dur - late_start + merge_dur + write_spill_dur)
+    #     real_merge_help_dur = postScan_tuple_number / merge_help_write_tuple
+    #     print("real_merge_help_dur: " + str(real_merge_help_dur))
+    #     print("scan_dur: " + str(scan_dur))
+    #     print("merge_help_dur: " + str(merge_help_dur))
+    #     merge_help_write_tuple_temp = postScan_tuple_number / (merge_help_dur)
+    #     merge_help_get_tuple_temp = input_lines * post_scan_selectivity / merge_help_dur
+
     upload_network_load_merge_help = merge_help_write_tuple_temp * comp_fac
     download_network_load_merge_help = merge_help_get_tuple_temp * comp_fac
     # print(
@@ -247,6 +316,7 @@ def calc_write_time_per_spill():
     if bandwith != -1:
         spill_size = scan_hashmapSize * comp_fac
         if spill_mode == 1:
+            calc_scan_time_per_spill()
             write_time_per_spill = max(0, spill_size / bandwith - scan_time_per_spill)
         elif spill_mode == 2:
             write_time_per_spill = spill_size / bandwith
@@ -315,7 +385,7 @@ def calc_merge_dur():
 
 def calc_postScan_tuple_number():
     global postScan_tuple_number
-    merge_help_dur = max(0, scan_dur - scan_time_per_spill * 2 - late_start)
+    merge_help_dur = max(0, scan_dur + write_spill_dur - late_start)
     # print("scan_dur: " + str(scan_dur))
     # print("late_start: " + str(-scan_time_per_spill * 2 - late_start))
     merge_help_tuples = merge_help_dur * (merge_help_get_tuple - merge_help_write_tuple)
@@ -325,7 +395,12 @@ def calc_postScan_tuple_number():
         post_scan_selectivity * input_lines - merge_help_tuples,
         input_lines * selectivity,
     )
-    print("postScan_tuple_number1: " + str(post_scan_selectivity * input_lines - merge_help_tuples) + " vs " + str(input_lines * selectivity))
+    print(
+        "postScan_tuple_number1: "
+        + str(post_scan_selectivity * input_lines - merge_help_tuples)
+        + " vs "
+        + str(input_lines * selectivity)
+    )
     # print("postScan_tuple_number1: " + str(postScan_tuple_number))
     calc_merge_selectivity()
     calc_merge_hashmapSize()
@@ -333,14 +408,19 @@ def calc_postScan_tuple_number():
     calc_merge_time_per_partition()
     calc_merge_dur()
 
-    merge_help_dur = max(0, scan_dur - scan_time_per_spill * 2 - late_start + merge_dur)
+    merge_help_dur = max(0, scan_dur - late_start + merge_dur + write_spill_dur)
     merge_help_tuples = merge_help_dur * (merge_help_get_tuple - merge_help_write_tuple)
     # print("merge_help_tuples: " + str(merge_help_tuples))
     postScan_tuple_number = max(
         post_scan_selectivity * input_lines - merge_help_tuples,
         input_lines * selectivity,
     )
-    print("postScan_tuple_number1: " + str(post_scan_selectivity * input_lines - merge_help_tuples) + " vs " + str(input_lines * selectivity))
+    print(
+        "postScan_tuple_number1: "
+        + str(post_scan_selectivity * input_lines - merge_help_tuples)
+        + " vs "
+        + str(input_lines * selectivity)
+    )
     # print("postScan_tuple_number2: " + str(postScan_tuple_number))
 
 
@@ -389,16 +469,17 @@ def simul(q, wn, sT, mm, pn, mt, sm, b, divider, ls, isf: bool = False):
     comp_fac = 5 * tuple_size
     calc_scan_hashmapSize()
     calc_postScan_selectivity()
+    calc_write_time_per_spill()
     calc_scan_time_per_spill()
 
-    calc_write_time_per_spill()
     calc_scan_dur()
     calc_write_spill_dur()
     calc_network_load_spill()
+    calc_spill_freq()
 
     calc_merge_help_selectivity()
+    calc_merge_help_max_file_number()
     calc_merge_help_write_get_tuple()
-    
 
     calc_postScan_tuple_number()
 
@@ -421,6 +502,7 @@ def simul(q, wn, sT, mm, pn, mt, sm, b, divider, ls, isf: bool = False):
         upload_network_load_merge_help,
         download_network_load_merge_help,
         download_network_load_merge,
+        merge_help_selectivity,
     )
 
 

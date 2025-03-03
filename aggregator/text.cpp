@@ -211,6 +211,8 @@ int getManaThreads_num = 0;
 // Whether a ProgressBar should be shown
 bool showProgressBar;
 
+float input_divisor = 1;
+
 int mergeThreads_number = 1;
 
 std::mutex partitions_set_lock;
@@ -5667,7 +5669,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     int fd = open(inputfilename.c_str(), O_RDONLY);
     struct stat stats;
     stat(inputfilename.c_str(), &stats);
-    size_t size = stats.st_size;
+    size_t size = std::ceil(stats.st_size / input_divisor);
     std::cout << "Input file size: " << stats.st_size << std::endl;
     std::pair<int, int> spill_file = std::pair<int, int>(-1, 0);
     std::unordered_map<std::string, std::string> lineObjects;
@@ -5707,7 +5709,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         id++;
     }
     emHashmaps[threadNumber - 1] = {};
-    threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, false, memLimit / threadNumber,
+    threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, input_divisor != 1, memLimit / threadNumber,
                                   std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitBack));
 
     while ((float)(readBytes.load()) / size < 0.99)
@@ -6547,6 +6549,7 @@ int main(int argc, char **argv)
     std::vector<int> mergeThreads_number_vec(1, mergeThreads_number);
     std::vector<int> spill_mode_vec(1, spill_mode);
     std::vector<float> thread_efficiency_vec(1, thread_efficiency);
+    std::vector<float> input_divisor_vec(1, input_divisor);
 
     // If no conf file is used configuration can be obtained directly from command (legacy)
     if (argc == 10)
@@ -6737,6 +6740,11 @@ int main(int argc, char **argv)
                 spill_mode_vec[iteration] = std::stoi(value);
                 break;
             }
+            case str2int("input_divisor"):
+            {
+                input_divisor_vec[iteration] = std::stof(value);
+                break;
+            }
             case str2int("iteration"):
             {
                 memLimit_vec.push_back(memLimit_vec[0]);
@@ -6760,6 +6768,7 @@ int main(int argc, char **argv)
                 split_mana_vec.push_back(split_mana_vec[0]);
                 thread_efficiency_vec.push_back(thread_efficiency_vec[0]);
                 spill_mode_vec.push_back(spill_mode_vec[0]);
+                input_divisor_vec.push_back(input_divisor_vec[0]);
                 iteration++;
                 break;
             }
@@ -6862,6 +6871,7 @@ int main(int argc, char **argv)
         split_mana = split_mana_vec[i];
         thread_efficiency = thread_efficiency_vec[i];
         spill_mode = spill_mode_vec[i];
+        input_divisor = input_divisor_vec[i];
         std::cout << "spill_mode: " << spill_mode << std::endl;
 
         // use_file_queue = split_mana ? false : use_file_queue;
