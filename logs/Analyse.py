@@ -84,20 +84,22 @@ def getOpTimes(op, kind, prev_time):
     drivers = op["totalDrivers"]
     in_out_time = 0
     prev_out_time = 0
+    wall_time = True
     if kind == 0:
         trans_time = transTimes(op["finishCpu"])
         prev_out_time = transTimes(op["addInputCpu"])
         in_out_time = transTimes(op["getOutputCpu"])
         add_time = transTimes(op["addInputCpu"]) + transTimes(op["finishCpu"])
 
-        trans_time = transTimes(op["finishWall"])
-        prev_out_time = transTimes(op["addInputWall"])
-        in_out_time = transTimes(op["getOutputWall"])
-        add_time = (
-            transTimes(op["addInputWall"])
-            + transTimes(op["finishWall"])
-            - transTimes(op["blockedWall"]) / drivers
-        )
+        if wall_time:
+            trans_time = transTimes(op["finishWall"])
+            prev_out_time = transTimes(op["addInputWall"])
+            in_out_time = transTimes(op["getOutputWall"])
+            add_time = max((
+                transTimes(op["addInputWall"])
+                + transTimes(op["finishWall"])
+                - transTimes(op["blockedWall"]) / drivers
+            ), 0)
     elif kind == 1:
         trans_time = max(prev_time, transTimes(op["getOutputCpu"])) + transTimes(
             op["finishCpu"]
@@ -108,17 +110,17 @@ def getOpTimes(op, kind, prev_time):
             + transTimes(op["finishCpu"])
             + transTimes(op["getOutputCpu"])
         )
-
-        add_time = (
-            transTimes(op["addInputWall"])
-            + transTimes(op["finishWall"])
-            + transTimes(op["getOutputWall"])
-            - transTimes(op["blockedWall"]) / drivers
-        )
-        prev_out_time = transTimes(op["addInputWall"])
-        trans_time = max(prev_time, transTimes(op["getOutputWall"])) + transTimes(
-            op["finishWall"]
-        )
+        if wall_time:
+            add_time = max((
+                transTimes(op["addInputWall"])
+                + transTimes(op["finishWall"])
+                + transTimes(op["getOutputWall"])
+                - transTimes(op["blockedWall"]) / drivers
+            ), 0)
+            prev_out_time = transTimes(op["addInputWall"])
+            trans_time = max(prev_time, transTimes(op["getOutputWall"])) + transTimes(
+                op["finishWall"]
+            )
 
     if kind == 2:
         trans_time = max(prev_time, transTimes(op["getOutputCpu"])) + transTimes(
@@ -127,17 +129,17 @@ def getOpTimes(op, kind, prev_time):
         prev_out_time = 0
         in_out_time = transTimes(op["addInputCpu"])
         add_time = transTimes(op["getOutputCpu"]) + transTimes(op["finishCpu"])
-
-        add_time = (
-            transTimes(op["getOutputWall"])
-            + transTimes(op["finishWall"])
-            - transTimes(op["blockedWall"]) / drivers
-        )
-        in_out_time = transTimes(op["addInputWall"])
-        prev_out_time = 0
-        trans_time = max(prev_time, transTimes(op["getOutputWall"])) + transTimes(
-            op["finishWall"]
-        )
+        if wall_time:
+            add_time = max((
+                transTimes(op["getOutputWall"])
+                + transTimes(op["finishWall"])
+                - transTimes(op["blockedWall"]) / drivers
+            ), 0)
+            in_out_time = transTimes(op["addInputWall"])
+            prev_out_time = 0
+            trans_time = max(prev_time, transTimes(op["getOutputWall"])) + transTimes(
+                op["finishWall"]
+            )
     printEingerückt(
         "Spill Data: " + str(convertByteToGB(op["spilledDataSize"])) + " GB", 2
     )
@@ -154,8 +156,10 @@ def getOpTimes(op, kind, prev_time):
         2,
     )
     printEingerückt("trans time: " + str(trans_time) + " add_time: " + str(add_time), 2)
-    # return trans_time / 2, add_time / 2, in_out_time / 2, prev_out_time
-    return trans_time, add_time, in_out_time, prev_out_time
+    # if wall_time:
+    #    return trans_time, add_time, in_out_time, prev_out_time
+    return trans_time / 2, add_time / 2, in_out_time / 2, prev_out_time
+    
 
 
 def getTrinoAggStats(filename, tpc):
@@ -226,8 +230,8 @@ def getTrinoAggStats(filename, tpc):
     # add_times = np.cumsum(np.array(add_times))
     # trans_times = np.cumsum(np.array(trans_times))
     return (
-        add_times * 60,
-        trans_times * 60,
+        np.array(add_times) * 60,
+        np.array(trans_times) * 60,
         in_dur * 60,
         out_dur * 60,
         spill_size,
@@ -991,7 +995,7 @@ def analyse_1_6_13():
                 add_t, tans_t, in_t, out_t, spill_t = getTrinoAggStats(
                     name, query_ids[qid]
                 )
-                agg_times[qid][worker] = (tans_t[-1] + in_t + out_t) / 60
+                agg_times[qid][worker] = (np.sum(tans_t) + in_t + out_t) / 60
                 agg_spill[qid][worker] = spill_t
 
                 qTime = transTimes(data["queryStats"]["executionTime"])
@@ -3076,6 +3080,6 @@ def model():
 
 # TPC()
 # analyse_Query("8")
-c_size_by_time()
-# analyse_1_6_13()
+#c_size_by_time()
+analyse_1_6_13()
 # model()
