@@ -211,7 +211,7 @@ int getManaThreads_num = 0;
 // Whether a ProgressBar should be shown
 bool showProgressBar;
 
-int input_divisor = 1;
+float input_divisor = 1;
 
 int mergeThreads_number = 1;
 
@@ -5669,7 +5669,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     int fd = open(inputfilename.c_str(), O_RDONLY);
     struct stat stats;
     stat(inputfilename.c_str(), &stats);
-    size_t size = std::ceil(stats.st_size / input_divisor);
+    size_t size = std::ceil(stats.st_size * input_divisor);
     std::cout << "Input file size: " << stats.st_size << std::endl;
     std::pair<int, int> spill_file = std::pair<int, int>(-1, 0);
     std::unordered_map<std::string, std::string> lineObjects;
@@ -6549,7 +6549,7 @@ int main(int argc, char **argv)
     std::vector<int> mergeThreads_number_vec(1, mergeThreads_number);
     std::vector<int> spill_mode_vec(1, spill_mode);
     std::vector<float> thread_efficiency_vec(1, thread_efficiency);
-    std::vector<int> input_divisor_vec(1, input_divisor);
+    std::vector<float> input_divisor_vec(1, input_divisor);
 
     // If no conf file is used configuration can be obtained directly from command (legacy)
     if (argc == 10)
@@ -6742,7 +6742,7 @@ int main(int argc, char **argv)
             }
             case str2int("input_divisor"):
             {
-                input_divisor_vec[iteration] = std::stoi(value);
+                input_divisor_vec[iteration] = std::stof(value);
                 break;
             }
             case str2int("iteration"):

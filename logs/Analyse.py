@@ -75,7 +75,7 @@ def CollectOPData(i, tabs):
         + transTimes(i["getOutputWall"])
         + transTimes(i["finishWall"])
     )  # / drivers
-    printEingerückt("Wall time: " + str(wall_time), tabs)
+    # printEingerückt("Wall time: " + str(wall_time), tabs)
     return wall_time, cpu_time, spilltemp
 
 
@@ -85,6 +85,43 @@ def getOpTimes(op, kind, prev_time):
     in_out_time = 0
     prev_out_time = 0
     wall_time = True
+    if wall_time:
+        blocked_wall = transTimes(op["blockedWall"]) / drivers
+        col_wall = (
+            transTimes(op["addInputWall"])
+            + transTimes(op["finishWall"])
+            + transTimes(op["getOutputWall"])
+        )
+        output_wall = (
+            transTimes(op["addInputWall"])
+            - blocked_wall * transTimes(op["addInputWall"]) / col_wall
+        )
+
+        input_wall = (
+            transTimes(op["getOutputWall"])
+            - blocked_wall * transTimes(op["getOutputWall"]) / col_wall
+        )
+        finish_wall = (
+            transTimes(op["finishWall"])
+            - blocked_wall * transTimes(op["finishWall"]) / col_wall
+        )
+
+        printEingerückt(
+            "input: " + str(output_wall),
+            2,
+        )
+        printEingerückt(
+            "output: " + str(input_wall),
+            2,
+        )
+        printEingerückt(
+            "finish: " + str(finish_wall),
+            2,
+        )
+        # output_wall /= drivers
+        # input_wall /= drivers
+        # finish_wall /= drivers
+
     if kind == 0:
         trans_time = transTimes(op["finishCpu"])
         prev_out_time = transTimes(op["addInputCpu"])
@@ -92,14 +129,10 @@ def getOpTimes(op, kind, prev_time):
         add_time = transTimes(op["addInputCpu"]) + transTimes(op["finishCpu"])
 
         if wall_time:
-            trans_time = transTimes(op["finishWall"])
-            prev_out_time = transTimes(op["addInputWall"])
-            in_out_time = transTimes(op["getOutputWall"])
-            add_time = max((
-                transTimes(op["addInputWall"])
-                + transTimes(op["finishWall"])
-                - transTimes(op["blockedWall"]) / drivers
-            ), 0)
+            trans_time = finish_wall
+            prev_out_time = output_wall
+            in_out_time = input_wall
+            add_time = max((output_wall + finish_wall), 0)
     elif kind == 1:
         trans_time = max(prev_time, transTimes(op["getOutputCpu"])) + transTimes(
             op["finishCpu"]
@@ -111,16 +144,9 @@ def getOpTimes(op, kind, prev_time):
             + transTimes(op["getOutputCpu"])
         )
         if wall_time:
-            add_time = max((
-                transTimes(op["addInputWall"])
-                + transTimes(op["finishWall"])
-                + transTimes(op["getOutputWall"])
-                - transTimes(op["blockedWall"]) / drivers
-            ), 0)
-            prev_out_time = transTimes(op["addInputWall"])
-            trans_time = max(prev_time, transTimes(op["getOutputWall"])) + transTimes(
-                op["finishWall"]
-            )
+            add_time = output_wall + finish_wall + input_wall
+            prev_out_time = output_wall
+            trans_time = max(prev_time, (input_wall) + finish_wall)
 
     if kind == 2:
         trans_time = max(prev_time, transTimes(op["getOutputCpu"])) + transTimes(
@@ -130,55 +156,39 @@ def getOpTimes(op, kind, prev_time):
         in_out_time = transTimes(op["addInputCpu"])
         add_time = transTimes(op["getOutputCpu"]) + transTimes(op["finishCpu"])
         if wall_time:
-            add_time = max((
-                transTimes(op["getOutputWall"])
-                + transTimes(op["finishWall"])
-                - transTimes(op["blockedWall"]) / drivers
-            ), 0)
-            in_out_time = transTimes(op["addInputWall"])
+            add_time = input_wall + finish_wall
+            in_out_time = output_wall
             prev_out_time = 0
-            trans_time = max(prev_time, transTimes(op["getOutputWall"])) + transTimes(
-                op["finishWall"]
-            )
+            trans_time = max(prev_time, (input_wall) + finish_wall)
     printEingerückt(
         "Spill Data: " + str(convertByteToGB(op["spilledDataSize"])) + " GB", 2
     )
-    printEingerückt(
-        "input: " + str(transTimes(op["addInputWall"])),
-        2,
-    )
-    printEingerückt(
-        "output: " + str(transTimes(op["getOutputWall"])),
-        2,
-    )
-    printEingerückt(
-        "finish: " + str(transTimes(op["finishWall"])),
-        2,
-    )
+
     printEingerückt("trans time: " + str(trans_time) + " add_time: " + str(add_time), 2)
     # if wall_time:
-    #    return trans_time, add_time, in_out_time, prev_out_time
+    # return trans_time, add_time, in_out_time, prev_out_time
+
     return trans_time / 2, add_time / 2, in_out_time / 2, prev_out_time
-    
 
 
 def getTrinoAggStats(filename, tpc):
     if tpc == 13:
-        sid = 2
-        pipid = 4
-        op_id = [1, 0, 3, 2]
+        op_ids = [[2, 4, 1], [2, 4, 0], [2, 3, 3], [2, 3, 2]]
     elif tpc == 17:
-        sid = 1
-        pipid = 6
-        op_id = [1, 0, 6, 5]
+        op_ids = [[1, 6, 1], [1, 6, 0], [1, 5, 6], [1, 5, 5]]
     elif tpc == 20:
-        sid = 2
-        pipid = 6
-        op_id = [1, 0, 6, 5]
+        op_ids = [[2, 6, 1], [2, 6, 0], [2, 5, 6], [2, 5, 5]]
     elif tpc == 4:
-        sid = 2
-        pipid = 3
-        op_id = [1, 0, 2, 1]
+        op_ids = [
+            [3, 0, 0],
+            [3, 0, 1],
+            [3, 0, 2],
+            [2, 0, 0],
+            [2, 0, 1],
+            [2, 3, 0],
+            [2, 3, 1],
+        ]
+        op_ids = [[3, 0, 1], [3, 0, 2], [2, 0, 0], [2, 0, 1], [2, 3, 0], [2, 3, 1]]
     jf = open(os.path.join("tpc", filename))
     jf_data = json.load(jf)
     ops = jf_data["queryStats"]["operatorSummaries"]
@@ -190,45 +200,32 @@ def getTrinoAggStats(filename, tpc):
     trans_times = []
     spill_size = 0
     print(filename + ":")
-    for op in ops:
-        if op["stageId"] == sid:
-            if op["pipelineId"] == pipid:
-                if op["operatorId"] == op_id[0]:
-                    # Main Agg
-                    trans_time, add_time, out_dur, prev_out_time = getOpTimes(
-                        op, 2, prev_out_time
-                    )
-                    trans_times.append(trans_time)
-                    add_times.append(add_time)
-                    spill_size += convertByteToGB(op["spilledDataSize"])
-                elif op["operatorId"] == op_id[1]:
-                    # Exchange source
-                    trans_time, add_time, in_out_time, prev_out_time = getOpTimes(
-                        op, 1, prev_out_time
-                    )
-                    trans_times.append(trans_time)
-                    add_times.append(add_time)
-                    spill_size += convertByteToGB(op["spilledDataSize"])
-            elif op["pipelineId"] == pipid - 1:
-                if op["operatorId"] == op_id[2]:
-                    # exhcangeSink
-                    trans_time, add_time, in_out_time, prev_out_time = getOpTimes(
-                        op, 1, prev_out_time
-                    )
-                    trans_times.append(trans_time)
-                    add_times.append(add_time)
-                    spill_size += convertByteToGB(op["spilledDataSize"])
-                elif op["operatorId"] == op_id[3]:
-                    # pre Agg
-                    trans_time, add_time, in_dur, prev_out_time = getOpTimes(
-                        op, 0, prev_out_time
-                    )
-                    trans_times.append(trans_time)
-                    add_times.append(add_time)
-                    spill_size += convertByteToGB(op["spilledDataSize"])
+    op_id_counter = 0
+    for op_id in op_ids:
+        for op in ops:
+            if (
+                op["stageId"] == op_id[0]
+                and op["pipelineId"] == op_id[1]
+                and op["operatorId"] == op_id[2]
+            ):
+                kind = 1
+                if op_id_counter == 0:
+                    kind = 0
+                elif op_id_counter == len(op_ids) - 1:
+                    kind = 2
+                trans_time, add_time, in_out_time, prev_out_time = getOpTimes(
+                    op, kind, prev_out_time
+                )
+                trans_times.append(trans_time)
+                add_times.append(add_time)
+                spill_size += convertByteToGB(op["spilledDataSize"])
+                if kind == 0:
+                    in_dur = in_out_time
+                elif kind == 2:
+                    out_dur = in_out_time
+                op_id_counter += 1
+                break
 
-    # add_times = np.cumsum(np.array(add_times))
-    # trans_times = np.cumsum(np.array(trans_times))
     return (
         np.array(add_times) * 60,
         np.array(trans_times) * 60,
@@ -995,7 +992,7 @@ def analyse_1_6_13():
                 add_t, tans_t, in_t, out_t, spill_t = getTrinoAggStats(
                     name, query_ids[qid]
                 )
-                agg_times[qid][worker] = (np.sum(tans_t) + in_t + out_t) / 60
+                agg_times[qid][worker] = (np.sum(add_t) + in_t + out_t) / 60
                 agg_spill[qid][worker] = spill_t
 
                 qTime = transTimes(data["queryStats"]["executionTime"])
@@ -1827,17 +1824,17 @@ def c_size_by_time():
     # )
 
     names = [
-        "logfile_4_15_0_10_11-17.json",
-        "logfile_4_20_0_10_11-35.json",
-        "logfile_4_30_0_10_11-53.json",
         "logfile_4_40_0_10_12-11.json",
+        "logfile_4_30_0_10_11-53.json",
+        "logfile_4_20_0_10_11-35.json",
+        "logfile_4_15_0_10_11-17.json",
     ]
     labels = np.array(["15", "20", "30", "40"])
 
     runtimes = {
-        "local + S3": np.zeros(4),
+        "Prototype": np.zeros(4),
     }
-    runtime_keys = ["local + S3"]  # , "3 Worker"]
+    runtime_keys = ["Prototype"]  # , "3 Worker"]
     runtime_x = [15, 20, 30, 40]
     tpc_4_shuffled = True
     subplot = 0
@@ -1984,32 +1981,32 @@ def c_size_by_time():
 
     # tpc 17
     # names = [
-    #  #   "logfile_17_12.5_0_10_09-11.json",  # local
+    #     #   "logfile_17_12.5_0_10_09-11.json",  # local
     #     "logfile_17_12.5_0_10_22-43.json",  # S3 + local
-    #  #   "logfile_17_16_0_10_10-15.json",  # local
+    #     #   "logfile_17_16_0_10_10-15.json",  # local
     #     "logfile_17_16_0_10_23-50.json",  # S3 + local
-    #      "logfile_17_20_0_10_10-33.json", # S3 + local
-    # #    "logfile_17_22_0_10_11-25.json",  # local
+    #     "logfile_17_20_0_10_10-33.json",  # S3 + local
+    #     #    "logfile_17_22_0_10_11-25.json",  # local
     #     "logfile_17_22_0_10_00-59.json",  # S3 + local
     # ]
     # labels = np.array(
     #     [
     #         "12.5",
-    #       #  "12.5",
+    #         #  "12.5",
     #         "16",
-    #         #"16",
+    #         # "16",
     #         "20",
     #         # "20",
     #         "22",
-    #        # "22",
+    #         # "22",
     #     ]
     # )
     # runtimes = {
-    #   #  "local": np.zeros(3),
+    #     #  "local": np.zeros(3),
     #     "local + S3": np.zeros(4),
     # }
     # runtime_keys = ["local + S3"]
-    # runtime_x = [12.5, 16,20, 22]
+    # runtime_x = [12.5, 16, 20, 22]
     # tpc_4_shuffled = True
     # helpers = {}
     # subplot = 0
@@ -2050,6 +2047,55 @@ def c_size_by_time():
     #     "logfile_13_25_0_10_16-47.json",
     # ]
     # labels = np.array(["6", "10", "15", "20", "25"])
+
+    # tpc 4 shuffled input size
+    names = [
+        "logfile_4_6_0_10_19-56.json", # l 1/3
+        "logfile_4_6_0_10_17-40.json", # ls 1/3
+        "logfile_4_6_0_10_20-18.json", # s 1/3
+        "logfile_4_6_0_10_19-06.json", # 2w 1/3
+        "logfile_4_6_0_10_20-03.json", # l 1/2
+        "logfile_4_6_0_10_17-51.json", # ls 1/2
+        "logfile_4_6_0_10_20-31.json", # s 1/2
+        "logfile_4_6_0_10_19-15.json", # 2w 1/2
+        "logfile_4_6_0_10_21-06.json",  # local
+        "logfile_4_6_0_10_12-14.json",  # s3 + local
+        "logfile_4_6_0_10_22-06.json",  # s3
+        "logfile_4_6_0_10_09-04.json",  # 1 w
+    ]
+    labels = np.array(
+        [
+            "local",
+            "S3 + local",
+            "S3",
+            "2 Worker 1",
+            "local",
+            "S3 + local",
+            "S3",
+            "2 Worker 2",
+            "local",
+            "S3 + local",
+            "S3",
+            "2 Worker 3",
+        ]
+    )
+    runtimes = {
+        "local": np.zeros(3),
+        "local + S3": np.zeros(3),
+        "S3": np.zeros(3),
+        # "1 Worker": np.zeros(5),
+        "2 Worker": np.zeros(3),
+        # "3 Worker": np.zeros(5),
+    }
+    runtime_keys = ["local", "local + S3", "S3", "2 Worker"]#, "3 Worker"]
+    runtime_x = [1264454633, 1896681949, 3793363898]
+    tpc_4_shuffled = True
+    subplot = 2
+    subruntimes = {
+        "Write time of spill files": np.zeros(3),
+        "Scan duration": np.zeros(3),
+        "Merge duration": np.zeros(3),
+    }
 
     # runtimes = {
     #     "local + S3": np.zeros(5),
@@ -2098,7 +2144,7 @@ def c_size_by_time():
     #     "tpc_17_8_1000.json",
     #     "tpc_17_9_1000.json",
     #     "tpc_17_10_1000.json",
-    #     "tpc_17_11_1000(2).json",
+    #     "tpc_17_11_1000.json",
     # ]
     # trino_labels = np.array(
     #     [
@@ -2130,15 +2176,15 @@ def c_size_by_time():
     # trino_x = [8, 9, 10, 11]
 
     # Trino 4
-    trino_names = [
-        "tpc_4_9_1000.json",
-        "tpc_4_10_1000.json",
-        "tpc_4_15_1000.json",
-        "tpc_4_20_1000.json",
-    ]
-    trino_labels = np.array(["9", "10", "15", "20"])
-    trino_x = [18, 20, 30, 40]
-    only_trino = 4
+    # trino_names = [
+    #     "tpc_4_9_1000.json",
+    #     "tpc_4_10_1000.json",
+    #     "tpc_4_15_1000.json",
+    #     "tpc_4_20_1000.json",
+    # ]
+    # trino_labels = np.array(["9", "10", "15", "20"])
+    # trino_x = [18, 20, 30, 40]
+    # only_trino = 4
 
     linestyles = ["dashed", "solid"]
     counter = 0
@@ -2351,13 +2397,13 @@ def c_size_by_time():
             }
         ]
         trino_runtimes_add = {
-            "Trino input": np.zeros(len(trino_names)),
-            "pre Agg": np.zeros(len(trino_names)),
-            "ex sink": np.zeros(len(trino_names)),
-            "ex source": np.zeros(len(trino_names)),
-            "main Agg": np.zeros(len(trino_names)),
+            "Input": np.zeros(len(trino_names)),
+            # "pre Agg": np.zeros(len(trino_names)),
+            # "ex sink": np.zeros(len(trino_names)),
+            # "ex source": np.zeros(len(trino_names)),
+            "Aggregation": np.zeros(len(trino_names)),
             # "Trino Aggregation": np.zeros(len(trino_names)),
-            "Trino output": np.zeros(len(trino_names)),
+            "Output": np.zeros(len(trino_names)),
         }
         trino_runtimes_trans = {
             "Trino input": np.zeros(len(trino_names)),
@@ -2380,17 +2426,17 @@ def c_size_by_time():
             trino_times[0]["Write time of the output"][counter] = out_dur
 
             time_sum = in_dur
-            trino_runtimes_add["Trino input"][counter] = time_sum
-            time_sum += add_times[0]
-            trino_runtimes_add["pre Agg"][counter] = time_sum
-            time_sum += add_times[1]
-            trino_runtimes_add["ex sink"][counter] = time_sum
-            time_sum += add_times[2]
-            trino_runtimes_add["ex source"][counter] = time_sum
-            time_sum += add_times[3]
-            trino_runtimes_add["main Agg"][counter] = time_sum
+            trino_runtimes_add["Input"][counter] = 0#time_sum
+            # time_sum += add_times[0]  # + add_times[1]
+            # trino_runtimes_add["pre Agg"][counter] = 0
+            # time_sum += add_times[1]
+            # trino_runtimes_add["ex sink"][counter] = 0
+            # time_sum += add_times[2] + add_times[3]
+            # trino_runtimes_add["ex source"][counter] = 0
+            # time_sum += add_times[4] + add_times[5]
+            trino_runtimes_add["Aggregation"][counter] = np.sum(add_times)# + in_dur
             time_sum += out_dur
-            trino_runtimes_add["Trino output"][counter] = time_sum
+            trino_runtimes_add["Output"][counter] = np.sum(add_times)  + out_dur #+ in_dur
             # trino_runtimes_add["Trino Aggregation"][counter] = add_times[3]
             time_sum = in_dur
             trino_runtimes_trans["Trino input"][counter] = time_sum
@@ -2681,7 +2727,7 @@ def c_size_by_time():
         merge_hash_dur = jf_data["mergeHashDuration"]
         # printEingerückt("get_file_dur avg: " + str(average), tabs)
 
-        adding = merge_dur + scan_dur + write_file_sum
+        adding = merge_dur + write_file_sum + scan_dur
         # adding = scan_dur + merge_dur
         # adding = (scan_dur + merge_dur ) / (write_file_sum + scan_dur + merge_dur)
         if tpc_4_shuffled:
@@ -2768,7 +2814,8 @@ def c_size_by_time():
                 value,
                 label=label,
                 linewidth=5,
-                #                linestyle=linestyles[counter],
+                # linestyle=linestyles[counter],
+                # linestyle="dashed",
                 #               color=plt.cm.get_cmap("Dark2").colors[0],
             )
             counter += 1
@@ -3080,6 +3127,6 @@ def model():
 
 # TPC()
 # analyse_Query("8")
-#c_size_by_time()
-analyse_1_6_13()
+c_size_by_time()
+# analyse_1_6_13()
 # model()
