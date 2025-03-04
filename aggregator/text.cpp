@@ -5709,7 +5709,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         id++;
     }
     emHashmaps[threadNumber - 1] = {};
-    threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, input_divisor != 1, memLimit / threadNumber,
+    threads.push_back(std::thread(fillHashmap, id, &emHashmaps[threadNumber - 1], fd, t1_size * (threadNumber - 1), t2_size, stats.st_size != size, memLimit / threadNumber,
                                   std::ref(avg), &spills, std::ref(numLines), std::ref(comb_hash_size), &diff, &minio_client, std::ref(readBytes), memLimitBack));
 
     while ((float)(readBytes.load()) / size < 0.99)
