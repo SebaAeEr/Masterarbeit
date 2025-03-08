@@ -4,8 +4,30 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import matplotlib.lines as mlines
+import matplotlib as mpl
 from Model import main
 import math
+from matplotlib.collections import LineCollection
+from matplotlib.colors import ListedColormap, BoundaryNorm
+from scipy.interpolate import interp1d
+
+linestyle_tuple = [
+     ('loosely dotted',        (0, (1, 10))),
+     ('dotted',                (0, (1, 5))),
+     ('densely dotted',        (0, (1, 1))),
+
+     ('long dash with offset', (5, (10, 3))),
+     ('loosely dashed',        (0, (5, 10))),
+     ('dashed',                (0, (5, 5))),
+     ('densely dashed',        (0, (5, 1))),
+
+     ('loosely dashdotted',    (0, (3, 10, 1, 10))),
+     ('dashdotted',            (0, (3, 5, 1, 5))),
+     ('densely dashdotted',    (0, (3, 1, 1, 1))),
+
+     ('dashdotdotted',         (0, (3, 5, 1, 5, 1, 5))),
+     ('loosely dashdotdotted', (0, (3, 10, 1, 10, 1, 10))),
+     ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))]
 
 
 def convertByteToGB(byte: str):
@@ -1348,6 +1370,8 @@ def c_size_by_time():
     titles = []
     trino_labels = []
     runtime_x = []
+    print_time = False
+    mem_pres = False
     # first analyses
     # names = [
     #     "logfile_0_6_0_4_22-42.json",
@@ -1439,86 +1463,166 @@ def c_size_by_time():
     # )
 
     # #4,6,8 threads
+    # names = [
+    #     # "logfile_4_6_0_4_20-58.json",  # 2
+    #     "logfile_4_6_0_4_10-48.json",  # 2
+    #     "logfile_4_6_0_4_19-22.json",  # 3
+    #     "logfile_4_6_0_4_15-38.json",  # 4
+    #     "logfile_4_6_0_4_16-40.json",  # 5
+    #     "logfile_4_6_0_4_13-41.json",  # 6
+    #     "logfile_4_6_0_4_17-25.json",  # 8
+    #     # "logfile_4_6_0_4_21-18.json",  # 2
+    #     "logfile_4_6_0_4_11-06.json",  # 2
+    #     "logfile_4_6_0_4_19-40.json",  # 3
+    #     "logfile_4_6_0_4_15-56.json",  # 4
+    #     "logfile_4_6_0_4_17-02.json",  # 5
+    #     "logfile_4_6_0_4_09-02.json",  # 6
+    #     "logfile_4_6_0_4_17-47.json",  # 8
+    #     # "logfile_4_6_0_4_21-36.json",  # 2
+    #     "logfile_4_6_0_4_11-25.json",  # 2
+    #     "logfile_4_6_0_4_19-57.json",  # 3
+    #     "logfile_4_6_0_4_16-13.json",  # 4
+    #     "logfile_4_6_0_4_17-19.json",  # 5
+    #     "logfile_4_6_0_4_09-19.json",  # 6
+    #     "logfile_4_6_0_4_18-06.json",  # 8
+    #     # "logfile_4_6_0_4_21-57.json",  # 2
+    #     "logfile_4_6_0_4_11-45.json",  # 2
+    #     "logfile_4_6_0_4_20-16.json",  # 3
+    #     "logfile_4_6_0_4_16-30.json",  # 4
+    #     "logfile_4_6_0_4_17-40.json",  # 5
+    #     "logfile_4_6_0_4_09-37.json",  # 6
+    #     "logfile_4_6_0_4_18-25.json",  # 8
+    #     # "logfile_4_6_0_4_22-21.json",  # 2
+    #     "logfile_4_6_0_4_12-08.json",  # 2
+    #     "logfile_4_6_0_4_20-37.json",  # 3
+    #     "logfile_4_6_0_4_16-49.json",  # 4
+    #     "logfile_4_6_0_4_18-07.json",  # 4
+    #     "logfile_4_6_0_4_09-57.json",  # 6
+    #     "logfile_4_6_0_4_18-49.json",  # 8
+    # ]
+    # labels = np.array(
+    #     [
+    #         "10",
+    #         "10",
+    #         "10",
+    #         "10",
+    #         "10",
+    #         "10",
+    #         "25",
+    #         "25",
+    #         "25",
+    #         "25",
+    #         "25",
+    #         "25",
+    #         "50",
+    #         "50",
+    #         "50",
+    #         "50",
+    #         "50",
+    #         "50",
+    #         "75",
+    #         "75",
+    #         "75",
+    #         "75",
+    #         "75",
+    #         "75",
+    #         "100",
+    #         "100",
+    #         "100",
+    #         "100",
+    #         "100",
+    #         "100",
+    #     ]
+    # )
+    # runtimes = {
+    #     "2": np.zeros(5),
+    #     "3": np.zeros(5),
+    #     "4": np.zeros(5),
+    #     "5": np.zeros(5),
+    #     "6": np.zeros(5),
+    #     "8": np.zeros(5),
+    # }
+    # runtime_keys = ["2","3", "4", "5","6", "8"]
+    # runtime_x = [10, 25, 50, 75, 100]
+    # tpc_4_shuffled = True
+    # subplot = 0
+    # subruntimes = {
+    #     #   "local": np.zeros(5),
+    #     # "local + S3": np.zeros(5),
+    #     #   "S3": np.zeros(5),
+    #     "Write time of spill files": np.zeros(5),
+    #     "Scan duration": np.zeros(5),
+    #     "Merge duration": np.zeros(5),
+    # }
+
+
     names = [
         # "logfile_4_6_0_4_20-58.json",  # 2
-        "logfile_4_6_0_4_10-48.json",  # 2
-        "logfile_4_6_0_4_19-22.json",  # 3
-        "logfile_4_6_0_4_15-38.json",  # 4
-        "logfile_4_6_0_4_16-40.json",  # 5
-        "logfile_4_6_0_4_13-41.json",  # 6
-        "logfile_4_6_0_4_17-25.json",  # 8
-        # "logfile_4_6_0_4_21-18.json",  # 2
-        "logfile_4_6_0_4_11-06.json",  # 2
-        "logfile_4_6_0_4_19-40.json",  # 3
-        "logfile_4_6_0_4_15-56.json",  # 4
-        "logfile_4_6_0_4_17-02.json",  # 5
-        "logfile_4_6_0_4_09-02.json",  # 6
-        "logfile_4_6_0_4_17-47.json",  # 8
-        # "logfile_4_6_0_4_21-36.json",  # 2
-        "logfile_4_6_0_4_11-25.json",  # 2
-        "logfile_4_6_0_4_19-57.json",  # 3
-        "logfile_4_6_0_4_16-13.json",  # 4
-        "logfile_4_6_0_4_17-19.json",  # 5
-        "logfile_4_6_0_4_09-19.json",  # 6
-        "logfile_4_6_0_4_18-06.json",  # 8
-        # "logfile_4_6_0_4_21-57.json",  # 2
-        "logfile_4_6_0_4_11-45.json",  # 2
-        "logfile_4_6_0_4_20-16.json",  # 3
-        "logfile_4_6_0_4_16-30.json",  # 4
-        "logfile_4_6_0_4_17-40.json",  # 5
-        "logfile_4_6_0_4_09-37.json",  # 6
-        "logfile_4_6_0_4_18-25.json",  # 8
-        # "logfile_4_6_0_4_22-21.json",  # 2
-        "logfile_4_6_0_4_12-08.json",  # 2
-        "logfile_4_6_0_4_20-37.json",  # 3
-        "logfile_4_6_0_4_16-49.json",  # 4
-        "logfile_4_6_0_4_18-07.json",  # 4
-        "logfile_4_6_0_4_09-57.json",  # 6
-        "logfile_4_6_0_4_18-49.json",  # 8
+      #  "logfile_4_10_0_10_15-47.json",  # 4
+        "logfile_4_10_0_10_18-28.json",  # 6
+        "logfile_4_10_0_10_11-14.json",  # 8
+        "logfile_4_10_0_10_14-01.json",  # 10
+       # "logfile_4_10_0_10_16-07.json",  # 4
+        "logfile_4_10_0_10_18-47.json",  # 6
+        "logfile_4_10_0_10_11-35.json",  # 8
+        "logfile_4_10_0_10_14-21.json",  # 10
+        #"logfile_4_10_0_10_16-24.json",  # 4
+        "logfile_4_10_0_10_19-03.json",  # 6
+        "logfile_4_10_0_10_11-51.json",  # 8
+        "logfile_4_10_0_10_14-37.json",  # 10
+        #"logfile_4_10_0_10_16-42.json",  # 4
+        "logfile_4_10_0_10_19-19.json",  # 6
+        "logfile_4_10_0_10_12-08.json",  # 8
+        "logfile_4_10_0_10_14-53.json",  # 10
+        #"logfile_4_10_0_10_16-59.json",  # 4
+        "logfile_4_10_0_10_19-35.json",  # 6
+        "logfile_4_10_0_10_12-24.json",  # 8
+        "logfile_4_10_0_10_15-09.json",  # 10
     ]
     labels = np.array(
         [
+          #  "10",
             "10",
             "10",
             "10",
-            "10",
-            "10",
-            "10",
+           # "25",
             "25",
             "25",
             "25",
-            "25",
-            "25",
-            "25",
+            #"50",
             "50",
             "50",
             "50",
-            "50",
-            "50",
-            "50",
+            #"75",
             "75",
             "75",
             "75",
-            "75",
-            "75",
-            "75",
-            "100",
-            "100",
-            "100",
+            #"100",
             "100",
             "100",
             "100",
         ]
     )
     runtimes = {
-        "2": np.zeros(5),
-        "3": np.zeros(5),
-        "4": np.zeros(5),
-        "5": np.zeros(5),
+    #    "4": np.zeros(5),
         "6": np.zeros(5),
         "8": np.zeros(5),
+        "10": np.zeros(5),
     }
-    runtime_keys = ["2","3", "4", "5","6", "8"]
+    rescans = {
+      #  "4": np.zeros(5),
+        "6": np.zeros(5),
+        "8": np.zeros(5),
+        "10": np.zeros(5),
+    }
+    fill_facs = {
+      #  "4": np.zeros(5),
+        "6": np.zeros(5),
+        "8": np.zeros(5),
+        "10": np.zeros(5),
+    }
+    mem_pres = True
+    runtime_keys = ["6", "8", "10"]
     runtime_x = [10, 25, 50, 75, 100]
     tpc_4_shuffled = True
     subplot = 0
@@ -1530,7 +1634,6 @@ def c_size_by_time():
         "Scan duration": np.zeros(5),
         "Merge duration": np.zeros(5),
     }
-
 
     # deencode analyses
     # names = [
@@ -2318,72 +2421,76 @@ def c_size_by_time():
 
     prot_spill_size = np.empty(len(runtime_x))
     trino_spill_size = np.empty(len(trino_labels))
+    directory = "c++_logs"
+    if print_time:
+        try:
+            
+            f = open(os.path.join(directory, "times_4_15_0_10_09-25.csv"))
+            jf = open(os.path.join(directory, "logfile_4_15_0_10_09-25.json"))
+        except:
+            print("File not found.")
+            return
+    
+        df = pd.read_csv(f)
+        jf_data = json.load(jf)
+        # Step 2: Extract the columns you want to plot
+        # Assuming the columns are named 'Column1' and 'Column2' (change these to match your CSV)
+        scale = 2**30
+        x = df["time"] / 1000
+        mes_y = df["mes_size"] / scale
+        hmap_y = df["hmap_size"] / scale
+        base_y = df["base_size"] / scale
+        map_y = df["map_size"] / scale
+        bit_y = df["bit_size"] / scale
+        avg_y = df["avg"]
+        calc_y = hmap_y + base_y + map_y + bit_y
 
-    try:
-        directory = "c++_logs"
-        f = open(os.path.join(directory, "times_4_15_0_10_09-25.csv"))
-        jf = open(os.path.join(directory, "logfile_4_15_0_10_09-25.json"))
-    except:
-        print("File not found.")
-        return
-    df = pd.read_csv(f)
-    jf_data = json.load(jf)
-    # Step 2: Extract the columns you want to plot
-    # Assuming the columns are named 'Column1' and 'Column2' (change these to match your CSV)
-    scale = 2**30
-    x = df["time"] / 1000
-    mes_y = df["mes_size"] / scale
-    hmap_y = df["hmap_size"] / scale
-    base_y = df["base_size"] / scale
-    map_y = df["map_size"] / scale
-    bit_y = df["bit_size"] / scale
-    avg_y = df["avg"]
-    calc_y = hmap_y + base_y + map_y + bit_y
+        # Step 3: Create the plot
+        plt.figure(1)
 
-    # Step 3: Create the plot
-    plt.figure(1)
+        plt.plot(x, mes_y, label="measured size", linewidth=3)
+        plt.plot(x, hmap_y, label="Hashmap size", linewidth=3)
+        plt.plot(x, base_y, label="base size")
+        plt.plot(x, map_y, label="mapping size")
+        plt.plot(x, bit_y, label="bitmap size")
+        plt.plot(
+            x, calc_y, label="calc overall size"
+        )  # Line plot (you can change to scatter plot or others)
 
-    plt.plot(x, mes_y, label="measured size", linewidth=3)
-    plt.plot(x, hmap_y, label="Hashmap size", linewidth=3)
-    plt.plot(x, base_y, label="base size")
-    plt.plot(x, map_y, label="mapping size")
-    plt.plot(x, bit_y, label="bitmap size")
-    plt.plot(
-        x, calc_y, label="calc overall size"
-    )  # Line plot (you can change to scatter plot or others)
+        try:
+            keys = ["scanTime", "mergeHashTime", "mergeTime"]
+            phase_labels = ["Scan", "", "Merge"]
+            colors = ["blue", "white", "blue"]
+            old_value = 0
+            counter = 0
+            for key in keys:
+                x_value = jf_data[key] / 1000000
+                plt.axvline(x=x_value, color="blue", linestyle="--", linewidth=2)
+                plt.axvspan(old_value, x_value, color=colors[counter], alpha=0.15)
+                plt.text(
+                    old_value + (x_value - old_value) / 2,
+                    -0.005,
+                    phase_labels[counter],
+                    color="blue",
+                    ha="center",
+                    # bbox=dict(facecolor="white", edgecolor="none", alpha=1.0),
+                )
+                counter += 1
+                old_value = x_value
 
-    try:
-        keys = ["scanTime", "mergeHashTime", "mergeTime"]
-        phase_labels = ["Scan", "", "Merge"]
-        colors = ["blue", "white", "blue"]
-        old_value = 0
-        counter = 0
-        for key in keys:
-            x_value = jf_data[key] / 1000000
-            plt.axvline(x=x_value, color="blue", linestyle="--", linewidth=2)
-            plt.axvspan(old_value, x_value, color=colors[counter], alpha=0.15)
-            plt.text(
-                old_value + (x_value - old_value) / 2,
-                -0.005,
-                phase_labels[counter],
-                color="blue",
-                ha="center",
-                # bbox=dict(facecolor="white", edgecolor="none", alpha=1.0),
-            )
-            counter += 1
-            old_value = x_value
+            plt.axline([0, 6], [x.max(), 6], color="red", linestyle="--", linewidth=2)
+        except:
+            print("no scan/merge/mergeHash-time")
 
-        plt.axline([0, 6], [x.max(), 6], color="red", linestyle="--", linewidth=2)
-    except:
-        print("no scan/merge/mergeHash-time")
+        plt.xlabel("time in s")  # Label for x-axis
+        plt.ylabel("size in GiB")  # Label for y-axis
+        # plt.title("size over time")  # Title of the plot
+        plt.legend(loc="upper right")  # Show the legend
 
-    plt.xlabel("time in s")  # Label for x-axis
-    plt.ylabel("size in GiB")  # Label for y-axis
-    # plt.title("size over time")  # Title of the plot
-    plt.legend(loc="upper right")  # Show the legend
+        plt.figure(2)
+        plt.plot(x, avg_y, label="Average")
 
-    plt.figure(2)
-    plt.plot(x, avg_y, label="Average")
+
     counter = 0
     arr_len = len(names)
     if trino:
@@ -2847,6 +2954,24 @@ def c_size_by_time():
             thread_number_y_l_scan[sub_counter] = jf_data["scanDuration"]
             thread_number_y_l_write[sub_counter] = write_file_sum
 
+
+        if mem_pres:
+            rescan_tuples = jf_data["inputLines"] * jf_data["selectivityPostScan"] - jf_data["linesRead"]
+            rescan_tuples /= jf_data["partitionNumber"]
+            rescans[runtime_keys[rest]][int((counter - rest) / len(runtimes))] = rescan_tuples
+
+            id = name[7:-5]
+            f = open(os.path.join(directory, "times" + id + ".csv"))
+            df = pd.read_csv(f)
+            index = int(len(df["avg"]) * 0.9)
+            avg = df["avg"][index]
+            base = df["base_size"][index] + df["map_size"][index] + df["bit_size"][index]
+            hmap_size = df["hmap_size"][index] / avg
+            hmap_size /= jf_data["mergeThread_number"]
+            partition_size = jf_data["inputLines"] * jf_data["selectivity"] * 0.001/ jf_data["partitionNumber"]
+            fill_fac = hmap_size / partition_size
+            fill_facs[runtime_keys[rest]][int((counter - rest) / len(runtimes))] = fill_fac
+
         if counter % 3 == 2:
             sub_counter += 1
         counter += 1
@@ -2864,6 +2989,83 @@ def c_size_by_time():
         # ]
         # merge_thread_num.append(jf_data["mergeThread_number"])
 
+    if mem_pres:
+        fig, ax = plt.subplots()
+        linestyles = ["solid", "dashed", "dotted"]
+        counter = 0
+        pres_leg_handles = []
+        new_x = np.linspace(10, 100, 9)
+        
+        for label, value in runtimes.items():
+            # interpolator = interp1d(runtime_x, value, kind='linear')
+            # value = interpolator(new_x)
+            interpolated = []
+            for i in range(len(value)):
+                interpolated += [value[i]]
+                if i < len(value) - 1:
+                    interpolated += [(value[i] + value[i + 1]) / 2]
+            points = np.array([new_x, np.array(interpolated)]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            fill = fill_facs[runtime_keys[counter]]
+            color_values = [fill[0]]
+            for i in range(1, len(fill) - 1):
+                color_values += [fill[i]]
+                color_values += [(fill[i] + fill[i + 1]) / 2]
+            color_values += [fill[-1]]
+            
+            color_nums = np.arange(0.2, 1.5, 0.3)
+            colors = plt.cm.plasma.colors
+            nth = int(len(colors) / len(color_nums))
+            cmap = ListedColormap(colors[nth - 1 :: nth])
+
+            norm = BoundaryNorm(color_nums, cmap.N)
+            lc = LineCollection(segments, cmap=cmap, norm=norm)
+            #lc = LineCollection(segments, cmap="plasma", norm=plt.Normalize(0.2, 1.4))
+            lc.set_array(np.array(color_values))
+            lc.set_linewidth(5)
+            lc.set_linestyle(linestyles[counter])
+            line = ax.add_collection(lc)
+            pres_leg_handles.append(
+            mlines.Line2D(
+                [],
+                [],
+                color="black",
+                label=label,
+                linewidth=5,
+                linestyle=linestyles[counter],
+            )
+        )         
+            counter += 1
+        # plt.legend(handles=trino_leg_handles)
+        plt.colorbar(line, ax=ax, label="Proportional size of Hashmap")
+        ax.legend(handles=pres_leg_handles)
+        ax.set_xlabel("Number of Partitions")
+        ax.set_xlim(0, 110)
+        ax.set_ylim(800, 1300)
+       #plt.xlabel("Number of Input Tuples")
+        ax.set_ylabel("Runtime in s")
+        ax.grid(visible=True, linestyle="dashed")
+
+        plt.figure(30)
+        styles = ["solid", "dashed", "dotted"]
+        counter = 0
+        for label, value in fill_facs.items():
+            plt.plot(
+                runtime_x,
+                value,
+                label=label,
+                linewidth=5,
+                linestyle=styles[counter],
+            )
+            counter += 1
+        # plt.legend(handles=trino_leg_handles)
+        plt.legend()
+        plt.xlabel("Number of Partitions")
+       #plt.xlabel("Number of Input Tuples")
+        plt.ylabel("Proportional size of Hashmap")
+        plt.grid(visible=True, linestyle="dashed")
+
+
     if tpc_4_shuffled:
         plt.figure(10)
         linestyles = ["solid", "dashed", "dotted"]
@@ -2874,7 +3076,7 @@ def c_size_by_time():
                 value,
                 label=label,
                 linewidth=5,
-                # linestyle=linestyles[counter],
+                linestyle=linestyles[counter],
                # linestyle="dashed",
                 #               color=plt.cm.get_cmap("Dark2").colors[0],
 #                color=colors[counter + len(trino_runtimes_add)],
@@ -2892,7 +3094,7 @@ def c_size_by_time():
             counter += 1
         # plt.legend(handles=trino_leg_handles)
         plt.legend()
-        plt.xlabel("Size of Main Memory in GiB")
+        plt.xlabel("Number of Partitions")
        #plt.xlabel("Number of Input Tuples")
         plt.ylabel("Query runtime in s")
         plt.grid(visible=True, linestyle="dashed")
@@ -3022,32 +3224,52 @@ def c_size_by_time():
     plt.show()
 
 
-def model():
+def model(mode:int=-1):
     plt.rcParams.update({"font.size": 35})
     # model init
     q = 4
-    wn = [0, 1, 2]
+   # wn = [0, 4, 9, 14, 19, 24, 29, 34, 39, 44, 49 , 54, 59]
+    wn = range(1,51, 1)
+   
+    #wn = [10, 20]
     sT = 10
-    mm = [
-        4,
-        6,
-        10,
-        15,
-        16,
-        17.5,
-        19,
-        20,
-        30,
-    ]  # 60, 80, 100]
-    # mm = [4, 6, 10, 15, 20]
-    # mm = [6]
-    pn = 30
+    # mm = [
+    #     4,
+    #     6,
+    #     10,
+    #     15,
+    #     16,
+    #     17.5,
+    #     19,
+    #     20,
+    #     30,
+    # ]  # 60, 80, 100]
+    mm = [4, 10, 15 ]#15, 20, 22.5, 25, 27.5, 30]
+    mm += range(15,30)
+    #mm = range(4, 31)
+    mm = [6]
+    
+    hmm = [10] #range(5, 50) #30
+    pn = 3000
     mt = 8
     sm = 1
-    b = [25]  # [10, 15, 20, 25, 30, 40, 50]
-    ds = [0.5, 0.75, 1]
+    b = [50]# range(5, 50)#[10, 15, 20, 25, 30, 40, 50]
+    ds = [100] #range(0.1, 1, 0.01) #[0.5, 0.75, 1]
+    ss = [30] #range(2,10)
+    mhs = [6] # np.arange(0.1,5,0.1)
+    mht = [8]# range(1, 20)
+
+    if mode == 0:
+        hmm = range(5, 30)
+    elif mode == 1:
+        b = range(5, 50)
+    elif mode == 2:
+        mhs = np.arange(0.1,5,0.1)
+    elif mode == 3:
+        mht = range(1, 20)
+    #ss = np.arange(1,10,0.1)#range(1,20, 0.1)
     # ifs = #[False, False,False, True, False, True]
-    linestyles = ["solid", "dashed", "dotted"]
+    linestyles = linestyle_tuple
 
     leg_handles = [
         mlines.Line2D([], [], color="black", label="1 Worker", linewidth=3),
@@ -3062,10 +3284,10 @@ def model():
         # ),
     ]
 
-    colors = plt.cm.viridis.colors
     colors = plt.cm.get_cmap("Dark2").colors
-    # nth = int(len(colors) / (len(ds) ))
-    # colors = colors[nth - 1 :: nth]
+    colors = plt.cm.viridis.colors
+    nth = int(len(colors) / len(wn))
+    colors = colors[nth - 1 :: nth]
 
     d_counter = 0
     for d in ds:
@@ -3077,16 +3299,36 @@ def model():
         for worker_number in wn:
             model_vs = []
             network_loads = []
-            for bw in b:
-                for m in mm:
-                    print(
-                        "\n" + str(d) + ", " + str(worker_number) + ", " + str(m) + ":"
-                    )
-                    stats = main(
-                        q, worker_number, sT, m, pn, mt, sm, bw, d
-                    )  # ifs[counter])
-                    model_vs.append(stats)
-                    network_loads.append((stats[4] + stats[3]) / 2**20)
+            for hm in hmm:
+                for mhtt in mht:
+                    for mh in mhs:
+                        for s in ss:
+                            for bw in b:
+                                for m in mm:
+                                    print(
+                                        "\n" + str(d) + ", " + str(worker_number) + ", " + str(m) + ":"
+                                    )
+                                    stats = main(
+                                        q, worker_number, sT, m, hm, pn, mt,mhtt, sm, bw, d,mh, s, True
+                                    )  # ifs[counter])
+                                    model_vs.append(stats)
+                                    network_loads.append((stats[4] + stats[3]) / 2**20)
+
+            if len(mm) > 1:
+                x = mm
+            elif len(b) > 1:
+                x = b
+            elif len(ss) > 1:
+                x = ss
+            elif len(ds) > 1:
+                x = ds
+            elif len(mhs) > 1:
+                x = mhs
+            elif len(mht) > 1:
+                x = mht
+            elif len(hmm) > 1:
+                x = hmm
+
 
             plt.figure(10)
             y = np.array([row[0] for row in model_vs])
@@ -3104,53 +3346,36 @@ def model():
             #     linewidth=3,
             # )
             y2 = np.array([row[2] for row in model_vs])
-            if len(mm) > 1:
-                plt.plot(
-                    mm,
-                    y + y1 + y2,
-                    label=str(worker_number + 1) + " Worker",  # + " " + str(d),
-                    linewidth=5,
-                    linestyle=linestyles[counter],
-                    color=colors[d_counter],
-                    # color=colors[d_counter],
-                )
-            else:
-                plt.figure(4)
-                plt.plot(
-                    b,
-                    y + y1 + y2,
-                    label=str(worker_number + 1) + " Worker",  # + " " + str(d),
-                    linewidth=5,
-                    linestyle=linestyles[counter],
-                    color=colors[counter],
-                )
-            # plt.figure(22)
-            # plt.plot(
-            #     mm,
-            #     network_loads,
-            #     label=str(worker_number + 1) + " Worker",  # + " " + str(d),
-            #     linewidth=5,
-            #     color=colors[counter],
-            #     linestyle=linestyles[counter],
-            # )
+            smoothed_y = pd.Series(y + y1 + y2).rolling(window=10, min_periods=1).mean()
+            plt.plot(
+                x,
+                y + y1 + y2,
+                label=str(worker_number + 1) + " Worker",  # + " " + str(d),
+                linewidth=5,
+                #linestyle=linestyles[counter][1],
+                color=colors[counter],
+                #color=colors[d_counter],
+            )
+            plt.figure(22)
+            plt.plot(
+                x,
+                network_loads,
+                label=str(worker_number + 1) + " Worker",  # + " " + str(d),
+                linewidth=5,
+                color=colors[counter],
+                #linestyle=linestyles[counter],
+            )
+           
             if len(base_line) == 0:
                 base_line = y + y1 + y2
             else:
                 plt.figure(3)
-                if len(mm) > 1:
-                    plt.plot(
-                        mm,
-                        base_line - (y + y1 + y2),
-                        label=str(worker_number),  # + " " + str(d),
-                        linewidth=4,
-                    )
-                else:
-                    plt.plot(
-                        b,
-                        base_line - (y + y1 + y2),
-                        label=str(worker_number),  # + " " + str(d),
-                        linewidth=4,
-                    )
+                plt.plot(
+                    x,
+                    base_line - (y + y1 + y2),
+                    label=str(worker_number),  # + " " + str(d),
+                    linewidth=4,
+                )
             selctivity = np.array([row[7] for row in model_vs])
             # plt.figure(25)
             # plt.plot(
@@ -3161,40 +3386,113 @@ def model():
             #     color=colors[counter],
             #     linestyle=linestyles[counter],
             # )
+            
+            plt.figure(11)
+            mem_pres = np.array([row[10] for row in model_vs])
+            plt.plot(
+                x,
+                mem_pres,
+                label=str(worker_number + 1) + " Worker",  # + " " + str(d),
+                linewidth=5,
+                color=colors[counter],
+                # color=colors[d_counter],
+            )
+            plt.figure(12)
+            mem_pres = np.array([row[11] for row in model_vs])
+            plt.plot(
+                x,
+                mem_pres,
+                label=str(worker_number + 1) + " Worker",  # + " " + str(d),
+                linewidth=10,
+                color=colors[counter],
+                # color=colors[d_counter],
+            )
+            plt.figure(14)
+            mem_pres = np.array([row[13] for row in model_vs])
+            plt.plot(
+                x,
+                mem_pres,
+                label=str(worker_number + 1) + " Worker",  # + " " + str(d),
+                linewidth=5,
+                color=colors[counter],
+                #linestyle=linestyles[counter],
+            )
+            plt.figure(13)
+            mem_pres = np.array([row[12] for row in model_vs])
+            plt.plot(
+                x,
+                mem_pres,
+                label=str(worker_number + 1) + " Worker",  # + " " + str(d),
+                linewidth=5,
+                color=colors[counter],
+                # color=colors[d_counter],
+            )
             counter += 1
         d_counter += 1
 
     plt.figure(10)
-    plt.legend(handles=leg_handles)
+    # plt.legend(handles=leg_handles)
+    norm = mpl.colors.Normalize(vmin=0, vmax=50) 
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm) 
+    sm.set_array([]) 
+    plt.colorbar(sm, label="Number of Workers", ticks=np.linspace(0, 50, 6)) 
+   # plt.legend()
     plt.xlabel("Size of Main Memory in GiB")
     plt.ylabel("Runtime in s")
     plt.grid(visible=True, linestyle="dashed")
+   # plt.yscale("log")
 
-    plt.figure(1)
-    plt.legend()
-    plt.xlabel("Runtime in s")
-    plt.ylabel("Network Load")
-    plt.grid(visible=True, linestyle="dashed")
+    # plt.figure(1)
+    # plt.legend()
+    # plt.xlabel("Runtime in s")
+    # plt.ylabel("Network Load")
+    # plt.grid(visible=True, linestyle="dashed")
     plt.figure(22)
-    plt.legend()
+   # plt.legend()
     plt.xlabel("Size of Main Memory in GiB")
     plt.ylabel("Network load in MiB/s")
     plt.grid(visible=True, linestyle="dashed")
     plt.figure(3)
-    plt.legend()
+   # plt.legend()
     plt.xlabel("Size of Main Memory in GiB")
     plt.ylabel("Timegain in s")
     plt.grid(visible=True, linestyle="dashed")
-    plt.figure(4)
-    plt.legend()
-    plt.xlabel("Network Bandwidth in MiB/s")
-    plt.ylabel("Runtime in s")
+
+    titles = ["Main Memory", "Bandwidth", "Merge speed", "Merge Threads"]
+    xlabels = ["Main Memory in GiB", "Bandwidth in MiB/s", "Merge speed in #Tuple mio/s", "Merge Threads"]
+    plt.figure(11)
+   #plt.legend()
+    # ax.set_xlabel("Scan speed in #Tuples mio/s")
+    # if mode == 0:
+    #     ax.set_ylabel("Number of Tuples merged")
+    # ax.grid(visible=True, linestyle="dashed")
+    
+    # if mode != -1:
+    #    # ax.set_title(titles[mode])
+    #     ax.set_xlabel(xlabels[mode])
+    
+    plt.ylabel("Number of Tuples merged")
     plt.grid(visible=True, linestyle="dashed")
-    plt.figure(25)
-    plt.legend()
-    plt.xlabel("Size of Main Memory in GiBy")
-    plt.ylabel("Merge Help selecitivity")
+    plt.colorbar(sm, label="Number of Workers", ticks=np.linspace(0, 50, 6)) 
+    if mode != -1:
+       plt.xlabel(xlabels[mode])
+
+    plt.figure(12)
+   # plt.legend()
+    plt.xlabel("Size of Main Memory in GiB")
+    plt.ylabel("Number of Tuples merged per Worker")
     plt.grid(visible=True, linestyle="dashed")
+    plt.colorbar(sm, label="Number of Workers", ticks=np.linspace(0, 50, 6)) 
+    # plt.figure(4)
+    # plt.legend()
+    # plt.xlabel("Network Bandwidth in MiB/s")
+    # plt.ylabel("Runtime in s")
+    # plt.grid(visible=True, linestyle="dashed")
+    # plt.figure(25)
+    # plt.legend()
+    # plt.xlabel("Size of Main Memory in GiBy")
+    # plt.ylabel("Merge Help selecitivity")
+    # plt.grid(visible=True, linestyle="dashed")
     plt.show()
 
 
@@ -3202,4 +3500,15 @@ def model():
 # analyse_Query("8")
 c_size_by_time()
 # analyse_1_6_13()
-# model()
+# plt.rcParams.update({"font.size": 35})
+# fig, axs = plt.subplots(2,2, sharey=True)
+# for i in range(4):
+#     ax = axs[int(i/2)][i % 2]
+#     model(ax, i)
+
+# norm = mpl.colors.Normalize(vmin=0, vmax=50) 
+# sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, norm=norm) 
+# sm.set_array([]) 
+# plt.colorbar(sm, label="Number of Workers", ticks=np.linspace(0, 50, 6), ax=axs.ravel().tolist()) 
+# plt.show()
+#model(2)
