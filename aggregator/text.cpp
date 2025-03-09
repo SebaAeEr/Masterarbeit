@@ -2249,7 +2249,7 @@ void writeHashmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     unsigned long start = *output_size;
     *output_size += added_size;
 
-    // std::cout << "calc output size: " << output_size << " added_size: " << added_size << std::endl;
+    std::cout << "calc output size: " << output_size << " added_size: " << added_size << std::endl;
     int file = open(outputfilename.c_str(), O_RDWR | O_CREAT, 0777);
 
     // Extend file file.
@@ -6185,7 +6185,8 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         written_lines += emHashmap.size();
         std::cout << "test2" << std::endl;
         // write hashmap to output file
-        writeHashmap(&emHashmap, 0, pagesize * 10, outputfilename);
+        size_t zero = 0;
+        writeHashmap(&emHashmap, &zero, pagesize * 10, outputfilename);
     }
     duration = (float)(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - merge_start_time).count()) / 1000000;
     std::cout << "Merging Spills and writing output finished with time: " << duration << "s." << " Written lines: " << written_lines << ". macroseconds/line: " << duration * 1000000 / written_lines << std::endl;
