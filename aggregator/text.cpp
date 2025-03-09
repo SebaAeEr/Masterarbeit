@@ -5902,7 +5902,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     unsigned long freed_mem = 0;
     unsigned long overall_size = 0;
     manaFile mana = getMana(&minio_client, worker_id);
-    bool s3spilled;
+    bool s3spilled = false;
     log_file.sizes["skippedTuples"] = 0;
     for (auto &worker : mana.workers)
     {
@@ -5912,6 +5912,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             break;
         }
     }
+    std::cout << "test" << std::endl;
 
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
@@ -6182,7 +6183,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     {
         // std::cout << "writing to output file" << std::endl;
         written_lines += emHashmap.size();
-
+        std::cout << "test2" << std::endl;
         // write hashmap to output file
         writeHashmap(&emHashmap, 0, pagesize * 10, outputfilename);
     }
