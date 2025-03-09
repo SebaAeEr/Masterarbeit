@@ -3376,6 +3376,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     threadLog threadLog;
     threadLog.sizes["id"] = id;
     threadLog.sizes["inputSize"] = size;
+    thread.sizes["outputLines"] = 0;
 
     // loop through entire mapping
     for (unsigned long i = 0; i < size + offset; i++)
@@ -5747,6 +5748,9 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         w_lines += thread.sizes["outputLines"];
     }
     log_file.sizes["selectivityPostScan"] = (w_lines * 1000) / numLines;
+    if (partitions == -1) {
+        partitions = 1;
+    }
 
     auto mergeH_start_time = std::chrono::high_resolution_clock::now();
     std::vector<std::thread> spill_threads;
