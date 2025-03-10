@@ -199,7 +199,7 @@ def getTrinoAggStats(filename, tpc):
     elif tpc == 17:
         op_ids = [[1, 5, 5],[1, 5, 6], [1, 6, 0], [1, 6, 1],   ]
     elif tpc == 20:
-        op_ids = [[2, 6, 1], [2, 6, 0], [2, 5, 6], [2, 5, 5]]
+        op_ids = [ [2, 5, 5],[2, 5, 6],[2, 6, 0],[2, 6, 1],  ]
     elif tpc == 4:
         op_ids = [
             [3, 0, 0],
@@ -1557,28 +1557,32 @@ def c_size_by_time():
 
 
     # names = [
-    #     # "logfile_4_6_0_4_20-58.json",  # 2
     #   #  "logfile_4_10_0_10_15-47.json",  # 4
+    #    "logfile_4_10_0_10_22-15.json",  # 4
     #     "logfile_4_10_0_10_18-28.json",  # 6
     #     # "logfile_4_10_0_10_11-14.json",  # 8
     #     "logfile_4_10_0_10_12-55.json",  # 8
     #     "logfile_4_10_0_10_14-01.json",  # 10
     #    # "logfile_4_10_0_10_16-07.json",  # 4
+    #    "logfile_4_10_0_10_22-30.json",  # 4
     #     "logfile_4_10_0_10_18-47.json",  # 6
     #     # "logfile_4_10_0_10_11-35.json",  # 8
     #     "logfile_4_10_0_10_13-16.json",  # 8
     #     "logfile_4_10_0_10_14-21.json",  # 10
     #     #"logfile_4_10_0_10_16-24.json",  # 4
+    #     "logfile_4_10_0_10_22-43.json",  # 4
     #     "logfile_4_10_0_10_19-03.json",  # 6
     #     # "logfile_4_10_0_10_11-51.json",  # 8
     #     "logfile_4_10_0_10_13-34.json",  # 8
     #     "logfile_4_10_0_10_14-37.json",  # 10
     #     #"logfile_4_10_0_10_16-42.json",  # 4
+    #     "logfile_4_10_0_10_22-55.json",  # 4
     #     "logfile_4_10_0_10_19-19.json",  # 6
     #     # "logfile_4_10_0_10_12-08.json",  # 8
     #     "logfile_4_10_0_10_13-54.json",  # 8
     #     "logfile_4_10_0_10_14-53.json",  # 10
-    #     #"logfile_4_10_0_10_16-59.json",  # 4
+    #     # "logfile_4_10_0_10_16-59.json",  # 4
+    #     "logfile_4_10_0_10_23-08.json",  # 4
     #     "logfile_4_10_0_10_19-35.json",  # 6
     #     # "logfile_4_10_0_10_12-24.json",  # 8
     #     "logfile_4_10_0_10_14-15.json",  # 8
@@ -1586,48 +1590,48 @@ def c_size_by_time():
     # ]
     # labels = np.array(
     #     [
-    #       #  "10",
+    #        "10",
     #         "10",
     #         "10",
     #         "10",
-    #        # "25",
+    #        "25",
     #         "25",
     #         "25",
     #         "25",
-    #         #"50",
     #         "50",
     #         "50",
     #         "50",
-    #         #"75",
+    #         "50",
     #         "75",
     #         "75",
     #         "75",
-    #         #"100",
+    #         "75",
+    #         "100",
     #         "100",
     #         "100",
     #         "100",
     #     ]
     # )
     # runtimes = {
-    # #    "4": np.zeros(5),
+    #    "4": np.zeros(5),
     #     "6": np.zeros(5),
     #     "8": np.zeros(5),
     #     "10": np.zeros(5),
     # }
     # rescans = {
-    #   #  "4": np.zeros(5),
+    #    "4": np.zeros(5),
     #     "6": np.zeros(5),
     #     "8": np.zeros(5),
     #     "10": np.zeros(5),
     # }
     # fill_facs = {
-    #   #  "4": np.zeros(5),
+    #    "4": np.zeros(5),
     #     "6": np.zeros(5),
     #     "8": np.zeros(5),
     #     "10": np.zeros(5),
     # }
     # mem_pres = True
-    # runtime_keys = ["6", "8", "10"]
+    # runtime_keys = ["4","6", "8", "10"]
     # runtime_x = [10, 25, 50, 75, 100]
     # tpc_4_shuffled = True
     # subplot = 0
@@ -1641,44 +1645,44 @@ def c_size_by_time():
     # }
 
     # # static
-    # names = [
-    #     "logfile_4_10_0_10_21-43.json", 
-    #     "logfile_4_10_0_10_21-59.json", 
-    #     "logfile_4_10_0_10_22-11.json", 
-    #     "logfile_4_10_0_10_22-23.json", 
-    #     "logfile_4_10_0_10_22-34.json", 
-    # ]
-    # labels = np.array(
-    #     [
-    #         "10",
-    #         "25",
-    #         "50",
-    #         "75",
-    #         "100",
-    #     ]
-    # )
-    # runtimes = {
-    #     "6": np.zeros(5),
-    # }
-    # rescans = {
-    #     "6": np.zeros(5),
-    # }
-    # fill_facs = {
-    #     "6": np.zeros(5),
-    # }
-    # mem_pres = True
-    # runtime_keys = ["6"]
-    # runtime_x = [10, 25, 50, 75, 100]
-    # tpc_4_shuffled = True
-    # subplot = 0
-    # subruntimes = {
-    #     #   "local": np.zeros(5),
-    #     # "local + S3": np.zeros(5),
-    #     #   "S3": np.zeros(5),
-    #     "Write time of spill files": np.zeros(5),
-    #     "Scan duration": np.zeros(5),
-    #     "Merge duration": np.zeros(5),
-    # }
+    names = [
+        "logfile_4_10_0_10_21-43.json", 
+        "logfile_4_10_0_10_21-59.json", 
+        "logfile_4_10_0_10_22-11.json", 
+        "logfile_4_10_0_10_22-23.json", 
+        "logfile_4_10_0_10_22-34.json", 
+    ]
+    labels = np.array(
+        [
+            "10",
+            "25",
+            "50",
+            "75",
+            "100",
+        ]
+    )
+    runtimes = {
+        "6": np.zeros(5),
+    }
+    rescans = {
+        "6": np.zeros(5),
+    }
+    fill_facs = {
+        "6": np.zeros(5),
+    }
+    mem_pres = True
+    runtime_keys = ["6"]
+    runtime_x = [10, 25, 50, 75, 100]
+    tpc_4_shuffled = True
+    subplot = 0
+    subruntimes = {
+        #   "local": np.zeros(5),
+        # "local + S3": np.zeros(5),
+        #   "S3": np.zeros(5),
+        "Write time of spill files": np.zeros(5),
+        "Scan duration": np.zeros(5),
+        "Merge duration": np.zeros(5),
+    }
 
     # deencode analyses
     # names = [
@@ -1973,46 +1977,46 @@ def c_size_by_time():
     # )
 
     # names = [
-    #     "logfile_4_15_0_10_13-14.json",  # l
+    #     # "logfile_4_15_0_10_13-14.json",  # l
     #     # "logfile_4_40_0_10_12-11.json",#ls
     #     "logfile_4_15_0_10_11-17.json",  # ls
-    #     "logfile_4_15_0_10_14-37.json",  # s
-    #     "logfile_4_20_0_10_13-31.json",  # l
+    #     # "logfile_4_15_0_10_14-37.json",  # s
+    #     # "logfile_4_20_0_10_13-31.json",  # l
     #     # "logfile_4_30_0_10_11-53.json",#ls
     #     "logfile_4_20_0_10_11-35.json",  # ls
-    #     "logfile_4_20_0_10_14-55.json",  # s
-    #     "logfile_4_30_0_10_13-48.json",  # l
+    #     # "logfile_4_20_0_10_14-55.json",  # s
+    #     # "logfile_4_30_0_10_13-48.json",  # l
     #     # "logfile_4_20_0_10_11-35.json",#ls
     #     "logfile_4_30_0_10_11-53.json",  # ls
-    #     "logfile_4_30_0_10_15-12.json",  # s
-    #     "logfile_4_40_0_10_14-06.json",  # l
+    #     # "logfile_4_30_0_10_15-12.json",  # s
+    #     # "logfile_4_40_0_10_14-06.json",  # l
     #     # "logfile_4_15_0_10_11-17.json",#ls
     #     "logfile_4_40_0_10_12-11.json",  # ls
-    #     "logfile_4_40_0_10_15-29.json",  # s
+    #     # "logfile_4_40_0_10_15-29.json",  # s
     # ]
     # labels = np.array(
     #     [
     #         "15",
-    #         "15",
-    #         "15",
+    #         # "15",
+    #         # "15",
     #         "20",
-    #         "20",
-    #         "20",
+    #         # "20",
+    #         # "20",
     #         "30",
-    #         "30",
-    #         "30",
+    #         # "30",
+    #         # "30",
     #         "40",
-    #         "40",
-    #         "40",
+    #         # "40",
+    #         # "40",
     #     ]
     # )
 
     # runtimes = {
-    #     "local": np.zeros(4),
+    #     # "local": np.zeros(4),
     #     "local + S3": np.zeros(4),
-    #     "S3": np.zeros(4),
+    #     # "S3": np.zeros(4),
     # }
-    # runtime_keys = ["local", "local + S3", "S3"]  # , "3 Worker"]
+    # runtime_keys = ["local + S3"]  # , "3 Worker"]
     # runtime_x = [15, 20, 30, 40]
     # tpc_4_shuffled = True
     # subplot = 0
@@ -2106,6 +2110,37 @@ def c_size_by_time():
     #     "Write time of spill files": np.zeros(5),
     #     "Scan duration": np.zeros(5),
     #     "Merge duration": np.zeros(5),
+    # }
+
+    # merge 4 helper mm
+    # names = [
+    #     "logfile_4_6_0_10_10-00.json",
+    #     "logfile_4_6_0_10_14-03.json",
+    #     "logfile_4_6_0_10_15-48.json",
+    #     "logfile_4_6_0_10_16-18.json", 
+    # ]
+    # labels = np.array(
+    #     [
+    #         "4",
+    #         "6",
+    #         "10",
+    #         "20",
+    #     ]
+    # )
+    # runtimes = {
+    #     "local": np.zeros(4),
+    # }
+    # runtime_keys = ["local"]
+    # runtime_x = [4, 6,10, 20]
+    # tpc_4_shuffled = True
+    # subplot = 2
+    # subruntimes = {
+    #     #   "local": np.zeros(5),
+    #     # "local + S3": np.zeros(5),
+    #     #   "S3": np.zeros(5),
+    #     "Write time of spill files": np.zeros(4),
+    #     "Scan duration": np.zeros(4),
+    #     "Merge duration": np.zeros(4),
     # }
 
     # merge help 20
@@ -2217,31 +2252,86 @@ def c_size_by_time():
     # )
 
     # tpc 13 all shuffled
-    names = [
-        "logfile_13_6_0_10_16-05.json",
-        "logfile_13_10_0_10_16-56.json",
-        "logfile_13_15_0_10_17-05.json",
-        "logfile_13_20_0_10_17-14.json",
-       # "logfile_13_25_0_10_16-47.json",
-    ]
-    labels = np.array(["6", "10", "15", "20"])
+    # names = [
+    #     "logfile_13_6_0_10_16-05.json",
+    #     "logfile_13_10_0_10_16-56.json",
+    #     "logfile_13_15_0_10_17-05.json",
+    #     "logfile_13_20_0_10_17-14.json",
+    #    # "logfile_13_25_0_10_16-47.json",
+    # ]
+    # labels = np.array(["6", "10", "15", "20"])
 
-    runtimes = {
-        "local + S3": np.zeros(4),
-    }
-    runtime_keys = ["local + S3"]
-    runtime_x = [6, 10, 15, 20]
-    tpc_4_shuffled = True
+    # runtimes = {
+    #     "local + S3": np.zeros(4),
+    # }
+    # runtime_keys = ["local + S3"]
+    # runtime_x = [6, 10, 15, 20]
+    # tpc_4_shuffled = True
 
-    subplot = 0
-    subruntimes = {
-        #   "local": np.zeros(5),
-        # "local + S3": np.zeros(5),
-        #   "S3": np.zeros(5),
-        "Write time of spill files": np.zeros(4),
-        "Scan duration": np.zeros(4),
-        "Merge duration": np.zeros(4),
-    }
+    # subplot = 0
+    # subruntimes = {
+    #     #   "local": np.zeros(5),
+    #     # "local + S3": np.zeros(5),
+    #     #   "S3": np.zeros(5),
+    #     "Write time of spill files": np.zeros(4),
+    #     "Scan duration": np.zeros(4),
+    #     "Merge duration": np.zeros(4),
+    # }
+
+
+    # tpc 13 all
+    # names = [
+    #     "logfile_13_4_0_10_16-58.json",
+    #     "logfile_13_6_0_10_17-02.json",
+    #     "logfile_13_10_0_10_17-06.json",
+    #     "logfile_13_15_0_10_19-29.json",
+    #     "logfile_13_15_0_10_19-29.json"
+    # ]
+    # labels = np.array(["4", "6", "10", "15", "20"])
+
+    # runtimes = {
+    #     "local + S3": np.zeros(5),
+    # }
+    # runtime_keys = ["local + S3"]
+    # runtime_x = [4, 6, 10, 15, 20]
+    # tpc_4_shuffled = True
+
+    # subplot = 0
+    # subruntimes = {
+    #     #   "local": np.zeros(5),
+    #     # "local + S3": np.zeros(5),
+    #     #   "S3": np.zeros(5),
+    #     "Write time of spill files": np.zeros(5),
+    #     "Scan duration": np.zeros(5),
+    #     "Merge duration": np.zeros(5),
+    # }
+
+    # tpc 20 no shuffle
+    # names = [
+    #     "logfile_20_6_0_10_18-05.json",
+    #     "logfile_20_10_0_10_18-12.json",
+    #     "logfile_20_15_0_10_18-19.json",
+    #     "logfile_20_20_0_10_20-23.json",
+    #     "logfile_20_25_0_10_20-30.json",
+    # ]
+    # labels = np.array(["6", "10", "15", "20", "25"])
+
+    # runtimes = {
+    #     "local + S3": np.zeros(5),
+    # }
+    # runtime_keys = ["local + S3"]
+    # runtime_x = [6, 10, 15, 20, 25]
+    # tpc_4_shuffled = True
+
+    # subplot = 0
+    # subruntimes = {
+    #     #   "local": np.zeros(5),
+    #     # "local + S3": np.zeros(5),
+    #     #   "S3": np.zeros(5),
+    #     "Write time of spill files": np.zeros(5),
+    #     "Scan duration": np.zeros(5),
+    #     "Merge duration": np.zeros(5),
+    # }
 
     # tpc 4 shuffled input size
     # names = [
@@ -2327,24 +2417,24 @@ def c_size_by_time():
     # trino = True
 
     # Trino 13
-    trino_names = [
-        "tpc_13_4_1000.json",
-        "tpc_13_5_1000.json",
-        "tpc_13_6_1000.json",
-        "tpc_13_7_1000.json",
-        "tpc_13_10_1000.json",
-    ]
-    trino_labels = np.array(
-        [
-            "4",
-            "5",
-            "6",
-            "7",
-            "10",
-        ]
-    )
-    only_trino = 13
-    trino_x = [8, 10, 12, 14, 20]
+    # trino_names = [
+    #     "tpc_13_4_1000.json",
+    #     "tpc_13_5_1000.json",
+    #     "tpc_13_6_1000.json",
+    #     "tpc_13_7_1000.json",
+    #     "tpc_13_10_1000.json",
+    # ]
+    # trino_labels = np.array(
+    #     [
+    #         "4",
+    #         "5",
+    #         "6",
+    #         "7",
+    #         "10",
+    #     ]
+    # )
+    # only_trino = 13
+    # trino_x = [8, 10, 12, 14, 20]
 
     # Trino 17
     # trino_names = [
@@ -2756,7 +2846,10 @@ def c_size_by_time():
         jf_data = json.load(jf)
         print(name + ":")
         tabs = 1
-        printEingerückt("lines read: " + str(jf_data["linesRead"]), tabs)
+        try:
+            printEingerückt("lines read: " + str(jf_data["linesRead"]), tabs)
+        except:
+            printEingerückt("lines read: 0", tabs)
         spill_times = np.array(jf_data["Threads"][0]["spillTimes"]) / 1000000
         differences = [
             abs(spill_times[i + 1] - spill_times[i])
@@ -2786,13 +2879,16 @@ def c_size_by_time():
         printEingerückt("write_mana_dur sum: " + str(sum(write_mana_dur)), tabs)
         printEingerückt("write_mana_dur times: " + str(len(write_mana_dur)), tabs)
 
-        get_lock_dur = np.array(jf_data["get_lock_dur"]) / 1000000
-        # plt.figure(3)
-        # plt.hist(get_lock_dur, bins=30, label="get_lock_dur")
-        # plt.title("get_lock_dur")
-        average = sum(get_lock_dur) / len(get_lock_dur)
-        printEingerückt("get_lock_dur avg: " + str(average), tabs)
-        printEingerückt("get_lock_dur sum: " + str(sum(get_lock_dur)), tabs)
+        try:
+            get_lock_dur = np.array(jf_data["get_lock_dur"]) / 1000000
+            # plt.figure(3)
+            # plt.hist(get_lock_dur, bins=30, label="get_lock_dur")
+            # plt.title("get_lock_dur")
+            average = sum(get_lock_dur) / len(get_lock_dur)
+            printEingerückt("get_lock_dur avg: " + str(average), tabs)
+            printEingerückt("get_lock_dur sum: " + str(sum(get_lock_dur)), tabs)
+        except:
+            printEingerückt("no locks", tabs)
 
         write_file_dur = np.array(jf_data["writeCall_s3_file_dur"]) / 1000000
         write_file_size = np.array(jf_data["writeCall_s3_file_size"]) / 2**20
@@ -2915,12 +3011,14 @@ def c_size_by_time():
             printEingerückt("No mergeThread_number", tabs)
         # plt.figure(9)
         # plt.plot(x, hmap_y * scale / avg_y, label="hmap_size")
+        try:
+            write_file_sum = 0
+            for thread in jf_data["Threads"]:
+                write_file_sum += thread["write_file_dur"]
 
-        write_file_sum = 0
-        for thread in jf_data["Threads"]:
-            write_file_sum += thread["write_file_dur"]
-
-        write_file_sum /= jf_data["threadNumber"] * 1000000
+            write_file_sum /= jf_data["threadNumber"] * 1000000
+        except:
+            write_file_sum = 0
         # uncomment
         # get_file_sum = sum(jf_data["getCall_s3_file_dur"]) / (
         #     jf_data["mergeThread_number"]
@@ -3054,7 +3152,7 @@ def c_size_by_time():
 
     if mem_pres:
         fig, ax = plt.subplots()
-        linestyles = ["solid", "dashed", "dotted"]
+        linestyles = ["solid", "dashed", "dotted", (0, (3, 5, 1, 5))]
         counter = 0
         pres_leg_handles = []
         new_x = np.linspace(10, 100, 9)
@@ -3110,7 +3208,7 @@ def c_size_by_time():
         ax.grid(visible=True, linestyle="dashed")
 
         plt.figure(30)
-        styles = ["solid", "dashed", "dotted"]
+        styles = ["solid", "dashed", "dotted", (0, (3, 5, 1, 5))]
         counter = 0
         for label, value in fill_facs.items():
             plt.plot(
@@ -3123,7 +3221,8 @@ def c_size_by_time():
             counter += 1
         #plt.legend(handles=trino_leg_handles)
         plt.legend()
-        plt.xlabel("Size of Main Memory in GiB")
+        #plt.xlabel("Size of Main Memory in GiB")
+        plt.xlabel("Number of Partitions")
        #plt.xlabel("Number of Input Tuples")
         plt.ylabel("Proportional size of Hashmap")
         plt.grid(visible=True, linestyle="dashed")
@@ -3131,7 +3230,7 @@ def c_size_by_time():
 
     if tpc_4_shuffled:
         plt.figure(10)
-        linestyles = ["solid", "dashed", "dotted"]
+        linestyles = ["solid", "dashed", "dotted", (0, (3, 5, 1, 5))]
         counter = 0
         for label, value in runtimes.items():
             plt.plot(
@@ -3139,9 +3238,9 @@ def c_size_by_time():
                 value,
                 label=label,
                 linewidth=5,
-                #linestyle=linestyles[counter],
-               linestyle="dashed",
-                #               color=plt.cm.get_cmap("Dark2").colors[0],
+                linestyle=linestyles[counter],
+               # linestyle="dashed",
+                color=plt.cm.get_cmap("Dark2").colors[counter],
 #                color=colors[counter + len(trino_runtimes_add)],
             )
             # trino_leg_handles.append(
@@ -3155,9 +3254,10 @@ def c_size_by_time():
             #     )
             # )
             counter += 1
-        plt.legend(handles=trino_leg_handles)
-       #plt.legend()
-        plt.xlabel("Size of Main Memory in GiB")
+#        plt.legend(handles=trino_leg_handles)
+        plt.legend()
+        # plt.xlabel("Size of Main Memory in GiB")
+        plt.xlabel("Number of Partitions")
        #plt.xlabel("Number of Input Tuples")
         plt.ylabel("Query runtime in s")
         plt.grid(visible=True, linestyle="dashed")
@@ -3180,8 +3280,8 @@ def c_size_by_time():
 
     if only_trino != -1:
         plt.figure(14)
-        plt.plot(trino_x, trino_spill_size, label="Trino", linewidth=3)
-        plt.plot(runtime_x, prot_spill_size, label="Prototype", linewidth=3)
+        plt.plot(trino_x, trino_spill_size, label="Trino", linewidth=3, color=plt.cm.get_cmap("Dark2").colors[1])
+        plt.plot(runtime_x, prot_spill_size, label="Prototype", linewidth=3, color=plt.cm.get_cmap("Dark2").colors[4])
         plt.legend()
         plt.xlabel("Size of Main Memory in GiB")
         plt.ylabel("Spilled Data in GiB")
@@ -3595,10 +3695,23 @@ c_size_by_time()
 # for i in range(1, 101):
 #    prop_size = i*prop_fac
 #    threads.append(min_runtime(i, prop_size))
-
+# plt.rcParams.update({"font.size": 35})
 # plt.figure(1)
-# plt.plot(range(1, 101), threads)
-# plt.xlabel("Size of Main Memory in GiB")
-# plt.ylabel("Number of Tuples merged per Worker")
+# ys = np.array([1])
+# ys = np.append(ys, np.arange(2,7,1))
+
+# xs = np.array([1])
+# xs = np.append(xs, np.arange(10,51,10))
+# ys2 =  np.arange(6,12,1)
+
+# xs2 = np.arange(50,101,10)
+# colors = plt.cm.get_cmap("Dark2").colors
+# plt.plot(xs, ys, color=colors[0], linewidth=5)
+# plt.plot(xs2, ys2, linestyle="dotted", color=colors[1], linewidth=5)
+# plt.text(25, 6, "Static Estimation", ha="center", color=colors[0], va="center")
+# plt.text(75, 6, "Dynamic Scaling", ha="center", color=colors[1], va="center")
+# plt.axvline(50, linestyle="dashed", color="red")
+# plt.xlabel("Number of Partitions")
+# plt.ylabel("Number of Merge Threads")
 # plt.grid(visible=True, linestyle="dashed")
 plt.show()

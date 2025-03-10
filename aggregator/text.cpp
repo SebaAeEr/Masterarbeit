@@ -211,6 +211,8 @@ int getManaThreads_num = 0;
 // Whether a ProgressBar should be shown
 bool showProgressBar;
 
+bool static_merge_threads = false;
+
 float input_divisor = 1;
 
 int mergeThreads_number = 1;
@@ -5917,7 +5919,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
     {
-        if (!dynamic_extension && !keep_hashmaps)
+        if (!dynamic_extension && !keep_hashmaps && !static_merge_threads)
         {
             size_t p_size = (spillTuple_number.load() / partitions) * avg + max_s3_spill_size;
             std::cout << "p_size: " << p_size << ": (" << spillTuple_number.load() << " / " << partitions << ") * " << avg << "+" << max_s3_spill_size << std::endl;
@@ -5925,6 +5927,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
             mergeThreads_number = std::ceil(available_mem / (p_size * thread_efficiency));
             std::cout << "calc thread number: " << mergeThreads_number << ": ceil(" << available_mem << " / (" << p_size << " * " << thread_efficiency << "))" << std::endl;
+            if (partitions > 50)
+            {
+                dynamic_extension = true;
+            }
         }
         size_t output_file_head = 0;
         bool add_new_thread = false;
@@ -6006,7 +6012,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     }
                     std::cout << std::endl;
                     // diabled dynamic extension!
-                    if (false && dynamic_extension && !thread_done && add_new_thread && (comb_hash_size * avg + base_size) / thread_bitmap.size() < memLimit - (comb_hash_size * avg + base_size))
+                    if (dynamic_extension && !thread_done && add_new_thread && (comb_hash_size * avg + base_size) / thread_bitmap.size() < memLimit - (comb_hash_size * avg + base_size))
                     {
                         std::cout << "Adding new Thread" << std::endl;
                         max_HashSizes.push_back(0);
@@ -6725,6 +6731,7 @@ int main(int argc, char **argv)
             case str2int("merge_thread_number"):
             {
                 mergeThreads_number_vec[iteration] = std::stoi(value);
+                static_merge_threads = true;
                 break;
             }
             case str2int("split_mana"):
@@ -6872,7 +6879,7 @@ int main(int argc, char **argv)
         partition_size = partition_size_vec[i];
         mapping_max = mapping_max_vec[i];
         max_s3_spill_size = max_s3_spill_size_vec[i];
-        dynamic_extension = dynamic_extension_vec[i];
+        // dynamic_extension = dynamic_extension_vec[i];
         static_partition_number = static_partition_number_vec[i];
         mergeThreads_number = mergeThreads_number_vec[i];
         split_mana = split_mana_vec[i];

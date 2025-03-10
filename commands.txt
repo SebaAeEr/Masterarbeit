@@ -37,6 +37,9 @@ scp erasmus@atkemper4.in.tum.de:/hddSpace/erasmus/Masterarbeit/aggregator/build/
 scp erasmus@atkemper4.in.tum.de:/hddSpace/erasmus/Masterarbeit/aggregator/build/logfile_13_0.1_0_4_19-12.json /home/sebthelegend/Masterarbeit/logs/c++_logs/
 scp erasmus@scyper15.in.tum.de:/nvmeSpace/erasmus/Masterarbeit/aggregator/build/times_4_6_0_4_19-26.csv /home/sebthelegend/Masterarbeit/logs/c++_logs/
 
+rsync -anv --include='times*' --exclude='*' erasmus@scyper15.in.tum.de:/nvmeSpace/erasmus/Masterarbeit/aggregator/build/ /home/sebthelegend/Masterarbeit/logs/c++_logs/
+
+
 LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/region.tbl'     INTO TABLE region     FIELDS TERMINATED BY '|'; J
 LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/nation.tbl'     INTO TABLE nation     FIELDS TERMINATED BY '|'; J
 LOAD DATA LOCAL INFILE '/var/lib/mysql/data_raw_300/customer.tbl' INTO TABLE customer   FIELDS TERMINATED BY '|'; J
