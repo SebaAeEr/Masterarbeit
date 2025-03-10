@@ -1646,11 +1646,16 @@ def c_size_by_time():
 
     # # static
     names = [
-        "logfile_4_10_0_10_21-43.json", 
-        "logfile_4_10_0_10_21-59.json", 
-        "logfile_4_10_0_10_22-11.json", 
-        "logfile_4_10_0_10_22-23.json", 
-        "logfile_4_10_0_10_22-34.json", 
+        "logfile_4_10_0_10_11-10.json", 
+        "logfile_4_10_0_10_11-35.json", 
+        "logfile_4_10_0_10_11-53.json", 
+        "logfile_4_10_0_10_12-11.json", 
+        "logfile_4_10_0_10_12-28.json", 
+        # "logfile_4_10_0_10_21-43.json", 
+        # "logfile_4_10_0_10_21-59.json", 
+        # "logfile_4_10_0_10_22-11.json", 
+        # "logfile_4_10_0_10_22-23.json", 
+        # "logfile_4_10_0_10_22-34.json", 
     ]
     labels = np.array(
         [

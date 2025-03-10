@@ -6864,6 +6864,7 @@ int main(int argc, char **argv)
         backMem_usage = 0;
         spillTuple_number.exchange(0);
         comb_spill_size.exchange(0);
+        dynamic_extension = false;
 
         // set configuration for specific iteration
 
