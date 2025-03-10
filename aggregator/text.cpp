@@ -5927,8 +5927,10 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
 
             mergeThreads_number = std::ceil(available_mem / (p_size * thread_efficiency));
             std::cout << "calc thread number: " << mergeThreads_number << ": ceil(" << available_mem << " / (" << p_size << " * " << thread_efficiency << "))" << std::endl;
-            if (partitions > 50)
+            if (mergeThreads_number >= 5)
             {
+                mergeThreads_number = std::floor(available_mem / p_size);
+                std::cout << "recalc thread number: " << mergeThreads_number << std::endl;
                 dynamic_extension = true;
             }
         }
