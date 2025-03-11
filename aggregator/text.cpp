@@ -2567,7 +2567,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
         if (spill_partitions_temp.empty() || std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
         {
             file_handlers[i] = open((*spill_file)[i].first.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
-            //std::cout << "Creating file: " << (*spill_file)[i].first.c_str() << std::endl;
+            // std::cout << "Creating file: " << (*spill_file)[i].first.c_str() << std::endl;
             if (file_handlers[i] == -1)
             {
                 // std::cout << "Tying to open file " << (fileName + "_" + std::to_string(i)) << std::endl;
@@ -3040,20 +3040,14 @@ void spillS3FileEncoded(std::pair<std::string, size_t> spill_file, Aws::S3::S3Cl
 {
     size_t spill_mem_size = spill_file.second;
     // std::cout << "Trying to open file: " << spill_file.first.c_str() << std::endl;
-    int file_handler;
-    char *spill_map;
-    while (true)
+    int file_handler = open(spill_file.first.c_str(), O_RDWR, 0777);
+    char *spill_map = static_cast<char *>(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handler, 0));
+    if (spill_map == MAP_FAILED)
     {
-        file_handler = open(spill_file.first.c_str(), O_RDWR, 0777);
-        spill_map = static_cast<char *>(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handler, 0));
-        if (spill_map != MAP_FAILED)
-        {
-            break;
-            /* close(file_handler);
-            std::cout << "size: " << spill_mem_size << " is fd valid? " << fcntl(file_handler, F_GETFD) << std::endl;
-            perror("Error mmapping the file while spilling from file to s3 encoded");
-            exit(EXIT_FAILURE); */
-        }
+        close(file_handler);
+        std::cout << "size: " << spill_mem_size << " is fd valid? " << fcntl(file_handler, F_GETFD) << std::endl;
+        perror("Error mmapping the file while spilling from file to s3 encoded");
+        exit(EXIT_FAILURE);
     }
     madvise(spill_map, spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
 
