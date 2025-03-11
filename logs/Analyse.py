@@ -1717,29 +1717,29 @@ def c_size_by_time():
     # }
 
     # deencode analyses
-    names = [
-        # "logfile_4_6_100_4_12-12.json",
-        # "logfile_4_6_100_4_19-32.json",
-        "logfile_4_6_0_4_21-45.json",
-        "logfile_4_6_0_4_22-06.json",
-        "logfile_4_6_0_4_19-55.json",
-        "logfile_4_6_0_4_19-34.json",
-        "logfile_4_6_0_4_23-18.json",
-        "logfile_4_6_0_4_23-45.json",
-        # "logfile_4_6_0_4_12-50.json",
-        # "logfile_4_6_0_4_12-22.json",
-    ]
-    labels = np.array(
-        [
-            "no compression",
-            "compression",
-            # "compression",
-            # "no compression",
-        ]
-    )
-    marking_labels = ["Local", "Local + S3", "S3", ]
-    divide = 3
-    titles = ["Local", "Local + S3", "S3"]
+    # names = [
+    #     # "logfile_4_6_100_4_12-12.json",
+    #     # "logfile_4_6_100_4_19-32.json",
+    #     "logfile_4_6_0_4_21-45.json",
+    #     "logfile_4_6_0_4_22-06.json",
+    #     "logfile_4_6_0_4_19-55.json",
+    #     "logfile_4_6_0_4_19-34.json",
+    #     "logfile_4_6_0_4_23-18.json",
+    #     "logfile_4_6_0_4_23-45.json",
+    #     # "logfile_4_6_0_4_12-50.json",
+    #     # "logfile_4_6_0_4_12-22.json",
+    # ]
+    # labels = np.array(
+    #     [
+    #         "no compression",
+    #         "compression",
+    #         # "compression",
+    #         # "no compression",
+    #     ]
+    # )
+    # marking_labels = ["Local", "Local + S3", "S3", ]
+    # divide = 3
+    # titles = ["Local", "Local + S3", "S3"]
 
     # with/out part
     # names = [
@@ -1991,28 +1991,26 @@ def c_size_by_time():
     # thread_number_anal = True
 
     # merge helpe 4
-    # names = [
-    #     # "logfile_4_6_0_8_12-03.json",
-    #     # "logfile_4_6_0_8_17-38.json",
-    #     # "logfile_4_6_0_8_20-47.json",
-    #     "logfile_4_6_0_10_21-06.json",
-    #     "logfile_4_6_0_10_12-14.json",
-    #     "logfile_4_15_0_10_09-25.json",
-    #     "logfile_4_6_0_10_22-06.json",
-    #     # "logfile_4_6_0_10_09-04.json",
-    #     "logfile_4_6_0_10_16-49.json",
-    #     # "logfile_4_6_0_10_12-50.json",
-    # ]
-    # labels = np.array(
-    #     [
-    #         "local",
-    #         "local + S3",
-    #         "local + S3(2)",
-    #         "S3",
-    #         "2 Worker",
-    #         # "3 Worker",
-    #     ]
-    # )
+    names = [
+        # "logfile_4_6_0_8_12-03.json",
+        # "logfile_4_6_0_8_17-38.json",
+        # "logfile_4_6_0_8_20-47.json",
+        "logfile_4_6_0_10_13-37.json", # l
+        "logfile_4_6_0_10_13-25.json", # ls
+        "logfile_4_6_0_10_13-47.json", # s
+        "logfile_4_6_0_10_13-10.json", # 2w
+
+    ]
+    labels = np.array(
+        [
+            "local",
+            "local + S3",
+           # "local + S3(2)",
+            "S3",
+            "2 Worker",
+            # "3 Worker",
+        ]
+    )
 
     # names = [
     #     # "logfile_4_15_0_10_13-14.json",  # l
