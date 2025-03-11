@@ -3040,14 +3040,20 @@ void spillS3FileEncoded(std::pair<std::string, size_t> spill_file, Aws::S3::S3Cl
 {
     size_t spill_mem_size = spill_file.second;
     // std::cout << "Trying to open file: " << spill_file.first.c_str() << std::endl;
-    int file_handler = open(spill_file.first.c_str(), O_RDWR, 0777);
-    char *spill_map = static_cast<char *>(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handler, 0));
-    if (spill_map == MAP_FAILED)
+    int file_handler;
+    char *spill_map;
+    while (true)
     {
-        close(file_handler);
-        std::cout << "size: " << spill_mem_size << " is fd valid? " << fcntl(file_handler, F_GETFD) << std::endl;
-        perror("Error mmapping the file while spilling from file to s3 encoded");
-        exit(EXIT_FAILURE);
+        file_handler = open(spill_file.first.c_str(), O_RDWR, 0777);
+        spill_map = static_cast<char *>(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handler, 0));
+        if (spill_map != MAP_FAILED)
+        {
+            break;
+            /* close(file_handler);
+            std::cout << "size: " << spill_mem_size << " is fd valid? " << fcntl(file_handler, F_GETFD) << std::endl;
+            perror("Error mmapping the file while spilling from file to s3 encoded");
+            exit(EXIT_FAILURE); */
+        }
     }
     madvise(spill_map, spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
 
