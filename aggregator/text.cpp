@@ -3226,16 +3226,19 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
     else
     {
         // std::cout << "spilling to s3 from file" << std::endl;
-        for (int i = 0; i < spill_file.size(); i++)
+        for (int i = 0; i < partitions; i++)
         {
-            counter = 0;
-            if (deencode)
+            if (!spill_partitions_temp.empty() && std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), partition) == spill_partitions_temp.end())
             {
-                spillS3FileEncoded(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
-            }
-            else
-            {
-                spillS3File(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
+                counter = 0;
+                if (deencode)
+                {
+                    spillS3FileEncoded(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
+                }
+                else
+                {
+                    spillS3File(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
+                }
             }
         }
         // std::cout << "spilled to s3 from file" << std::endl;
