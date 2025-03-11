@@ -3040,7 +3040,7 @@ void spillS3FileEncoded(std::pair<std::string, size_t> spill_file, Aws::S3::S3Cl
 {
     size_t spill_mem_size = spill_file.second;
     // std::cout << "Trying to open file: " << spill_file.first.c_str() << std::endl;
-    usleep(100);
+    usleep(1000);
     int file_handler = open(spill_file.first.c_str(), O_RDWR, 0777);
     char *spill_map = static_cast<char *>(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handler, 0));
     if (spill_map == MAP_FAILED)
