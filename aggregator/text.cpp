@@ -2559,42 +2559,45 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     // Calc spill size
     size_t spill_mem_size = hmap->size() * sizeof(long) * (key_number + value_number);
     std::vector<int> file_handlers(partitions);
-    for (int i = 0; i < partitions; i++)
-    {
-        file_handlers[i] = open((*spill_file)[i].first.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
-        if (file_handlers[i] == -1)
-        {
-            // std::cout << "Tying to open file " << (fileName + "_" + std::to_string(i)) << std::endl;
-            perror("Error opening file for writing");
-            exit(EXIT_FAILURE);
-        }
-    }
 
     // std::cout << "extending files" << std::endl;
     // extend file
     for (int i = 0; i < partitions; i++)
     {
-        // std::cout << "extending file " << (fileName + "_" + std::to_string(i)) << " by " << (*spill_file)[i].second + spill_mem_size - 1 << std::endl;
-        lseek(file_handlers[i], (*spill_file)[i].second + spill_mem_size - 1, SEEK_SET);
-        if (write(file_handlers[i], "", 1) == -1)
+        if (std::find(spill_partitions.begin(), spill_partitions.end(), i) != spill_partitions.end())
         {
-            close(file_handlers[i]);
-            perror("Error writing last byte of the file");
-            exit(EXIT_FAILURE);
+            file_handlers[i] = open((*spill_file)[i].first.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+            if (file_handlers[i] == -1)
+            {
+                // std::cout << "Tying to open file " << (fileName + "_" + std::to_string(i)) << std::endl;
+                perror("Error opening file for writing");
+                exit(EXIT_FAILURE);
+            }
+            // std::cout << "extending file " << (fileName + "_" + std::to_string(i)) << " by " << (*spill_file)[i].second + spill_mem_size - 1 << std::endl;
+            lseek(file_handlers[i], (*spill_file)[i].second + spill_mem_size - 1, SEEK_SET);
+            if (write(file_handlers[i], "", 1) == -1)
+            {
+                close(file_handlers[i]);
+                perror("Error writing last byte of the file");
+                exit(EXIT_FAILURE);
+            }
         }
     }
     std::vector<char *> spills;
 
     for (int i = 0; i < partitions; i++)
     {
-        spills.push_back((char *)(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handlers[i], 0)));
-        madvise(spills[i], spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
-        if (spills[i] == MAP_FAILED)
+        if (std::find(spill_partitions.begin(), spill_partitions.end(), i) != spill_partitions.end())
         {
-            std::cout << "size: " << spill_mem_size << " is fd valid? " << fcntl(file_handlers[i], F_GETFD) << std::endl;
-            close(file_handlers[i]);
-            perror("Error mmapping the file while writing encdoded");
-            exit(EXIT_FAILURE);
+            spills.push_back((char *)(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handlers[i], 0)));
+            madvise(spills[i], spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
+            if (spills[i] == MAP_FAILED)
+            {
+                std::cout << "size: " << spill_mem_size << " is fd valid? " << fcntl(file_handlers[i], F_GETFD) << std::endl;
+                close(file_handlers[i]);
+                perror("Error mmapping the file while writing encdoded");
+                exit(EXIT_FAILURE);
+            }
         }
     }
     // Write int to Mapping
@@ -2608,6 +2611,10 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
         if (partitions > 1)
         {
             partition = getPartition(it.first);
+            if (!spill_partitions.empty() && std::find(spill_partitions.begin(), spill_partitions.end(), partition) == spill_partitions.end())
+            {
+                continue;
+            }
         }
         char *spill = spills[partition];
         unsigned long &counter = counters[partition];
@@ -2652,21 +2659,28 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
             munmap(&spill[writehead], freed_space);
             writehead += freed_space;
         }
+        if (!spill_partitions.empty())
+        {
+            hmap->erase(it.first);
+        }
     }
     // std::cout << "freeing up mapping " << fileName << std::endl;
 
     for (int i = 0; i < partitions; i++)
     {
-        munmap(&spills[i][writeheads[i]], spill_mem_size - writeheads[i]);
-        (*spill_file)[i].second += counters[i];
-        if (ftruncate(file_handlers[i], counters[i]) == -1)
+        if (std::find(spill_partitions.begin(), spill_partitions.end(), i) != spill_partitions.end())
         {
+            munmap(&spills[i][writeheads[i]], spill_mem_size - writeheads[i]);
+            (*spill_file)[i].second += counters[i];
+            if (ftruncate(file_handlers[i], counters[i]) == -1)
+            {
+                close(file_handlers[i]);
+                perror("Error truncation file");
+                exit(EXIT_FAILURE);
+            }
+            comb_spill_size.fetch_add(counters[i]);
             close(file_handlers[i]);
-            perror("Error truncation file");
-            exit(EXIT_FAILURE);
         }
-        comb_spill_size.fetch_add(counters[i]);
-        close(file_handlers[i]);
     }
 
     // Cleanup: clear hashmap and free rest of mapping space
@@ -2693,34 +2707,36 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     size_t spill_mem_size = hmap->size() * sizeof(long) * (key_number + value_number);
     std::vector<int> file_handlers(partitions);
 
-    for (int i = 0; i < partitions; i++)
-    {
-        file_handlers[i] = open((*spill_file)[i].first.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
-    }
-
     // extend file
     for (int i = 0; i < partitions; i++)
     {
-        lseek(file_handlers[i], (*spill_file)[i].second + spill_mem_size - 1, SEEK_SET);
-        if (write(file_handlers[i], "", 1) == -1)
+        if (std::find(spill_partitions.begin(), spill_partitions.end(), i) != spill_partitions.end())
         {
-            close(file_handlers[i]);
-            perror("Error writing last byte of the file");
-            exit(EXIT_FAILURE);
+            file_handlers[i] = open((*spill_file)[i].first.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
+            lseek(file_handlers[i], (*spill_file)[i].second + spill_mem_size - 1, SEEK_SET);
+            if (write(file_handlers[i], "", 1) == -1)
+            {
+                close(file_handlers[i]);
+                perror("Error writing last byte of the file");
+                exit(EXIT_FAILURE);
+            }
         }
     }
     std::vector<unsigned long *> spills;
 
     for (int i = 0; i < partitions; i++)
     {
-        spills.push_back((unsigned long *)(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handlers[i], 0)));
-        madvise(spills[i], spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
-        if (spills[i] == MAP_FAILED)
+        if (std::find(spill_partitions.begin(), spill_partitions.end(), i) != spill_partitions.end())
         {
-            close(file_handlers[i]);
-            std::cout << "size: " << spill_mem_size << " is fd valid? " << fcntl(file_handlers[i], F_GETFD) << std::endl;
-            perror("Error mmapping the file while spilling to file");
-            exit(EXIT_FAILURE);
+            spills.push_back((unsigned long *)(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handlers[i], 0)));
+            madvise(spills[i], spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
+            if (spills[i] == MAP_FAILED)
+            {
+                close(file_handlers[i]);
+                std::cout << "size: " << spill_mem_size << " is fd valid? " << fcntl(file_handlers[i], F_GETFD) << std::endl;
+                perror("Error mmapping the file while spilling to file");
+                exit(EXIT_FAILURE);
+            }
         }
     }
     // Create mapping to file
@@ -2749,6 +2765,10 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         if (partitions > 1)
         {
             partition = getPartition(it.first);
+            if (!spill_partitions.empty() && std::find(spill_partitions.begin(), spill_partitions.end(), partition) == spill_partitions.end())
+            {
+                continue;
+            }
         }
         unsigned long *spill = spills[partition];
         unsigned long &counter = counters[partition];
@@ -2771,21 +2791,28 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
             munmap(&spill[writehead], freed_space);
             writehead += freed_space / sizeof(long);
         }
+        if (!spill_partitions.empty())
+        {
+            hmap->erase(it.first);
+        }
     }
 
     // Cleanup: clear hashmap and free rest of mapping space
     for (int i = 0; i < partitions; i++)
     {
-        munmap(&spills[i][writeheads[i]], spill_mem_size - writeheads[i] * sizeof(long));
-        (*spill_file)[i].second += (counters[i] - 1) * sizeof(long);
-        comb_spill_size.fetch_add((counters[i] - 1) * sizeof(long));
-        if (ftruncate(file_handlers[i], (counters[i] - 1) * sizeof(long)) == -1)
+        if (std::find(spill_partitions.begin(), spill_partitions.end(), i) != spill_partitions.end())
         {
+            munmap(&spills[i][writeheads[i]], spill_mem_size - writeheads[i] * sizeof(long));
+            (*spill_file)[i].second += (counters[i] - 1) * sizeof(long);
+            comb_spill_size.fetch_add((counters[i] - 1) * sizeof(long));
+            if (ftruncate(file_handlers[i], (counters[i] - 1) * sizeof(long)) == -1)
+            {
+                close(file_handlers[i]);
+                perror("Error truncation file");
+                exit(EXIT_FAILURE);
+            }
             close(file_handlers[i]);
-            perror("Error truncation file");
-            exit(EXIT_FAILURE);
         }
-        close(file_handlers[i]);
     }
 
     // std::cout << "spilled to file" << std::endl;
@@ -3201,14 +3228,17 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         // std::cout << "spilling to s3 from file" << std::endl;
         for (int i = 0; i < partitions; i++)
         {
-            counter = 0;
-            if (deencode)
+            if (std::find(spill_partitions.begin(), spill_partitions.end(), i) != spill_partitions.end())
             {
-                spillS3FileEncoded(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
-            }
-            else
-            {
-                spillS3File(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
+                counter = 0;
+                if (deencode)
+                {
+                    spillS3FileEncoded(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
+                }
+                else
+                {
+                    spillS3File(spill_file[i], minio_client, &sizes[i], (uniqueName + "_" + std::to_string(i)).c_str(), &counter);
+                }
             }
         }
         // std::cout << "spilled to s3 from file" << std::endl;
@@ -6650,6 +6680,7 @@ int main(int argc, char **argv)
     std::vector<int> spill_mode_vec(1, spill_mode);
     std::vector<float> thread_efficiency_vec(1, thread_efficiency);
     std::vector<float> input_divisor_vec(1, input_divisor);
+    std::vector<bool> partial_spilling_vec(1, partial_spilling);
 
     // If no conf file is used configuration can be obtained directly from command (legacy)
     if (argc == 10)
@@ -6846,6 +6877,11 @@ int main(int argc, char **argv)
                 input_divisor_vec[iteration] = std::stof(value);
                 break;
             }
+            case str2int("partial_spilling"):
+            {
+                partial_spilling_vec[iteration] = value.compare("true") == 0;
+                break;
+            }
             case str2int("iteration"):
             {
                 memLimit_vec.push_back(memLimit_vec[0]);
@@ -6870,6 +6906,7 @@ int main(int argc, char **argv)
                 thread_efficiency_vec.push_back(thread_efficiency_vec[0]);
                 spill_mode_vec.push_back(spill_mode_vec[0]);
                 input_divisor_vec.push_back(input_divisor_vec[0]);
+                partial_spilling_vec.push_back(partial_spilling_vec[0]);
                 iteration++;
                 break;
             }
@@ -6974,6 +7011,7 @@ int main(int argc, char **argv)
         thread_efficiency = thread_efficiency_vec[i];
         spill_mode = spill_mode_vec[i];
         input_divisor = input_divisor_vec[i];
+        partial_spilling = partial_spilling_vec[i];
         std::cout << "spill_mode: " << spill_mode << std::endl;
 
         // use_file_queue = split_mana ? false : use_file_queue;
