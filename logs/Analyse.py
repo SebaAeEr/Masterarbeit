@@ -1370,7 +1370,7 @@ def c_size_by_time():
     titles = []
     trino_labels = []
     runtime_x = []
-    print_time = False
+    print_time = True
     mem_pres = False
     # first analyses
     # names = [
@@ -1409,22 +1409,22 @@ def c_size_by_time():
     # )
 
     # part only 6 merge Threads
-    # names = [
-    #     "logfile_4_6_0_4_13-41.json",
-    #     "logfile_4_6_0_4_09-02.json",
-    #     "logfile_4_6_0_4_09-19.json",
-    #     "logfile_4_6_0_4_09-37.json",
-    #     "logfile_4_6_0_4_09-57.json",
-    # ]
-    # labels = np.array(
-    #     [
-    #         "10",
-    #         "25",
-    #         "50",
-    #         "75",
-    #         "100",
-    #     ]
-    # )
+    names = [
+        "logfile_4_6_0_4_13-41.json",
+        "logfile_4_6_0_4_09-02.json",
+        "logfile_4_6_0_4_09-19.json",
+        "logfile_4_6_0_4_09-37.json",
+        "logfile_4_6_0_4_09-57.json",
+    ]
+    labels = np.array(
+        [
+            "10",
+            "25",
+            "50",
+            "75",
+            "100",
+        ]
+    )
 
     # part only 8 merge Threads
     # names = [
@@ -1991,26 +1991,26 @@ def c_size_by_time():
     # thread_number_anal = True
 
     # merge helpe 4
-    names = [
-        # "logfile_4_6_0_8_12-03.json",
-        # "logfile_4_6_0_8_17-38.json",
-        # "logfile_4_6_0_8_20-47.json",
-        "logfile_4_6_0_10_13-37.json", # l
-        "logfile_4_6_0_10_13-25.json", # ls
-        "logfile_4_6_0_10_13-47.json", # s
-        "logfile_4_6_0_10_13-10.json", # 2w
+    # names = [
+    #     # "logfile_4_6_0_8_12-03.json",
+    #     # "logfile_4_6_0_8_17-38.json",
+    #     # "logfile_4_6_0_8_20-47.json",
+    #     "logfile_4_6_0_10_13-37.json", # l
+    #     "logfile_4_6_0_10_13-25.json", # ls
+    #     "logfile_4_6_0_10_13-47.json", # s
+    #     "logfile_4_6_0_10_13-10.json", # 2w
 
-    ]
-    labels = np.array(
-        [
-            "local",
-            "local + S3",
-           # "local + S3(2)",
-            "S3",
-            "2 Worker",
-            # "3 Worker",
-        ]
-    )
+    # ]
+    # labels = np.array(
+    #     [
+    #         "local",
+    #         "local + S3",
+    #        # "local + S3(2)",
+    #         "S3",
+    #         "2 Worker",
+    #         # "3 Worker",
+    #     ]
+    # )
 
     # names = [
     #     # "logfile_4_15_0_10_13-14.json",  # l
@@ -2613,7 +2613,7 @@ def c_size_by_time():
     if print_time:
         try:
             
-            f = open(os.path.join(directory, "times_4_15_0_10_09-25.csv"))
+            f = open(os.path.join(directory, "times_13_6_0_8_15-26.csv"))
             jf = open(os.path.join(directory, "logfile_4_15_0_10_09-25.json"))
         except:
             print("File not found.")
