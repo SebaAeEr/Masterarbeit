@@ -2564,7 +2564,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
     // extend file
     for (int i = 0; i < partitions; i++)
     {
-        if (std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
+        if (spill_partitions_temp.empty() || std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
         {
             file_handlers[i] = open((*spill_file)[i].first.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
             if (file_handlers[i] == -1)
@@ -2587,7 +2587,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
 
     for (int i = 0; i < partitions; i++)
     {
-        if (std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
+        if (spill_partitions_temp.empty() || std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
         {
             spills.push_back((char *)(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handlers[i], 0)));
             madvise(spills[i], spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
@@ -2668,7 +2668,7 @@ void spillToFileEncoded(emhash8::HashMap<std::array<unsigned long, max_size>, st
 
     for (int i = 0; i < partitions; i++)
     {
-        if (std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
+        if (spill_partitions_temp.empty() || std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
         {
             munmap(&spills[i][writeheads[i]], spill_mem_size - writeheads[i]);
             (*spill_file)[i].second += counters[i];
@@ -2710,7 +2710,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     // extend file
     for (int i = 0; i < partitions; i++)
     {
-        if (std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
+        if (spill_partitions_temp.empty() || std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
         {
             file_handlers[i] = open((*spill_file)[i].first.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0777);
             lseek(file_handlers[i], (*spill_file)[i].second + spill_mem_size - 1, SEEK_SET);
@@ -2726,7 +2726,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
 
     for (int i = 0; i < partitions; i++)
     {
-        if (std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
+        if (spill_partitions_temp.empty() || std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
         {
             spills.push_back((unsigned long *)(mmap(nullptr, spill_mem_size, PROT_WRITE | PROT_READ, MAP_SHARED, file_handlers[i], 0)));
             madvise(spills[i], spill_mem_size, MADV_SEQUENTIAL | MADV_WILLNEED);
@@ -2800,7 +2800,7 @@ void spillToFile(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     // Cleanup: clear hashmap and free rest of mapping space
     for (int i = 0; i < partitions; i++)
     {
-        if (std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
+        if (spill_partitions_temp.empty() || std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
         {
             munmap(&spills[i][writeheads[i]], spill_mem_size - writeheads[i] * sizeof(long));
             (*spill_file)[i].second += (counters[i] - 1) * sizeof(long);
@@ -2994,7 +2994,7 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     {
         for (int i = 0; i < partitions; i++)
         {
-            if (std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
+            if (spill_partitions_temp.empty() || std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
             {
                 if (temp_counter[i] > 0)
                 {
@@ -3228,7 +3228,7 @@ void spillToMinio(emhash8::HashMap<std::array<unsigned long, max_size>, std::arr
         // std::cout << "spilling to s3 from file" << std::endl;
         for (int i = 0; i < partitions; i++)
         {
-            if (!spill_partitions_temp.empty() && std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), partition) == spill_partitions_temp.end())
+            if (spill_partitions_temp.empty() || std::find(spill_partitions_temp.begin(), spill_partitions_temp.end(), i) != spill_partitions_temp.end())
             {
                 counter = 0;
                 if (deencode)
