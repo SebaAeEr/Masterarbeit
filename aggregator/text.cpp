@@ -230,6 +230,9 @@ std::atomic<size_t> comb_spill_size = 0;
 std::atomic<size_t> spillTuple_number = 0;
 int spill_mode = -1;
 float spill_perc = 1;
+std::vector<char> spill_partitions = {};
+std::atomic<int> spill_iteration = 0;
+bool partial_spilling = true;
 
 // hash function for an long array
 auto hash = [](const std::array<unsigned long, max_size> a)
@@ -2869,11 +2872,6 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     char byteArray[sizeof(long)];
     for (auto &it : *hmap)
     {
-        /*  if (tuple_counter < hmap->size() * spill_perc)
-         {
-             break;
-         }
-         tuple_counter++; */
         int partition = 0;
         if (partition_id != -1)
         {
@@ -2882,6 +2880,10 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
         else if (partitions > 1)
         {
             partition = getPartition(it.first);
+        }
+        if (!spill_partitions.empty() && std::find(spill_partitions.begin(), spill_partitions.end(), partition) == spill_partitions.end())
+        {
+            continue;
         }
 
         if (temp_counter[partition] == max_s3_spill_size)
@@ -2951,6 +2953,10 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
                     *in_streams[partition] << byteArray[k];
             }
         }
+        if (!spill_partitions.empty())
+        {
+            hmap->erase(it.first);
+        }
 
         /* if (spill_perc < 1)
         {
@@ -2961,24 +2967,26 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
     {
         for (int i = 0; i < partitions; i++)
         {
-            if (temp_counter[i] > 0)
+            if (std::find(spill_partitions.begin(), spill_partitions.end(), i) != spill_partitions.end())
             {
-                if (!deencode)
+                if (temp_counter[i] > 0)
                 {
-                    spill_mem_size_temp[i] = temp_counter[i] * sizeof(long) * (key_number + value_number);
-                }
+                    if (!deencode)
+                    {
+                        spill_mem_size_temp[i] = temp_counter[i] * sizeof(long) * (key_number + value_number);
+                    }
 
-                std::string n_temp = n[i] + "_" + std::to_string((*start_counter)[i]);
-                // std::cout << "Spill last to file: " << n_temp << " size: " << spill_mem_size_temp[i] << " #tuple: " << temp_counter[i] << std::endl;
-                writeS3File(minio_client, in_streams[i], spill_mem_size_temp[i], n_temp);
-                (*sizes)[i].push_back({spill_mem_size_temp[i], temp_counter[i]});
-                (*start_counter)[i]++;
+                    std::string n_temp = n[i] + "_" + std::to_string((*start_counter)[i]);
+                    // std::cout << "Spill last to file: " << n_temp << " size: " << spill_mem_size_temp[i] << " #tuple: " << temp_counter[i] << std::endl;
+                    writeS3File(minio_client, in_streams[i], spill_mem_size_temp[i], n_temp);
+                    (*sizes)[i].push_back({spill_mem_size_temp[i], temp_counter[i]});
+                    (*start_counter)[i]++;
+                }
             }
         }
     }
     else if (temp_counter[partition_id] > 0)
     {
-
         if (!deencode)
         {
             spill_mem_size_temp[partition_id] = temp_counter[partition_id] * sizeof(long) * (key_number + value_number);
@@ -3379,6 +3387,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
     threadLog.sizes["id"] = id;
     threadLog.sizes["inputSize"] = size;
     threadLog.sizes["outputLines"] = 0;
+    int local_spill_iteration = 0;
 
     // loop through entire mapping
     for (unsigned long i = 0; i < size + offset; i++)
@@ -3482,6 +3491,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             auto start_spill_time = std::chrono::high_resolution_clock::now();
             // std::cout << "spilling with size: " << hmap->size() << " i-head: " << (i - head + 1) << " size: " << getPhyValue() << std::endl;
             //    Reset freed_space and update numHashRows so that Estimation stay correct
+            size_t old_size = hmap->size();
             if (maxHmapSize < hmap->size())
             {
                 maxHmapSize = hmap->size();
@@ -3525,6 +3535,23 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                 partitions_set_lock.unlock();
             }
             threadLog.sizes["SpillSize"] += temp_spill_size;
+
+            local_spill_iteration++;
+            if (local_spill_iteration > spill_iteration.load())
+            {
+                spill_iteration.fetch_add(1);
+                if (partial_spilling)
+                {
+                    if (spill_iteration.load() - 1 < partitions)
+                    {
+                        spill_partitions.push_back(spill_iteration.load() - 1);
+                    }
+                    else
+                    {
+                        spill_partitions.clear();
+                    }
+                }
+            }
 
             threadLog.spillTimes.push_back(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count());
 
@@ -3619,8 +3646,15 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             threadLog.sizes["write_file_dur"] += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_spill_time).count();
 
             // std::cout << "Spilling ended" << std::endl;
-            threadLog.sizes["outputLines"] += hmap->size();
-            hmap->clear();
+            if (spill_partitions.empty())
+            {
+                threadLog.sizes["outputLines"] += hmap->size();
+                hmap->clear();
+            }
+            else
+            {
+                threadLog.sizes["outputLines"] += old_size - hmap->size();
+            }
         }
         numLines.fetch_add(1);
         numLinesLocal++;
@@ -5655,6 +5689,30 @@ char getMergePartition(Aws::S3::S3Client *minio_client)
     return partition;
 }
 
+void merge_hashmaps(std::vector<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *> emHashmaps,
+                    emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *emHashmap)
+{
+    for (int i = 0; i < emHashmaps.size(); i++)
+    {
+        for (auto &tuple : *emHashmaps[i])
+        {
+            if (emHashmap->contains(tuple.first))
+            {
+                for (int k = 0; k < value_number; k++)
+                {
+                    (*emHashmap)[tuple.first][k] += tuple.second[k];
+                }
+            }
+            else
+            {
+                emHashmap->insert_unique(tuple);
+            }
+        }
+        // comb_hash_size.fetch_sub((*emHashmaps)[i].size());
+        *emHashmaps[i] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
+    }
+}
+
 /**
  * @brief aggregate inputfilename and write results into outpufilename
  *
@@ -5768,33 +5826,39 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
     log_file.sizes["spill_share"] = spillTuple_number.load() * 1000 / w_lines;
     if (keep_hashmaps)
     {
+        /*  for (int i = 0; i < threadNumber; i++)
+         {
+             for (auto &tuple : emHashmaps[i])
+             {
+                 if (emHashmap.contains(tuple.first))
+                 {
+                     for (int k = 0; k < value_number; k++)
+                     {
+                         emHashmap[tuple.first][k] += tuple.second[k];
+                     }
+                 }
+                 else
+                 {
+                     emHashmap.insert_unique(tuple);
+                 }
+             }
+             comb_hash_size.fetch_sub(emHashmaps[i].size());
+             emHashmaps[i] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
+         } */
+        std::vector<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *> input_hash;
         for (int i = 0; i < threadNumber; i++)
         {
-            for (auto &tuple : emHashmaps[i])
-            {
-                if (emHashmap.contains(tuple.first))
-                {
-                    for (int k = 0; k < value_number; k++)
-                    {
-                        emHashmap[tuple.first][k] += tuple.second[k];
-                    }
-                }
-                else
-                {
-                    emHashmap.insert_unique(tuple);
-                }
-            }
-            comb_hash_size.fetch_sub(emHashmaps[i].size());
-            emHashmaps[i] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
+            input_hash.push_back(&emHashmaps[i]);
         }
+        merge_hashmaps(input_hash, &emHashmap);
         comb_hash_size.exchange(emHashmap.size());
-        // emHashmaps[0] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
     }
     else
     {
         for (int i = 0; i < threadNumber; i++)
         {
-            spillTuple_number.fetch_add(emHashmaps[i].size());
+            size_t old_size = emHashmaps[i].size();
+
             size_t s_size = emHashmaps[i].size() * sizeof(long) * (key_number + value_number);
             std::string uName = "spill_" + std::to_string(i);
             if ((backMem_usage + size < memLimitBack || spill_mode == 0) && spill_mode != 1 && spill_mode != 2)
@@ -5811,9 +5875,14 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                 std::vector<std::pair<std::string, size_t>> local_files(partitions, {"", 0});
                 spill_threads.push_back(std::thread(spillToMinio, &emHashmaps[i], local_files, uName, &minio_client, worker_id, 0, i));
             }
-            //}
-            // delete &emHashmaps[i];
-            // emHashmaps[i].clear();
+            if (spill_partitions.empty())
+            {
+                spillTuple_number.fetch_add(emHashmaps[i].size());
+            }
+            else
+            {
+                spillTuple_number.fetch_add(old_size - emHashmaps[i].size());
+            }
         }
         for (auto &thread : spill_threads)
         {
@@ -5825,13 +5894,31 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             {
                 for (int p = 0; p < partitions; p++)
                 {
-                    spills[p].push_back(local_spill_files_temp[i][p]);
+                    if (std::find(spill_partitions.begin(), spill_partitions.end(), p) != spill_partitions.end())
+                    {
+                        spills[p].push_back(local_spill_files_temp[i][p]);
+                    }
                 }
             }
-            emHashmaps[i] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
+            if (spill_partitions.empty())
+            {
+                emHashmaps[i] = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
+            }
         }
-
-        comb_hash_size.exchange(0);
+        if (spill_partitions.empty())
+        {
+            comb_hash_size.exchange(0);
+        }
+        else
+        {
+            std::vector<emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)> *> input_hash;
+            for (int i = 0; i < threadNumber; i++)
+            {
+                input_hash.push_back(&emHashmaps[i]);
+            }
+            merge_hashmaps(input_hash, &emHashmap);
+            comb_hash_size.exchange(emHashmap.size());
+        }
     }
     std::cout << "waiting for mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
     while (mana_writeThread_num.load() != 0)
@@ -5914,7 +6001,6 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             break;
         }
     }
-    std::cout << "test" << std::endl;
 
     // In case a spill occured, merge spills, otherwise just write hashmap
     if (!spills.empty() || s3spilled)
@@ -5988,16 +6074,15 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
         }
         else
         {
-
-            /* for (auto &s : spills)
+            if (!spill_partitions.empty())
             {
-                std::cout << "partition:\n   ";
-                for (auto f : s)
-                {
-                    std::cout << f.first << ":" << f.second << " , ";
-                }
-                std::cout << std::endl;
-            } */
+                // std::cout << "writing to output file" << std::endl;
+                written_lines += emHashmap.size();
+                // write hashmap to output file
+                writeHashmap(&emHashmap, &output_file_head, pagesize * 10, outputfilename);
+                emHashmap = emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsigned long, max_size>, decltype(hash), decltype(comp)>();
+                comb_hash_size.exchange(0);
+            }
             while (m_partition != -1)
             {
                 bool increase = false;

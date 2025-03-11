@@ -1563,30 +1563,35 @@ def c_size_by_time():
     #     # "logfile_4_10_0_10_11-14.json",  # 8
     #     "logfile_4_10_0_10_12-55.json",  # 8
     #     "logfile_4_10_0_10_14-01.json",  # 10
+    #     "logfile_4_10_0_10_15-04.json", # 10 partitions
     #    # "logfile_4_10_0_10_16-07.json",  # 4
     #    "logfile_4_10_0_10_22-30.json",  # 4
     #     "logfile_4_10_0_10_18-47.json",  # 6
     #     # "logfile_4_10_0_10_11-35.json",  # 8
     #     "logfile_4_10_0_10_13-16.json",  # 8
     #     "logfile_4_10_0_10_14-21.json",  # 10
+    #     "logfile_4_10_0_10_15-25.json", #25 partitions
     #     #"logfile_4_10_0_10_16-24.json",  # 4
     #     "logfile_4_10_0_10_22-43.json",  # 4
     #     "logfile_4_10_0_10_19-03.json",  # 6
     #     # "logfile_4_10_0_10_11-51.json",  # 8
     #     "logfile_4_10_0_10_13-34.json",  # 8
     #     "logfile_4_10_0_10_14-37.json",  # 10
+    #     "logfile_4_10_0_10_15-43.json", #50 partitions
     #     #"logfile_4_10_0_10_16-42.json",  # 4
     #     "logfile_4_10_0_10_22-55.json",  # 4
     #     "logfile_4_10_0_10_19-19.json",  # 6
     #     # "logfile_4_10_0_10_12-08.json",  # 8
     #     "logfile_4_10_0_10_13-54.json",  # 8
     #     "logfile_4_10_0_10_14-53.json",  # 10
+    #     "logfile_4_10_0_10_14-35.json", #75 partitions
     #     # "logfile_4_10_0_10_16-59.json",  # 4
     #     "logfile_4_10_0_10_23-08.json",  # 4
     #     "logfile_4_10_0_10_19-35.json",  # 6
     #     # "logfile_4_10_0_10_12-24.json",  # 8
     #     "logfile_4_10_0_10_14-15.json",  # 8
     #     "logfile_4_10_0_10_15-09.json",  # 10
+    #     "logfile_4_10_0_10_14-47.json", #100 partitions
     # ]
     # labels = np.array(
     #     [
@@ -1594,10 +1599,13 @@ def c_size_by_time():
     #         "10",
     #         "10",
     #         "10",
+    #         "10",
     #        "25",
     #         "25",
     #         "25",
     #         "25",
+    #         "25",
+    #         "50",
     #         "50",
     #         "50",
     #         "50",
@@ -1606,6 +1614,8 @@ def c_size_by_time():
     #         "75",
     #         "75",
     #         "75",
+    #         "75",
+    #         "100",
     #         "100",
     #         "100",
     #         "100",
@@ -1617,21 +1627,24 @@ def c_size_by_time():
     #     "6": np.zeros(5),
     #     "8": np.zeros(5),
     #     "10": np.zeros(5),
+    #     "Dynamic": np.zeros(5),
     # }
     # rescans = {
     #    "4": np.zeros(5),
     #     "6": np.zeros(5),
     #     "8": np.zeros(5),
     #     "10": np.zeros(5),
+    #     "Dynamic": np.zeros(5),
     # }
     # fill_facs = {
     #    "4": np.zeros(5),
     #     "6": np.zeros(5),
     #     "8": np.zeros(5),
     #     "10": np.zeros(5),
+    #     "Dynamic": np.zeros(5),
     # }
     # mem_pres = True
-    # runtime_keys = ["4","6", "8", "10"]
+    # runtime_keys = ["4","6", "8", "10", "Dynamic"]
     # runtime_x = [10, 25, 50, 75, 100]
     # tpc_4_shuffled = True
     # subplot = 0
@@ -1645,68 +1658,88 @@ def c_size_by_time():
     # }
 
     # # static
-    names = [
-        "logfile_4_10_0_10_11-10.json", 
-        "logfile_4_10_0_10_11-35.json", 
-        "logfile_4_10_0_10_11-53.json", 
-        "logfile_4_10_0_10_12-11.json", 
-        "logfile_4_10_0_10_12-28.json", 
-        # "logfile_4_10_0_10_21-43.json", 
-        # "logfile_4_10_0_10_21-59.json", 
-        # "logfile_4_10_0_10_22-11.json", 
-        # "logfile_4_10_0_10_22-23.json", 
-        # "logfile_4_10_0_10_22-34.json", 
-    ]
-    labels = np.array(
-        [
-            "10",
-            "25",
-            "50",
-            "75",
-            "100",
-        ]
-    )
-    runtimes = {
-        "6": np.zeros(5),
-    }
-    rescans = {
-        "6": np.zeros(5),
-    }
-    fill_facs = {
-        "6": np.zeros(5),
-    }
-    mem_pres = True
-    runtime_keys = ["6"]
-    runtime_x = [10, 25, 50, 75, 100]
-    tpc_4_shuffled = True
-    subplot = 0
-    subruntimes = {
-        #   "local": np.zeros(5),
-        # "local + S3": np.zeros(5),
-        #   "S3": np.zeros(5),
-        "Write time of spill files": np.zeros(5),
-        "Scan duration": np.zeros(5),
-        "Merge duration": np.zeros(5),
-    }
-
-    # deencode analyses
     # names = [
-    #     "logfile_4_6_0_4_12-50.json",
-    #     "logfile_4_6_0_4_12-22.json",
-    #     # "logfile_4_6_100_4_12-12.json",
-    #     # "logfile_4_6_100_4_19-32.json",
+    #     # "logfile_4_10_0_10_11-10.json", #10
+    #     # "logfile_4_10_0_10_11-35.json", #25
+    #     # "logfile_4_10_0_10_14-23.json", #50
+    #     "logfile_4_10_0_10_15-04.json", #10
+    #     "logfile_4_10_0_10_22-15.json",  # 4
+    #     "logfile_4_10_0_10_15-25.json", #25
+    #     "logfile_4_10_0_10_22-30.json",  # 4
+    #     "logfile_4_10_0_10_15-43.json", #50
+    #     "logfile_4_10_0_10_19-03.json",  # 6
+    #     "logfile_4_10_0_10_14-35.json", #75
+    #     "logfile_4_10_0_10_13-54.json",  # 8
+    #     "logfile_4_10_0_10_14-47.json", #100
+    #     "logfile_4_10_0_10_15-09.json",  # 10
+    #     # "logfile_4_10_0_10_11-53.json", #50
+    #     # "logfile_4_10_0_10_12-11.json", #75
+    #     # "logfile_4_10_0_10_12-28.json", #100
     # ]
     # labels = np.array(
     #     [
-    #         "compression",
-    #         "no compression",
-    #         # "compression",
-    #         # "no compression",
+    #         "10",
+    #         "10",
+    #         "25",
+    #         "25",
+    #         "50",
+    #         "50",
+    #         "75",
+    #         "75",
+    #         "100",
+    #         "100",
     #     ]
     # )
-    # marking_labels = ["S3", "Local"]
-    # divide = 2
-    # titles = ["S3", "Local"]
+    # runtimes = {
+    #     "Prototype": np.zeros(5),
+    #     "Experimental": np.zeros(5),
+    # }
+    # rescans = {
+    #     "Prototype": np.zeros(5),
+    #     "Experimental": np.zeros(5),
+    # }
+    # fill_facs = {
+    #     "Prototype": np.zeros(5),
+    #     "Experimental": np.zeros(5),
+    # }
+    # mem_pres = True
+    # runtime_keys = ["Prototype", "Experimental"]
+    # runtime_x = [10, 25, 50, 75, 100]
+    # tpc_4_shuffled = True
+    # subplot = 0
+    # subruntimes = {
+    #     #   "local": np.zeros(5),
+    #     # "local + S3": np.zeros(5),
+    #     #   "S3": np.zeros(5),
+    #     "Write time of spill files": np.zeros(5),
+    #     "Scan duration": np.zeros(5),
+    #     "Merge duration": np.zeros(5),
+    # }
+
+    # deencode analyses
+    names = [
+        # "logfile_4_6_100_4_12-12.json",
+        # "logfile_4_6_100_4_19-32.json",
+        "logfile_4_6_0_4_21-45.json",
+        "logfile_4_6_0_4_22-06.json",
+        "logfile_4_6_0_4_19-55.json",
+        "logfile_4_6_0_4_19-34.json",
+        "logfile_4_6_0_4_23-18.json",
+        "logfile_4_6_0_4_23-45.json",
+        # "logfile_4_6_0_4_12-50.json",
+        # "logfile_4_6_0_4_12-22.json",
+    ]
+    labels = np.array(
+        [
+            "no compression",
+            "compression",
+            # "compression",
+            # "no compression",
+        ]
+    )
+    marking_labels = ["Local", "Local + S3", "S3", ]
+    divide = 3
+    titles = ["Local", "Local + S3", "S3"]
 
     # with/out part
     # names = [
@@ -3157,7 +3190,7 @@ def c_size_by_time():
 
     if mem_pres:
         fig, ax = plt.subplots()
-        linestyles = ["solid", "dashed", "dotted", (0, (3, 5, 1, 5))]
+        linestyles = ["solid", "dashed", "dotted", (0, (3, 5, 1, 5)), (0, (3, 5, 1, 5, 1, 5))]
         counter = 0
         pres_leg_handles = []
         new_x = np.linspace(10, 100, 9)
@@ -3213,7 +3246,7 @@ def c_size_by_time():
         ax.grid(visible=True, linestyle="dashed")
 
         plt.figure(30)
-        styles = ["solid", "dashed", "dotted", (0, (3, 5, 1, 5))]
+        styles = ["solid", "dashed", "dotted", (0, (3, 5, 1, 5)), (0, (3, 5, 1, 5, 1, 5))]
         counter = 0
         for label, value in fill_facs.items():
             plt.plot(
@@ -3222,6 +3255,7 @@ def c_size_by_time():
                 label=label,
                 linewidth=5,
                 linestyle=styles[counter],
+                color=plt.cm.get_cmap("Dark2").colors[counter]
             )
             counter += 1
         #plt.legend(handles=trino_leg_handles)
@@ -3235,7 +3269,7 @@ def c_size_by_time():
 
     if tpc_4_shuffled:
         plt.figure(10)
-        linestyles = ["solid", "dashed", "dotted", (0, (3, 5, 1, 5))]
+        linestyles = ["solid", "dashed", "dotted", (0, (3, 5, 1, 5)), (0, (3, 5, 1, 5, 1, 5))]
         counter = 0
         for label, value in runtimes.items():
             plt.plot(
