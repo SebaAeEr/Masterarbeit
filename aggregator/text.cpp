@@ -4958,11 +4958,11 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
         auto s3spillFile_head_old = s3spillFile_head;
         auto input_head_base_old = input_head_base;
         auto old_hmap_size = hmap->size();
-        // std::cout << (int)(partition) << ": adding" << std::endl;
+        std::cout << (int)(partition) << ": adding" << std::endl;
         finished = subMerge(hmap, s3spillNames2, &s3spillBitmaps, spills, true, &s3spillFile_head, &bit_head, &subfile_head, &s3spillStart_head, &s3spillStart_head_chars, &input_head_base,
                             size_after_init, &read_lines, minio_client, &writeLock, avg, memLimit, comb_hash_size, diff, increase, &max_hash_size, 0, 0);
 
-        // std::cout << (int)(partition) << ": Hmap size: " << old_hmap_size << " -> " << hmap->size() << " Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
+        s3spillNames::cout << (int)(partition) << ": Hmap size: " << old_hmap_size << " -> " << hmap->size() << " Start adding from: " << s3spillFile_head_old << " to " << s3spillFile_head << " subfile_head: " << subfile_head << std::endl;
         //    std::cout << "comb_hash_size: " << comb_hash_size.load() << " max_hash_size: " << *max_hash_size << std::endl;
         //    bit_head_end++;
         increase = false;
@@ -5208,7 +5208,7 @@ int merge(emhash8::HashMap<std::array<unsigned long, max_size>, std::array<unsig
             }
         }
     }
-    std::cout << "spills size: " << spills->size();
+    // std::cout << "spills size: " << spills->size();
     for (auto &it : *spills)
     {
         remove(it.first.c_str());
@@ -6210,7 +6210,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
                     if (s3spilled)
                     {
                         m_partition = getMergePartition(&minio_client);
-                        std::cout << "got partition: " << (int)(m_partition) << std::endl;
+                        // std::cout << "got partition: " << (int)(m_partition) << std::endl;
                     }
                     else if (!spills.empty())
                     {
