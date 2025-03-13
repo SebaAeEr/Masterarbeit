@@ -3586,6 +3586,12 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     {
                         spill_partitions.clear();
                     }
+                    std::cout << "Adding spill partitions. spill iteration: " << spill_iteration.load() << " spill parititons: ";
+                    for (auto &p : spill_partitions)
+                    {
+                        std::cout << p << ", ";
+                    }
+                    std::cout << std::endl;
                 }
             }
 
