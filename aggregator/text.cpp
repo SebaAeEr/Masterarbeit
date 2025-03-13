@@ -3574,7 +3574,8 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             threadLog.sizes["SpillSize"] += temp_spill_size;
 
             local_spill_iteration++;
-            if (spill_iteration.compare_exchange_strong(local_spill_iteration, local_spill_iteration - 1))
+            auto expected = local_spill_iteration - 1;
+            if (spill_iteration.compare_exchange_strong(expected, local_spill_iteration))
             {
                 if (partial_spilling)
                 {
