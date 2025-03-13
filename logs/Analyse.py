@@ -1763,37 +1763,33 @@ def c_size_by_time():
 
     # partial spilling tpc 4
     names = [
-        "logfile_4_5_0_15_19-51.json",
-        "logfile_4_20_0_15_20-12.json",
-        "logfile_4_30_0_15_20-29.json",
-        "logfile_4_40_0_15_20-45.json",
-        "logfile_4_50_0_15_21-02.json",
-        "logfile_4_60_0_15_21-19.json",
+        "logfile_4_5_0_15_09-57.json",
+        "logfile_4_10_0_15_10-15.json",
+        "logfile_4_30_0_15_10-31.json",
+        "logfile_4_50_0_15_10-48.json",
     ]
     labels = np.array(
         [
             "5",
-            "20",
+            "10",
             "30",
-            "40",
             "50",
-            "60",
         ]
     )
     runtimes = {
-        "partial spilling": np.zeros(6),
+        "partial spilling": np.zeros(4),
     }
     runtime_keys = ["partial spilling"]
-    runtime_x = [10, 20, 30, 40, 50, 60]
+    runtime_x = [5, 10,  30, 50]
     tpc_4_shuffled = True
     subplot = 0
     subruntimes = {
         #   "local": np.zeros(5),
         # "local + S3": np.zeros(5),
         #   "S3": np.zeros(5),
-        "Write time of spill files": np.zeros(6),
-        "Scan duration": np.zeros(6),
-        "Merge duration": np.zeros(6),
+        "Write time of spill files": np.zeros(4),
+        "Scan duration": np.zeros(4),
+        "Merge duration": np.zeros(4),
     }
 
     # Mapping size
