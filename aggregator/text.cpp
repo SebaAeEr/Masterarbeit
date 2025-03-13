@@ -3038,7 +3038,8 @@ void spillS3Hmap(emhash8::HashMap<std::array<unsigned long, max_size>, std::arra
  */
 void spillS3FileEncoded(std::pair<std::string, size_t> spill_file, Aws::S3::S3Client *minio_client, std::vector<std::pair<size_t, size_t>> *sizes, std::string uniqueName, int *start_counter)
 {
-    if(spill_file.second == 0) {
+    if (spill_file.second == 0)
+    {
         return;
     }
     size_t spill_mem_size = spill_file.second;
@@ -3573,9 +3574,8 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             threadLog.sizes["SpillSize"] += temp_spill_size;
 
             local_spill_iteration++;
-            if (local_spill_iteration > spill_iteration.load())
+            if (spill_iteration.compare_exchange_strong(local_spill_iteration, local_spill_iteration - 1))
             {
-                spill_iteration.fetch_add(1);
                 if (partial_spilling)
                 {
                     if (spill_iteration.load() - 1 < partitions)
@@ -5956,6 +5956,12 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             }
             merge_hashmaps(input_hash, &emHashmap);
             comb_hash_size.exchange(emHashmap.size());
+            std::cout << "merging hashmap. size: " << emHashmap.size() << " remaining parititons: ";
+            for (auto &p : spill_partitions)
+            {
+                std::cout << p << ", ";
+            }
+            std::cout << std::endl;
         }
     }
     std::cout << "waiting for mana_writeThread_num: " << mana_writeThread_num.load() << std::endl;
