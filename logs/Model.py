@@ -5,7 +5,6 @@ from scipy.special import comb
 # tpc = 4
 # tuple_size = 2
 
-split = [1]
 worker_number = 0
 scanThreads = 6
 mainMemory = 4
@@ -349,7 +348,7 @@ def calc_merge_hashmapSize():
     thread_mem = (
         ((mainMemory - 1) * 2**30)
         - (
-            (scan_hashmapSize * comp_fac * merge_threads * buffer_fac)
+            (scan_hashmapSize * merge_threads * buffer_fac)
             / partition_number
         )
     ) / merge_threads
@@ -522,13 +521,14 @@ def simul(q, wn, sT, mm, hmm, pn, mt,mht, sm, b, divider, ls,mhs, ss: float = 8,
 
     calc_postScan_tuple_number()
 
+    calc_biggest_file()
     calc_merge_selectivity()
     calc_merge_hashmapSize()
     calc_merge_time_per_partition()
     calc_merge_dur()
     calc_download_network_load_merge()
     calc_network_load_merge_help()
-
+ 
     calc_merge_help_tuples()
     calc_mem_pressure()
     # #print("post_scan_selectivity: " + str(post_scan_selectivity))

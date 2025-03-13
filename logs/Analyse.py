@@ -1372,6 +1372,7 @@ def c_size_by_time():
     runtime_x = []
     print_time = True
     mem_pres = False
+    show_spill = True
     # first analyses
     # names = [
     #     "logfile_0_6_0_4_22-42.json",
@@ -1409,22 +1410,22 @@ def c_size_by_time():
     # )
 
     # part only 6 merge Threads
-    names = [
-        "logfile_4_6_0_4_13-41.json",
-        "logfile_4_6_0_4_09-02.json",
-        "logfile_4_6_0_4_09-19.json",
-        "logfile_4_6_0_4_09-37.json",
-        "logfile_4_6_0_4_09-57.json",
-    ]
-    labels = np.array(
-        [
-            "10",
-            "25",
-            "50",
-            "75",
-            "100",
-        ]
-    )
+    # names = [
+    #     "logfile_4_6_0_4_13-41.json",
+    #     "logfile_4_6_0_4_09-02.json",
+    #     "logfile_4_6_0_4_09-19.json",
+    #     "logfile_4_6_0_4_09-37.json",
+    #     "logfile_4_6_0_4_09-57.json",
+    # ]
+    # labels = np.array(
+    #     [
+    #         "10",
+    #         "25",
+    #         "50",
+    #         "75",
+    #         "100",
+    #     ]
+    # )
 
     # part only 8 merge Threads
     # names = [
@@ -1759,6 +1760,41 @@ def c_size_by_time():
     # )
     # divide = 2
     # titles = ["6GiB", "40GiB"]
+
+    # partial spilling tpc 4
+    names = [
+        "logfile_4_5_0_15_19-51.json",
+        "logfile_4_20_0_15_20-12.json",
+        "logfile_4_30_0_15_20-29.json",
+        "logfile_4_40_0_15_20-45.json",
+        "logfile_4_50_0_15_21-02.json",
+        "logfile_4_60_0_15_21-19.json",
+    ]
+    labels = np.array(
+        [
+            "5",
+            "20",
+            "30",
+            "40",
+            "50",
+            "60",
+        ]
+    )
+    runtimes = {
+        "partial spilling": np.zeros(6),
+    }
+    runtime_keys = ["partial spilling"]
+    runtime_x = [10, 20, 30, 40, 50, 60]
+    tpc_4_shuffled = True
+    subplot = 0
+    subruntimes = {
+        #   "local": np.zeros(5),
+        # "local + S3": np.zeros(5),
+        #   "S3": np.zeros(5),
+        "Write time of spill files": np.zeros(6),
+        "Scan duration": np.zeros(6),
+        "Merge duration": np.zeros(6),
+    }
 
     # Mapping size
     # names = [
@@ -3315,9 +3351,10 @@ def c_size_by_time():
         plt.ylabel("Query runtime in s")
         plt.grid(visible=True, linestyle="dashed")
 
-    if only_trino != -1:
+    if show_spill:
         plt.figure(14)
-        plt.plot(trino_x, trino_spill_size, label="Trino", linewidth=3, color=plt.cm.get_cmap("Dark2").colors[1])
+        if only_trino!= -1:
+            plt.plot(trino_x, trino_spill_size, label="Trino", linewidth=3, color=plt.cm.get_cmap("Dark2").colors[1])
         plt.plot(runtime_x, prot_spill_size, label="Prototype", linewidth=3, color=plt.cm.get_cmap("Dark2").colors[4])
         plt.legend()
         plt.xlabel("Size of Main Memory in GiB")

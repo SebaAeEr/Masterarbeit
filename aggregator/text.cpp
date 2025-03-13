@@ -6995,6 +6995,8 @@ int main(int argc, char **argv)
         spillTuple_number.exchange(0);
         comb_spill_size.exchange(0);
         dynamic_extension = false;
+        spill_partitions = {};
+        spill_iteration.exchange(0);
 
         // set configuration for specific iteration
 
