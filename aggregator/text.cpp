@@ -3579,7 +3579,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
             {
                 if (partial_spilling)
                 {
-                    if (spill_iteration.load() - 1 < partitions)
+                    if (spill_iteration.load() < partitions / 2)
                     {
                         spill_partitions.push_back(spill_iteration.load() - 1);
                     }
