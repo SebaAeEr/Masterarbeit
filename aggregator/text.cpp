@@ -3590,7 +3590,7 @@ void fillHashmap(char id, emhash8::HashMap<std::array<unsigned long, max_size>, 
                     std::cout << "Adding spill partitions. spill iteration: " << spill_iteration.load() << " spill parititons: ";
                     for (auto &p : spill_partitions)
                     {
-                        std::cout << p << ", ";
+                        std::cout << (int)(p) << ", ";
                     }
                     std::cout << std::endl;
                 }
@@ -5966,7 +5966,7 @@ int aggregate(std::string inputfilename, std::string outputfilename, size_t memL
             std::cout << "merging hashmap. size: " << emHashmap.size() << " remaining parititons: ";
             for (auto &p : spill_partitions)
             {
-                std::cout << p << ", ";
+                std::cout << (int)(p) << ", ";
             }
             std::cout << std::endl;
         }
